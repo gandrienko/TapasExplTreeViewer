@@ -87,12 +87,45 @@ public class Main {
   
       ExTreePanel exTreePanel=new ExTreePanel(exTreeReconstructor.topNodes);
       
-      JFrame frame = new JFrame("TAPAS Sector Explorer");
+      JFrame frame = new JFrame("TAPAS Explanations Logic Explorer");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       frame.getContentPane().add(exTreePanel, BorderLayout.CENTER);
       //Display the window.
       frame.pack();
       frame.setLocation(50,50);
       frame.setVisible(true);
+      
+      if (exTreeReconstructor.attributes!=null && !exTreeReconstructor.attributes.isEmpty()) {
+        String items[]=new String[exTreeReconstructor.attributes.size()];
+        int idx=0;
+        for (Map.Entry<String,Integer> e:exTreeReconstructor.attributes.entrySet()) {
+          items[idx++]= idx+") "+ e.getKey()+": "+e.getValue();
+        }
+        JList list=new JList(items);
+        JScrollPane listScroller = new JScrollPane(list);
+        listScroller.setPreferredSize(new Dimension(250, 400));
+        JFrame fr=new JFrame("Attributes:");
+        fr.getContentPane().add(listScroller, BorderLayout.CENTER);
+        //Display the window.
+        fr.pack();
+        fr.setLocation(250,100);
+        fr.setVisible(true);
+      }
+      if (exTreeReconstructor.sectors!=null && !exTreeReconstructor.sectors.isEmpty()) {
+        String items[]=new String[exTreeReconstructor.sectors.size()];
+        int idx=0;
+        for (Map.Entry<String,Integer> e:exTreeReconstructor.sectors.entrySet()) {
+          items[idx++]= idx+") "+ e.getKey()+": "+e.getValue();
+        }
+        JList list=new JList(items);
+        JScrollPane listScroller = new JScrollPane(list);
+        listScroller.setPreferredSize(new Dimension(250, 400));
+        JFrame fr=new JFrame("Sectors:");
+        fr.getContentPane().add(listScroller, BorderLayout.CENTER);
+        //Display the window.
+        fr.pack();
+        fr.setLocation(450,150);
+        fr.setVisible(true);
+      }
    }
 }

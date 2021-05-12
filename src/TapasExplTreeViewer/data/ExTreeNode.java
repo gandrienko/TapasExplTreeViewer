@@ -48,6 +48,15 @@ public class ExTreeNode {
     return condition[0]==this.condition[0] && condition[1]==this.condition[1];
   }
   
+  static public int compareConditions(double cnd1[], double cnd2[]) {
+    if (cnd1==null)
+      return (cnd2==null)?0:1;
+    if (cnd2==null) return -1;
+    if (cnd1[0]==cnd2[0])
+      return (cnd1[1]<cnd2[1])?-1:(cnd1[1]==cnd2[1])?0:1;
+    return (cnd1[0]<cnd2[1])?-1:1;
+  }
+  
   public ExTreeNode findChild(String attrName, double condition[]) {
     if (children==null)
       return null;
@@ -66,7 +75,20 @@ public class ExTreeNode {
       return;
     if (children==null)
       children=new ArrayList<ExTreeNode>(10);
-    children.add(child);
+    int idx=-1;
+    if (!children.isEmpty()) {
+      for (int i = 0; i < children.size() && idx < 0; i++)
+        if (child.attrName.equals(children.get(i).attrName))
+          idx = (compareConditions(child.condition, children.get(i).condition) < 0) ? i : i + 1;
+      if (idx<0)
+        for (int i = 0; i < children.size() && idx < 0; i++)
+          if (child.attrName.compareTo(children.get(i).attrName)<0)
+            idx=i;
+    }
+    if (idx>=0)
+      children.add(idx,child);
+    else
+      children.add(child);
     child.parent=this;
   }
 }

@@ -8,6 +8,9 @@ import java.util.Map;
 
 public class ExTreeReconstructor {
   public Hashtable<Integer,ExTreeNode> topNodes=null;
+  public Hashtable<String,Integer> attributes=null;
+  public Hashtable<String,Integer> sectors=null;
+  
   public boolean reconstructExTree (Hashtable<String, Flight> flights) {
     if (flights==null || flights.isEmpty())
       return false;
@@ -37,11 +40,23 @@ public class ExTreeReconstructor {
               child.level = eIt.level;
               child.condition = eIt.interval;
               currNode.addChild(child);
-              //if (currNode.children.size()>2)
-                //System.out.println(currNode.children.size()+"th child added to node "+currNode.getLabel());
             }
             child.addUse();
             currNode = child;
+  
+            if (attributes==null)
+              attributes=new Hashtable<String,Integer>(100);
+            Integer n=attributes.get(child.attrName);
+            if (n==null) n=0;
+            attributes.put(child.attrName,n+1);
+            
+            if (eIt.sector!=null) {
+              if (sectors==null)
+                sectors=new Hashtable<String,Integer>(100);
+              n=sectors.get(eIt.sector);
+              if (n==null) n=0;
+              sectors.put(eIt.sector,n+1);
+            }
           }
         }
       }

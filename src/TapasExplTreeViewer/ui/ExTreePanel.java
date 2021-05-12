@@ -34,7 +34,7 @@ public class ExTreePanel extends JPanel {
       attachNode(root, e.getValue());
     exTree=new JTree(root);
     setLayout(new BorderLayout());
-    add(exTree,BorderLayout.CENTER);
+    add(new JScrollPane(exTree),BorderLayout.CENTER);
   
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     setPreferredSize(new Dimension(Math.round(0.6f*size.width), Math.round(0.6f*size.height)));

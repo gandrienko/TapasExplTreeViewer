@@ -1,7 +1,6 @@
 package TapasExplTreeViewer.data;
 
 import java.util.ArrayList;
-import java.util.Hashtable;
 
 /**
  * Represents a node in an explanation tree (decision tree)
@@ -12,12 +11,62 @@ public class ExTreeNode {
   /**
    * min..max; either min or max is +-inf
    */
-  double interval[]={Double.NEGATIVE_INFINITY,Double.POSITIVE_INFINITY};
+  public double condition[]={Double.NEGATIVE_INFINITY,Double.POSITIVE_INFINITY};
   /**
    * How many times this node was used (i.e., occurs in explanations)
    */
-  int nUses=0;
+  public int nUses=0;
   
   public ExTreeNode parent=null;
-  public Hashtable<String,ExTreeNode> children=null;
+  public ArrayList<ExTreeNode> children=null;
+  
+  public String getLabel() {
+    if (attrName==null)
+      return "null";
+    if (condition==null ||
+            (condition[0]==Double.NEGATIVE_INFINITY &&
+                 condition[1]==Double.POSITIVE_INFINITY))
+      return attrName;
+    if (condition[0]==condition[1])
+      return attrName+" = "+condition[0];
+    if (condition[0]==Double.NEGATIVE_INFINITY)
+      return attrName+" < "+condition[1];
+    if (condition[1]==Double.POSITIVE_INFINITY)
+      return attrName+" >= "+condition[0];
+    return condition[0]+" <= "+attrName+" < "+condition[1];
+  }
+  
+  public boolean sameCondition(String attrName, double condition[]) {
+    if (attrName==null)
+      return this.attrName==null;
+    if (!attrName.equals(this.attrName))
+      return false;
+    if (condition==null)
+      return this.condition==null;
+    if (this.condition==null)
+      return false;
+    return condition[0]==this.condition[0] && condition[1]==this.condition[1];
+  }
+  
+  public ExTreeNode findChild(String attrName, double condition[]) {
+    if (children==null)
+      return null;
+    for (ExTreeNode child:children)
+      if (child.sameCondition(attrName,condition))
+        return child;
+    return null;
+  }
+  
+  public void addUse(){
+    ++nUses;
+  }
+  
+  public void addChild(ExTreeNode child) {
+    if (child==null)
+      return;
+    if (children==null)
+      children=new ArrayList<ExTreeNode>(10);
+    children.add(child);
+    child.parent=this;
+  }
 }

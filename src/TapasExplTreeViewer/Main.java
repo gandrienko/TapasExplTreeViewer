@@ -2,7 +2,11 @@ package TapasExplTreeViewer;
 
 import TapasDataReader.Flight;
 import TapasDataReader.Record;
+import TapasExplTreeViewer.data.ExTreeReconstructor;
+import TapasExplTreeViewer.ui.ExTreePanel;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.util.Hashtable;
 import java.util.Map;
@@ -58,10 +62,10 @@ public class Main {
       System.out.println("Decisions file name = "+fName);
       /**/
       TreeSet<Integer> steps=TapasDataReader.Readers.readStepsFromDecisions(fName);
-      System.out.println(steps);
+      //System.out.println(steps);
       Hashtable<String, Flight> flights=
           TapasDataReader.Readers.readFlightDelaysFromDecisions(fName,steps);
-      System.out.println(flights.get("EDDK-LEPA-EWG598-20190801083100").delays[2]);
+      //System.out.println(flights.get("EDDK-LEPA-EWG598-20190801083100").delays[2]);
       /*
       fName=fNames.get("flight_plans");
       if (fName==null) {
@@ -73,5 +77,22 @@ public class Main {
       */
       TapasDataReader.Readers.readExplanations(path,steps,flights);
       /**/
+  
+      ExTreeReconstructor exTreeReconstructor=new ExTreeReconstructor();
+      if (!exTreeReconstructor.reconstructExTree(flights)) {
+        System.out.println("Failed to reconstruct the explanation tree!");
+        return;
+      }
+      System.out.println("Reconstructed explanation tree has "+exTreeReconstructor.topNodes.size()+" top nodes");
+  
+      ExTreePanel exTreePanel=new ExTreePanel(exTreeReconstructor.topNodes);
+      
+      JFrame frame = new JFrame("TAPAS Sector Explorer");
+      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      frame.getContentPane().add(exTreePanel, BorderLayout.CENTER);
+      //Display the window.
+      frame.pack();
+      frame.setLocation(50,50);
+      frame.setVisible(true);
    }
 }

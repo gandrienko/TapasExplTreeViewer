@@ -6,12 +6,65 @@ import TapasExplTreeViewer.data.ExTreeReconstructor;
 import TapasExplTreeViewer.ui.ExTreePanel;
 
 import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.io.*;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.Vector;
+
+class RenderBar extends JProgressBar implements TableCellRenderer {
+  public RenderBar(int min, int max) {
+    super(min,max);
+    setStringPainted(true);
+    setOpaque(false);
+    // https://stackoverflow.com/questions/25385700/how-to-set-position-of-string-painted-in-jprogressbar
+  }
+  public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+    int v=((Integer)value).intValue();
+    setValue(v);
+    setString(""+v);
+    return this;
+  }
+}
+
+class TwoColumnsTableModel extends AbstractTableModel {
+  String columns[] = null;
+  String colStr[] = null;
+  Integer colInt[] = null;
+
+  public TwoColumnsTableModel(String columns[], String colStr[], Integer colInt[]) {
+    this.columns = columns;
+    this.colStr = colStr;
+    this.colInt = colInt;
+  }
+
+  public int getColumnCount() {
+    return columns.length;
+  }
+
+  public int getRowCount() {
+    return colStr.length;
+  }
+
+  public String getColumnName(int col) {
+    return columns[col];
+  }
+
+  public Class getColumnClass(int c) {
+    return getValueAt(0, c).getClass();
+  }
+
+  public Object getValueAt(int row, int col) {
+    if (col == 0)
+      return colStr[row];
+    else
+      return colInt[row];
+  }
+}
 
 public class Main {
 
@@ -96,6 +149,7 @@ public class Main {
       frame.setVisible(true);
       
       if (exTreeReconstructor.attributes!=null && !exTreeReconstructor.attributes.isEmpty()) {
+/*
         String items[]=new String[exTreeReconstructor.attributes.size()];
         int idx=0;
         for (Map.Entry<String,Integer> e:exTreeReconstructor.attributes.entrySet()) {
@@ -104,8 +158,31 @@ public class Main {
         JList list=new JList(items);
         JScrollPane listScroller = new JScrollPane(list);
         listScroller.setPreferredSize(new Dimension(250, 400));
-        JFrame fr=new JFrame("Attributes:");
-        fr.getContentPane().add(listScroller, BorderLayout.CENTER);
+*/
+
+        String columns[]={"Attribute","Count"};
+        String colStr[]=new String[exTreeReconstructor.attributes.size()];
+        Integer colInt[]=new Integer[exTreeReconstructor.attributes.size()];
+        int idx=0, max=0;
+        for (Map.Entry<String,Integer> e:exTreeReconstructor.attributes.entrySet()) {
+          colStr[idx]=e.getKey();
+          colInt[idx]=e.getValue();
+          if (colInt[idx]>max)
+            max=colInt[idx];
+          idx++;
+        }
+        JTable table = new JTable(new TwoColumnsTableModel(columns,colStr,colInt));
+        table.setPreferredScrollableViewportSize(new Dimension(500, 500));
+        table.setFillsViewportHeight(true);
+        table.setAutoCreateRowSorter(true);
+        DefaultTableCellRenderer centerRenderer=new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        table.getColumnModel().getColumn(1).setCellRenderer(new RenderBar(0,max));
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        JFrame fr=new JFrame("Attributes ("+colStr.length+")");
+        fr.getContentPane().add(/*listScroller*/scrollPane, BorderLayout.CENTER);
         //Display the window.
         fr.pack();
         fr.setLocation(250,100);

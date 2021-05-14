@@ -134,13 +134,36 @@ public class Main {
           fr.setLocation(60+Math.round(size.width * 0.4f), 50);
           fr.setVisible(true);
         }
+        matrix=exTreeReconstructor.countAttributesPerSectors();
+        if (matrix!=null) {
+          JTable table = new JTable(new TableOfIntegersModel(matrix));
+          table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.4f), Math.round(size.height * 0.4f)));
+          table.setFillsViewportHeight(true);
+          table.setAutoCreateRowSorter(true);
+          DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+          centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+          table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+          for (int i=1; i<matrix.colNames.length; i++)
+            table.getColumnModel().getColumn(i).setCellRenderer(new RenderLabelBarChart(0, matrix.getColumnMax(i)));
+          JScrollPane scrollPane = new JScrollPane(table);
+    
+          JFrame fr = new JFrame("Sectors (" + matrix.rowNames.length + ")");
+          fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
+          //Display the window.
+          fr.pack();
+          fr.setLocation(60+Math.round(size.width * 0.4f), 50+Math.round(size.height * 0.4f));
+          fr.setVisible(true);
+        }
       }
   
       ExTreePanel exTreePanel=new ExTreePanel(exTreeReconstructor.topNodes);
+      ExTreePanel exTreePanel1=(exTreeReconstructor.topNodesExCombined==null)?null:
+                                   new ExTreePanel(exTreeReconstructor.topNodesExCombined);
+      JSplitPane spl=(exTreePanel1==null)?null:new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,exTreePanel,exTreePanel1);
   
       JFrame frame = new JFrame("TAPAS Explanations Logic Explorer");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.getContentPane().add(exTreePanel, BorderLayout.CENTER);
+      frame.getContentPane().add((spl==null)?exTreePanel:spl, BorderLayout.CENTER);
       //Display the window.
       frame.pack();
       frame.setLocation(size.width-frame.getWidth()-50,50);

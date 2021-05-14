@@ -50,7 +50,7 @@ public class ExTreeReconstructor {
             if (n==null) n=0;
             attributes.put(child.attrName,n+1);
             
-            if (eIt.sector!=null) {
+            if (eIt.sector!=null && !eIt.sector.equalsIgnoreCase("null")) {
               if (sectors==null)
                 sectors=new Hashtable<String,Integer>(100);
               n=sectors.get(eIt.sector);

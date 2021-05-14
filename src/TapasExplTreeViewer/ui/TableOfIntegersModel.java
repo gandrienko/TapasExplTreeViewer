@@ -1,5 +1,7 @@
 package TapasExplTreeViewer.ui;
 
+import TapasExplTreeViewer.data.CountMatrix;
+
 import javax.swing.table.AbstractTableModel;
 
 public class TableOfIntegersModel extends AbstractTableModel {
@@ -9,6 +11,12 @@ public class TableOfIntegersModel extends AbstractTableModel {
   
   public TableOfIntegersModel(String colNames[], String rowNames[], Integer cellValues[][]) {
     this.colNames=colNames; this.rowNames=rowNames; this.cellValues=cellValues;
+  }
+  
+  public TableOfIntegersModel(CountMatrix matrix) {
+    if (matrix==null)
+      return;
+    this.colNames=matrix.colNames; this.rowNames=matrix.rowNames; this.cellValues=matrix.cellValues;
   }
   
   public int getColumnCount() {

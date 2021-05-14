@@ -2,6 +2,7 @@ package TapasExplTreeViewer;
 
 import TapasDataReader.Flight;
 import TapasDataReader.Record;
+import TapasExplTreeViewer.data.CountMatrix;
 import TapasExplTreeViewer.data.ExTreeReconstructor;
 import TapasExplTreeViewer.ui.ExTreePanel;
 import TapasExplTreeViewer.ui.TableOfIntegersModel;
@@ -116,6 +117,7 @@ public class Main {
       frame.setVisible(true);
       
       if (exTreeReconstructor.attributes!=null && !exTreeReconstructor.attributes.isEmpty()) {
+        /*
         String colNames[]={"Attribute","Count"};
         String rowNames[]=new String[exTreeReconstructor.attributes.size()];
         Integer counts[][]=new Integer[exTreeReconstructor.attributes.size()][1];
@@ -128,21 +130,27 @@ public class Main {
           idx++;
         }
         JTable table = new JTable(new TableOfIntegersModel(colNames,rowNames,counts));
-        table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width*0.2f), Math.round(size.height*0.35f)));
-        table.setFillsViewportHeight(true);
-        table.setAutoCreateRowSorter(true);
-        DefaultTableCellRenderer centerRenderer=new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
-        table.getColumnModel().getColumn(1).setCellRenderer(new RenderBar(0,max));
-        JScrollPane scrollPane = new JScrollPane(table);
-
-        JFrame fr=new JFrame("Attributes ("+rowNames.length+")");
-        fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
-        //Display the window.
-        fr.pack();
-        fr.setLocation(50,50);
-        fr.setVisible(true);
+        */
+        CountMatrix matrix=exTreeReconstructor.countActionsPerAttributes();
+        if (matrix!=null) {
+          JTable table = new JTable(new TableOfIntegersModel(matrix));
+          table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.4f), Math.round(size.height * 0.4f)));
+          table.setFillsViewportHeight(true);
+          table.setAutoCreateRowSorter(true);
+          DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+          centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+          table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+          for (int i=1; i<matrix.colNames.length; i++)
+            table.getColumnModel().getColumn(i).setCellRenderer(new RenderBar(0, matrix.getColumnMax(i)));
+          JScrollPane scrollPane = new JScrollPane(table);
+  
+          JFrame fr = new JFrame("Attributes (" + matrix.rowNames.length + ")");
+          fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
+          //Display the window.
+          fr.pack();
+          fr.setLocation(50, 50);
+          fr.setVisible(true);
+        }
       }
       if (exTreeReconstructor.sectors!=null && !exTreeReconstructor.sectors.isEmpty()) {
         String colNames[]={"Sector","Count"};
@@ -171,7 +179,7 @@ public class Main {
         fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
         //Display the window.
         fr.pack();
-        fr.setLocation(60+Math.round(size.width*0.2f),50);
+        fr.setLocation(60+Math.round(size.width*0.4f),50);
         fr.setVisible(true);
       }
    }

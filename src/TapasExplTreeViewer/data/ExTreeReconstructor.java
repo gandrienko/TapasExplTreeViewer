@@ -3,8 +3,7 @@ package TapasExplTreeViewer.data;
 import TapasDataReader.ExplanationItem;
 import TapasDataReader.Flight;
 
-import java.util.Hashtable;
-import java.util.Map;
+import java.util.*;
 
 public class ExTreeReconstructor {
   public Hashtable<Integer,ExTreeNode> topNodes=null;
@@ -63,4 +62,59 @@ public class ExTreeReconstructor {
     }
     return topNodes!=null && !topNodes.isEmpty();
   }
+  
+  /**
+   * Traverses the trees corresponding to each action and counts for each action
+   * how many times each attribute occurs
+   * @return a matrix with the rows corresponding to the attributes and columns to the actions.
+   * The first column contains the total counts of the actions
+   */
+  public CountMatrix countActionsPerAttributes() {
+    if (topNodes==null || topNodes.isEmpty() || attributes==null || attributes.isEmpty())
+      return null;
+    CountMatrix matrix=new CountMatrix();
+    matrix.rowNames=new String[attributes.size()];
+    int idx=0;
+    for (String aName:attributes.keySet())
+      matrix.rowNames[idx++]=aName;
+    matrix.colNames=new String[topNodes.size()+2];
+    matrix.colNames[0]="Attribute";
+    matrix.colNames[1]="Total";
+    ArrayList<Integer> actions=new ArrayList<Integer>(topNodes.size());
+    for (Integer action:topNodes.keySet())
+      actions.add(action);
+    Collections.sort(actions);
+    idx=2;
+    for (int i=actions.size()-1; i>=0; i--)
+      matrix.colNames[idx++]=actions.get(i).toString();
+    matrix.cellValues=new Integer[matrix.rowNames.length][matrix.colNames.length-1];
+    for (int r=0; r<matrix.cellValues.length; r++)
+      for (int c=0; c<matrix.cellValues[r].length; c++)
+        matrix.cellValues[r][c]=0;
+    for (Map.Entry<Integer,ExTreeNode> e:topNodes.entrySet()) {
+      countAttributeUsesInNode(e.getValue(),e.getKey(),matrix);
+    }
+    return matrix;
+  }
+  
+  protected void countAttributeUsesInNode(ExTreeNode node, Integer action, CountMatrix matrix) {
+    if (node==null || matrix==null || matrix.cellValues==null || node.attrName==null || matrix.rowNames==null)
+      return;
+    int rIdx=-1;
+    for (int i=0; i<matrix.rowNames.length && rIdx<0; i++)
+      if (node.attrName.equals(matrix.rowNames[i]))
+        rIdx=i;
+    if (rIdx>=0) {
+      matrix.cellValues[rIdx][0] = matrix.cellValues[rIdx][0] + 1; //total
+      if (action >= 0) {
+        int cIdx = matrix.colNames.length - 2 - action;
+        if (cIdx > 0)
+          matrix.cellValues[rIdx][cIdx] = matrix.cellValues[rIdx][cIdx] + 1; //total
+      }
+    }
+    if (node.children!=null)
+      for (ExTreeNode child:node.children)
+        countAttributeUsesInNode(child,action,matrix);
+  }
+  
 }

@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.data;
 
 import java.util.ArrayList;
+import java.util.Hashtable;
 
 /**
  * Represents a node in an explanation tree (decision tree)
@@ -16,6 +17,10 @@ public class ExTreeNode {
    * How many times this node was used (i.e., occurs in explanations)
    */
   public int nUses=0;
+  /**
+   * How many times different sectors appear in combination with this attribute and this condition
+   */
+  public Hashtable<String,Integer> sectors=null;
   
   public ExTreeNode parent=null;
   public ArrayList<ExTreeNode> children=null;
@@ -68,6 +73,14 @@ public class ExTreeNode {
   
   public void addUse(){
     ++nUses;
+  }
+  
+  public void addSectorUse(String sector){
+    if (sectors==null)
+      sectors=new Hashtable<String,Integer>(100);
+    Integer n=sectors.get(sector);
+    if (n==null) n=0;
+    sectors.put(sector,n+1);
   }
   
   public void addChild(ExTreeNode child) {

@@ -50,6 +50,7 @@ public class ExTreeReconstructor {
             attributes.put(child.attrName,n+1);
             
             if (eIt.sector!=null && !eIt.sector.equalsIgnoreCase("null")) {
+              child.addSectorUse(eIt.sector);
               if (sectors==null)
                 sectors=new Hashtable<String,Integer>(100);
               n=sectors.get(eIt.sector);
@@ -98,18 +99,20 @@ public class ExTreeReconstructor {
   }
   
   protected void countAttributeUsesInNode(ExTreeNode node, Integer action, CountMatrix matrix) {
-    if (node==null || matrix==null || matrix.cellValues==null || node.attrName==null || matrix.rowNames==null)
+    if (node==null || matrix==null || matrix.cellValues==null || matrix.rowNames==null)
       return;
-    int rIdx=-1;
-    for (int i=0; i<matrix.rowNames.length && rIdx<0; i++)
-      if (node.attrName.equals(matrix.rowNames[i]))
-        rIdx=i;
-    if (rIdx>=0) {
-      matrix.cellValues[rIdx][0] = matrix.cellValues[rIdx][0] + 1; //total
-      if (action >= 0) {
-        int cIdx = matrix.colNames.length - 2 - action;
-        if (cIdx > 0)
-          matrix.cellValues[rIdx][cIdx] = matrix.cellValues[rIdx][cIdx] + 1; //total
+    if (node.attrName!=null) {
+      int rIdx = -1;
+      for (int i = 0; i < matrix.rowNames.length && rIdx < 0; i++)
+        if (node.attrName.equals(matrix.rowNames[i]))
+          rIdx = i;
+      if (rIdx >= 0) {
+        matrix.cellValues[rIdx][0] = matrix.cellValues[rIdx][0] + 1; //total
+        if (action >= 0) {
+          int cIdx = matrix.colNames.length - 2 - action; //the actions are in descending order
+          if (cIdx > 0)
+            matrix.cellValues[rIdx][cIdx] = matrix.cellValues[rIdx][cIdx] + 1;
+        }
       }
     }
     if (node.children!=null)
@@ -117,4 +120,49 @@ public class ExTreeReconstructor {
         countAttributeUsesInNode(child,action,matrix);
   }
   
+  public CountMatrix countActionsPerSectors() {
+    if (topNodes==null || topNodes.isEmpty() || sectors==null || sectors.isEmpty())
+      return null;
+    CountMatrix matrix=new CountMatrix();
+    matrix.rowNames=new String[sectors.size()];
+    int idx=0;
+    for (String aName:sectors.keySet())
+      matrix.rowNames[idx++]=aName;
+    matrix.colNames=new String[topNodes.size()+2];
+    matrix.colNames[0]="Sector";
+    matrix.colNames[1]="Total";
+    ArrayList<Integer> actions=new ArrayList<Integer>(topNodes.size());
+    for (Integer action:topNodes.keySet())
+      actions.add(action);
+    Collections.sort(actions);
+    idx=2;
+    for (int i=actions.size()-1; i>=0; i--)
+      matrix.colNames[idx++]=actions.get(i).toString();
+    matrix.cellValues=new Integer[matrix.rowNames.length][matrix.colNames.length-1];
+    for (int r=0; r<matrix.cellValues.length; r++)
+      for (int c=0; c<matrix.cellValues[r].length; c++)
+        matrix.cellValues[r][c]=0;
+    for (Map.Entry<Integer,ExTreeNode> e:topNodes.entrySet()) {
+      countSectorUsesInNode(e.getValue(),e.getKey(),matrix);
+    }
+    return matrix;
+  }
+  
+  protected void countSectorUsesInNode(ExTreeNode node, Integer action, CountMatrix matrix) {
+    if (node==null || matrix==null || matrix.cellValues==null || matrix.rowNames==null)
+      return;
+    if (node.sectors!=null)
+      for (int i=0; i<matrix.rowNames.length; i++) {
+        Integer n=node.sectors.get(matrix.rowNames[i]);
+        if (n!=null) {
+          matrix.cellValues[i][0]=matrix.cellValues[i][0]+n; //total
+          int cIdx = matrix.colNames.length - 2 - action; //the actions are in descending order
+          if (cIdx > 0)
+            matrix.cellValues[i][cIdx] = matrix.cellValues[i][cIdx] + n;
+        }
+      }
+    if (node.children!=null)
+      for (ExTreeNode child:node.children)
+        countSectorUsesInNode(child,action,matrix);
+  }
 }

@@ -39,7 +39,7 @@ public class ExTreeReconstructor {
               child = new ExTreeNode();
               child.attrName = eIt.attr;
               child.level = eIt.level;
-              child.condition = eIt.interval;
+              child.condition = eIt.interval.clone();
               currNode.addChild(child);
             }
             child.addUse();
@@ -88,7 +88,7 @@ public class ExTreeReconstructor {
                 child = new ExTreeNode();
                 child.attrName = eIt.attr;
                 child.level = eIt.level;
-                child.condition = eIt.interval;
+                child.condition = eIt.interval.clone();
                 currNode.addChild(child);
               }
               child.addUse();

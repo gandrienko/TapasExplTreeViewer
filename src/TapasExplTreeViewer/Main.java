@@ -79,10 +79,12 @@ public class Main {
       System.out.println("Flight plans file name = "+fName);
       Hashtable<String, Vector<Record>> records=TapasDataReader.Readers.readFlightPlans(fName,flights);
       */
-      TapasDataReader.Readers.readExplanations(path,steps,flights);
+      Hashtable<String,int[]> attrs=new Hashtable<String, int[]>();
+      TapasDataReader.Readers.readExplanations(path,steps,flights,attrs);
       /**/
   
       ExTreeReconstructor exTreeReconstructor=new ExTreeReconstructor();
+      exTreeReconstructor.setAttrMinMaxValues(attrs);
       if (!exTreeReconstructor.reconstructExTree(flights)) {
         System.out.println("Failed to reconstruct the explanation tree!");
         return;

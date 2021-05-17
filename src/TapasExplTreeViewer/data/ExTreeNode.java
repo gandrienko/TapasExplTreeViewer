@@ -38,7 +38,7 @@ public class ExTreeNode {
       return attrName+" < "+condition[1];
     if (condition[1]==Double.POSITIVE_INFINITY)
       return attrName+" >= "+condition[0];
-    return condition[0]+" <= "+attrName+" < "+condition[1];
+    return attrName+" in ["+condition[0]+", "+condition[1]+")";
   }
   
   public boolean sameCondition(String attrName, double condition[]) {

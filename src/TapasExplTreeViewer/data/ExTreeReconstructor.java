@@ -6,11 +6,20 @@ import TapasDataReader.Flight;
 import java.util.*;
 
 public class ExTreeReconstructor {
-  public Hashtable<Integer,ExTreeNode> topNodes=null;
-  public Hashtable<Integer,ExTreeNode> topNodesExCombined =null;
+  /**
+   * Minimums and maximums for the attributes
+   */
+  public Hashtable<String,int[]> attrMinMaxValues =null;
+
+  public Hashtable<Integer,ExTreeNode> topNodes=null, topNodesInt=null;
+  public Hashtable<Integer,ExTreeNode> topNodesExCombined =null, topNodesIntExCombined=null;
   public Hashtable<String,Integer> attributes=null;
   public Hashtable<String,Integer> sectors=null;
   public Hashtable<String,Integer> attributesWithSectors=null;
+  
+  public void setAttrMinMaxValues(Hashtable<String,int[]> attrMinMaxValues) {
+    this.attrMinMaxValues=attrMinMaxValues;
+  }
   
   public boolean reconstructExTree (Hashtable<String, Flight> flights) {
     if (flights==null || flights.isEmpty())
@@ -68,7 +77,7 @@ public class ExTreeReconstructor {
         }
       for (int i=0; i<f.expl.length; i++)
         if (f.expl[i] != null && f.expl[i].eItems != null) {
-          ExplanationItem combItems[] = f.expl[i].getExplItemsCombined();
+          ExplanationItem combItems[] = f.expl[i].getExplItemsCombined(f.expl[i].eItems);
           if (combItems != null) {
             if (topNodesExCombined == null)
               topNodesExCombined = new Hashtable<Integer, ExTreeNode>(20);

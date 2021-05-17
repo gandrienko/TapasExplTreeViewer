@@ -111,7 +111,7 @@ public class Main {
           fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
           //Display the window.
           fr.pack();
-          fr.setLocation(50, 50);
+          fr.setLocation(30, 30);
           fr.setVisible(true);
         }
       }
@@ -133,7 +133,7 @@ public class Main {
           fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
           //Display the window.
           fr.pack();
-          fr.setLocation(60+Math.round(size.width * 0.4f), 50);
+          fr.setLocation(30, Math.round(size.height*0.5f));
           fr.setVisible(true);
         }
         matrix=exTreeReconstructor.countAttributesPerSectors();
@@ -153,19 +153,32 @@ public class Main {
           fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
           //Display the window.
           fr.pack();
-          fr.setLocation(60+Math.round(size.width * 0.4f), 50+Math.round(size.height * 0.4f));
+          fr.setLocation(30+Math.round(size.width * 0.1f), 30+Math.round(size.height * 0.3f));
           fr.setVisible(true);
         }
       }
   
       ExTreePanel exTreePanel=new ExTreePanel(exTreeReconstructor.topNodes);
-      ExTreePanel exTreePanel1=(exTreeReconstructor.topNodesExCombined==null)?null:
+      ExTreePanel combExTreePanel=(exTreeReconstructor.topNodesExCombined==null)?null:
                                    new ExTreePanel(exTreeReconstructor.topNodesExCombined);
-      JSplitPane spl=(exTreePanel1==null)?null:new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,exTreePanel,exTreePanel1);
+      ExTreePanel intExTreePanel=(exTreeReconstructor.topNodesInt==null)?null:
+                                     new ExTreePanel(exTreeReconstructor.topNodesInt);
+      ExTreePanel combIntExTreePanel=(exTreeReconstructor.topNodesIntExCombined==null)?null:
+                                         new ExTreePanel(exTreeReconstructor.topNodesIntExCombined);
+      JSplitPane spl1=(combExTreePanel==null)?null:
+                          new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,exTreePanel,combExTreePanel);
+      JSplitPane spl2=(intExTreePanel!=null && combIntExTreePanel!=null)?
+                          new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,intExTreePanel,combIntExTreePanel):null;
+      JSplitPane splAll=(spl1!=null)?(spl2!=null)?new JSplitPane(JSplitPane.VERTICAL_SPLIT,spl1,spl2):
+                                         (intExTreePanel!=null)?new JSplitPane(JSplitPane.VERTICAL_SPLIT,spl1,intExTreePanel):
+                                             (combIntExTreePanel!=null)?new JSplitPane(JSplitPane.VERTICAL_SPLIT,spl1,combIntExTreePanel):spl1:
+                            (spl2!=null)?new JSplitPane(JSplitPane.VERTICAL_SPLIT,exTreePanel,spl2):
+                                (intExTreePanel!=null)?new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,exTreePanel,intExTreePanel):
+                                    (combIntExTreePanel!=null)?new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,exTreePanel,combIntExTreePanel):null;
   
       JFrame frame = new JFrame("TAPAS Explanations Logic Explorer");
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.getContentPane().add((spl==null)?exTreePanel:spl, BorderLayout.CENTER);
+      frame.getContentPane().add((splAll==null)?exTreePanel:splAll, BorderLayout.CENTER);
       //Display the window.
       frame.pack();
       frame.setLocation(size.width-frame.getWidth()-50,50);

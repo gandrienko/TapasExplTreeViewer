@@ -37,6 +37,7 @@ public class ExTreeReconstructor {
             currNode=new ExTreeNode();
             topNodes.put(f.expl[i].action,currNode);
             currNode.attrName="Action = "+f.expl[i].action;
+            currNode.level=-1;
           }
           currNode.addUse();
           for (int j = 0; j < f.expl[i].eItems.length; j++) {
@@ -49,6 +50,7 @@ public class ExTreeReconstructor {
               child.attrName = eIt.attr;
               child.level = eIt.level;
               child.condition = eIt.interval.clone();
+              child.isInteger=eIt.isInteger;
               currNode.addChild(child);
             }
             child.addUse();
@@ -86,6 +88,7 @@ public class ExTreeReconstructor {
               currNode = new ExTreeNode();
               topNodesExCombined.put(f.expl[i].action, currNode);
               currNode.attrName = "Action = " + f.expl[i].action;
+              currNode.level=-1;
             }
             currNode.addUse();
             for (int j = 0; j < combItems.length; j++) {
@@ -98,10 +101,71 @@ public class ExTreeReconstructor {
                 child.attrName = eIt.attr;
                 child.level = eIt.level;
                 child.condition = eIt.interval.clone();
+                child.isInteger=eIt.isInteger;
                 currNode.addChild(child);
               }
               child.addUse();
               currNode = child;
+            }
+          }
+          if (attrMinMaxValues!=null) {
+            ExplanationItem intItems[] = f.expl[i].getExplItemsAsIntegeres(f.expl[i].eItems, attrMinMaxValues);
+            if (intItems!=null) {
+              if (topNodesInt==null)
+                topNodesInt = new Hashtable<Integer, ExTreeNode>(20);
+              ExTreeNode currNode = topNodesInt.get(f.expl[i].action);
+              if (currNode == null) {
+                currNode = new ExTreeNode();
+                topNodesInt.put(f.expl[i].action, currNode);
+                currNode.attrName = "Action = " + f.expl[i].action;
+                currNode.level=-1;
+              }
+              currNode.addUse();
+              for (int j = 0; j < intItems.length; j++) {
+                ExplanationItem eIt = intItems[j];
+                if (eIt == null)
+                  continue;
+                ExTreeNode child = currNode.findChild(eIt.attr, eIt.interval);
+                if (child == null) {
+                  child = new ExTreeNode();
+                  child.attrName = eIt.attr;
+                  child.level = eIt.level;
+                  child.condition = eIt.interval.clone();
+                  child.isInteger=eIt.isInteger;
+                  currNode.addChild(child);
+                }
+                child.addUse();
+                currNode = child;
+              }
+            }
+            ExplanationItem combIntItems[]=(intItems==null)?null:f.expl[i].getExplItemsCombined(intItems);
+            if (combIntItems!=null) {
+              if (topNodesIntExCombined==null)
+                topNodesIntExCombined = new Hashtable<Integer, ExTreeNode>(20);
+              ExTreeNode currNode = topNodesIntExCombined.get(f.expl[i].action);
+              if (currNode == null) {
+                currNode = new ExTreeNode();
+                topNodesIntExCombined.put(f.expl[i].action, currNode);
+                currNode.attrName = "Action = " + f.expl[i].action;
+                currNode.level=-1;
+              }
+              currNode.addUse();
+              for (int j = 0; j < combIntItems.length; j++) {
+                ExplanationItem eIt = combIntItems[j];
+                if (eIt == null)
+                  continue;
+                ExTreeNode child = currNode.findChild(eIt.attr, eIt.interval);
+                if (child == null) {
+                  child = new ExTreeNode();
+                  child.attrName = eIt.attr;
+                  child.level = eIt.level;
+                  child.condition = eIt.interval.clone();
+                  child.isInteger=eIt.isInteger;
+                  currNode.addChild(child);
+                }
+                child.addUse();
+                currNode = child;
+              }
             }
           }
         }

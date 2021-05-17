@@ -13,6 +13,7 @@ public class ExTreeNode {
    * min..max; either min or max is +-inf
    */
   public double condition[]={Double.NEGATIVE_INFINITY,Double.POSITIVE_INFINITY};
+  public boolean isInteger=false;
   /**
    * How many times this node was used (i.e., occurs in explanations)
    */
@@ -32,13 +33,15 @@ public class ExTreeNode {
             (condition[0]==Double.NEGATIVE_INFINITY &&
                  condition[1]==Double.POSITIVE_INFINITY))
       return attrName;
+    String c1=(isInteger)?String.valueOf(Math.round(condition[0])):String.valueOf(condition[0]);
+    String c2=(isInteger)?String.valueOf(Math.round(condition[1])):String.valueOf(condition[1]);
     if (condition[0]==condition[1])
-      return attrName+" = "+condition[0];
+      return attrName+" = "+c1;
     if (condition[0]==Double.NEGATIVE_INFINITY)
-      return attrName+" < "+condition[1];
+      return attrName+" < "+c2;
     if (condition[1]==Double.POSITIVE_INFINITY)
-      return attrName+" >= "+condition[0];
-    return attrName+" in ["+condition[0]+", "+condition[1]+")";
+      return attrName+" >= "+c1;
+    return attrName+" in ["+c1+", "+c2+((isInteger)?"]":")");
   }
   
   public boolean sameCondition(String attrName, double condition[]) {

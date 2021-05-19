@@ -48,7 +48,7 @@ public class ExTreeReconstructor {
             if (child == null) {
               child = new ExTreeNode();
               child.attrName = eIt.attr;
-              child.level = eIt.level;
+              child.level = currNode.level+1;
               child.condition = eIt.interval.clone();
               child.isInteger=eIt.isInteger;
               currNode.addChild(child);
@@ -99,7 +99,7 @@ public class ExTreeReconstructor {
               if (child == null) {
                 child = new ExTreeNode();
                 child.attrName = eIt.attr;
-                child.level = eIt.level;
+                child.level = currNode.level+1;
                 child.condition = eIt.interval.clone();
                 child.isInteger=eIt.isInteger;
                 currNode.addChild(child);
@@ -129,7 +129,7 @@ public class ExTreeReconstructor {
                 if (child == null) {
                   child = new ExTreeNode();
                   child.attrName = eIt.attr;
-                  child.level = eIt.level;
+                  child.level = currNode.level+1;
                   child.condition = eIt.interval.clone();
                   child.isInteger=eIt.isInteger;
                   currNode.addChild(child);
@@ -158,7 +158,7 @@ public class ExTreeReconstructor {
                 if (child == null) {
                   child = new ExTreeNode();
                   child.attrName = eIt.attr;
-                  child.level = eIt.level;
+                  child.level = currNode.level+1;
                   child.condition = eIt.interval.clone();
                   child.isInteger=eIt.isInteger;
                   currNode.addChild(child);

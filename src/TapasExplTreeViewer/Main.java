@@ -2,8 +2,8 @@ package TapasExplTreeViewer;
 
 import TapasDataReader.Flight;
 import TapasUtilities.*;
-import TapasExplTreeViewer.data.CountMatrix;
-import TapasExplTreeViewer.data.ExTreeReconstructor;
+import TapasDataReader.CountMatrix;
+import TapasDataReader.ExTreeReconstructor;
 import TapasExplTreeViewer.ui.ExTreePanel;
 import TapasExplTreeViewer.ui.TableOfIntegersModel;
 

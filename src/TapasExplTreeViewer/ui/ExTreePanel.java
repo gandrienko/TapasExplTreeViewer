@@ -1,6 +1,6 @@
 package TapasExplTreeViewer.ui;
 
-import TapasExplTreeViewer.data.ExTreeNode;
+import TapasDataReader.ExTreeNode;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;

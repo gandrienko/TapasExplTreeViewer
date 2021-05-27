@@ -1,6 +1,6 @@
 package TapasExplTreeViewer.ui;
 
-import TapasExplTreeViewer.data.CountMatrix;
+import TapasDataReader.CountMatrix;
 
 import javax.swing.table.AbstractTableModel;
 

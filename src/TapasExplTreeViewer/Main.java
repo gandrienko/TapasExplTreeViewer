@@ -10,6 +10,8 @@ import TapasExplTreeViewer.ui.TableOfIntegersModel;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.*;
 import java.util.Hashtable;
 import java.util.Map;
@@ -92,20 +94,21 @@ public class Main {
       System.out.println("Reconstructed explanation tree has "+exTreeReconstructor.topNodes.size()+" top nodes");
 
       Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-     
+  
+      JTable attrTable=null;
       if (exTreeReconstructor.attributes!=null && !exTreeReconstructor.attributes.isEmpty()) {
         CountMatrix matrix=exTreeReconstructor.countActionsPerAttributes();
         if (matrix!=null) {
-          JTable table = new JTable(new TableOfIntegersModel(matrix));
-          table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.4f), Math.round(size.height * 0.4f)));
-          table.setFillsViewportHeight(true);
-          table.setAutoCreateRowSorter(true);
+          attrTable = new JTable(new TableOfIntegersModel(matrix));
+          attrTable.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.4f), Math.round(size.height * 0.4f)));
+          attrTable.setFillsViewportHeight(true);
+          attrTable.setAutoCreateRowSorter(true);
           DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
           centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-          table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+          attrTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
           for (int i=1; i<matrix.colNames.length; i++)
-            table.getColumnModel().getColumn(i).setCellRenderer(new RenderLabelBarChart(0, matrix.getColumnMax(i)));
-          JScrollPane scrollPane = new JScrollPane(table);
+            attrTable.getColumnModel().getColumn(i).setCellRenderer(new RenderLabelBarChart(0, matrix.getColumnMax(i)));
+          JScrollPane scrollPane = new JScrollPane(attrTable);
   
           JFrame fr = new JFrame("Attributes (" + matrix.rowNames.length + ")");
           fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
@@ -115,6 +118,7 @@ public class Main {
           fr.setVisible(true);
         }
       }
+      /*
       if (exTreeReconstructor.sectors!=null && !exTreeReconstructor.sectors.isEmpty()) {
         CountMatrix matrix=exTreeReconstructor.countActionsPerSectors();
         if (matrix!=null) {
@@ -157,6 +161,7 @@ public class Main {
           fr.setVisible(true);
         }
       }
+      */
   
       ExTreePanel exTreePanel=new ExTreePanel(exTreeReconstructor.topNodes);
       ExTreePanel combExTreePanel=(exTreeReconstructor.topNodesExCombined==null)?null:
@@ -183,5 +188,26 @@ public class Main {
       frame.pack();
       frame.setLocation(size.width-frame.getWidth()-50,50);
       frame.setVisible(true);
+      
+      exTreePanel.expandToLevel(2);
+      intExTreePanel.expandToLevel(2);
+      combExTreePanel.expandToLevel(1);
+      combIntExTreePanel.expandToLevel(1);
+      
+      if (attrTable!=null) {
+        final JTable table=attrTable;
+        attrTable.addMouseListener(new MouseAdapter() {
+          @Override
+          public void mouseClicked(MouseEvent e) {
+            super.mouseClicked(e);
+            int rowIdx=table.rowAtPoint(e.getPoint());
+            if (rowIdx>=0) {
+              String attrName=(String)table.getModel().getValueAt(rowIdx,0);
+              if (attrName!=null)
+                exTreePanel.expandNodesWithAttribute(attrName);
+            }
+          }
+        });
+      }
     }
 }

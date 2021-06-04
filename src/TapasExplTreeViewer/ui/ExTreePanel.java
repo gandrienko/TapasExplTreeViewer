@@ -5,6 +5,7 @@ import TapasDataReader.ExplanationItem;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.util.ArrayList;
@@ -67,6 +68,29 @@ public class ExTreePanel extends JPanel {
         exTree.setSelectionPath(path);
         exTree.scrollPathToVisible(path);
       }
+    }
+  }
+  
+  public void highlightExplanationItem(int action, ExplanationItem eItems[], int itemIdx) {
+    if (itemIdx<0 || eItems==null || itemIdx>=eItems.length) {
+      expandExplanation(action, eItems);
+      return;
+    }
+    ExSwingTreeNode node=root.findNodeForExplanation(action, eItems);
+    if (node==null)
+      return;
+    
+    TreeNode nodeSeq[]=node.getPath();
+    itemIdx+=nodeSeq.length-eItems.length; //the first one or two nodes in the sequence
+                                           //may correspond to the root of the whole tree or
+                                           //the root of the subtree corresponding to the action
+    
+    TreePath path=new TreePath(((ExSwingTreeNode)nodeSeq[itemIdx]).getPath());
+    if (path==null)
+      return;
+    if (path!=null) {
+      exTree.setSelectionPath(path);
+      exTree.scrollPathToVisible(path);
     }
   }
   

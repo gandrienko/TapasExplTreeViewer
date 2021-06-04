@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.ui;
 
 import TapasDataReader.ExTreeNode;
+import TapasDataReader.ExplanationItem;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -55,6 +56,18 @@ public class ExTreePanel extends JPanel {
     if (exNode.children!=null)
       for (ExTreeNode child:exNode.children)
         attachNode(node,child);
+  }
+  
+  public void expandExplanation(int action, ExplanationItem eItems[]) {
+    collapseChildren(root);
+    ExSwingTreeNode node=root.findNodeForExplanation(action, eItems);
+    if (node!=null) {
+      TreePath path=new TreePath(node.getPath());
+      if (path!=null) {
+        exTree.setSelectionPath(path);
+        exTree.scrollPathToVisible(path);
+      }
+    }
   }
   
   public void expandPathsToNodes(ArrayList<ExSwingTreeNode> nodes) {

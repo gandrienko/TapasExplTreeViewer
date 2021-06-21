@@ -34,10 +34,12 @@ public class ExTreePanel extends JPanel {
     this.topNodes=topNodes;
     if (topNodes==null || topNodes.isEmpty())
       return;
-    int nUses=0;
-    for (Map.Entry<Integer,ExTreeNode> e:topNodes.entrySet())
-      nUses+=e.getValue().nUses;
-    root=new ExSwingTreeNode("All ("+nUses+")",null);
+    int nUses=0, nLeaves=0;
+    for (Map.Entry<Integer,ExTreeNode> e:topNodes.entrySet()) {
+      nUses += e.getValue().nUses;
+      nLeaves+=e.getValue().nLeavesBelow;
+    }
+    root=new ExSwingTreeNode("All; uses: "+nUses+"; terminals: "+nLeaves,null);
     for (Map.Entry<Integer,ExTreeNode> e:topNodes.entrySet())
       attachNode(root, e.getValue());
     exTree=new JTree(root);
@@ -52,7 +54,9 @@ public class ExTreePanel extends JPanel {
   protected void attachNode(DefaultMutableTreeNode parent, ExTreeNode exNode) {
     if (exNode==null)
       return;
-    ExSwingTreeNode node=new ExSwingTreeNode(exNode.getLabel()+" ("+exNode.nUses+")",exNode);
+    ExSwingTreeNode node=new ExSwingTreeNode(exNode.getLabel()+
+                                                 "; uses: "+exNode.nUses+
+                                                 "; terminals: "+exNode.nLeavesBelow,exNode);
     parent.add(node);
     if (exNode.children!=null)
       for (ExTreeNode child:exNode.children)

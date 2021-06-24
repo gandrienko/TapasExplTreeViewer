@@ -4,6 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
+import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.MySammonsProjection;
 import TapasUtilities.RenderLabelBarChart;
 
@@ -92,24 +93,36 @@ public class SeeExList {
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
 
     ExListTableModel eTblModel=new ExListTableModel(exList,attrMinMax);
-  
+    
+    ProjectionPlot2D pp=new ProjectionPlot2D();
+    
     SwingWorker worker=new SwingWorker() {
-      public MySammonsProjection sam=null;
+      public double d[][]=null;
       @Override
       public Boolean doInBackground(){
-        double d[][]=CommonExplanation.computeDistances(exList,attrMinMax);
+        d=CommonExplanation.computeDistances(exList,attrMinMax);
         if (d==null)
           return false;
-        sam=new MySammonsProjection(d,1,200,true);
-        sam.runProjection(5,eTblModel,0.005);
+        pp.setDistanceMatrix(d);
+        MySammonsProjection sam=new MySammonsProjection(d,1,300,true);
+        sam.runProjection(5,50,eTblModel);
         return true;
       }
       @Override
       protected void done() {
+        //pp.setDistanceMatrix(d);
       }
     };
     worker.execute();
-
+  
+    pp.setPreferredSize(new Dimension(800,800));
+    JFrame plotFrame=new JFrame("Projection plot");
+    plotFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+    plotFrame.getContentPane().add(pp);
+    plotFrame.pack();
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
+    plotFrame.setVisible(true);
+    
     JTable table=new JTable(eTblModel);
     table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
     table.setFillsViewportHeight(true);

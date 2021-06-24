@@ -133,7 +133,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public void stateChanged(ChangeEvent e) {
     if (e.getSource() instanceof MySammonsProjection) {
       MySammonsProjection sam=(MySammonsProjection)e.getSource();
-      double proj[][]=sam.lastPojectionCopy;
+      double proj[][]=(sam.done)?sam.getProjection():sam.bestProjection;
       if (proj==null)
         return;
       if (proj[0].length==1) { // 1D projection

@@ -4,6 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
+import TapasUtilities.MySammonsProjection;
 import TapasUtilities.RenderLabelBarChart;
 
 import javax.swing.*;
@@ -91,6 +92,24 @@ public class SeeExList {
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
 
     ExListTableModel eTblModel=new ExListTableModel(exList,attrMinMax);
+  
+    SwingWorker worker=new SwingWorker() {
+      public MySammonsProjection sam=null;
+      @Override
+      public Boolean doInBackground(){
+        double d[][]=CommonExplanation.computeDistances(exList,attrMinMax);
+        if (d==null)
+          return false;
+        sam=new MySammonsProjection(d,1,200,true);
+        sam.runProjection(5,eTblModel,0.005);
+        return true;
+      }
+      @Override
+      protected void done() {
+      }
+    };
+    worker.execute();
+
     JTable table=new JTable(eTblModel);
     table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
     table.setFillsViewportHeight(true);

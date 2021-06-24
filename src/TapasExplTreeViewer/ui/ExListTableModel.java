@@ -1,12 +1,16 @@
 package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
+import TapasUtilities.MySammonsProjection;
 
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Map;
 
-public class ExListTableModel extends AbstractTableModel {
+public class ExListTableModel extends AbstractTableModel implements ChangeListener {
   /**
    * The explanations to show
    */
@@ -18,18 +22,31 @@ public class ExListTableModel extends AbstractTableModel {
   public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,int[]> attrMinMax) {
     this.exList=exList;
     this.attrMinMax =attrMinMax;
-    if (attrMinMax!=null && !attrMinMax.isEmpty()) {
-      listOfFeatures=new ArrayList<String>(attrMinMax.size());
-      for (String name:attrMinMax.keySet())
-        listOfFeatures.add(name);
+    Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
+    for (int i=0; i<exList.size(); i++) {
+      CommonExplanation cEx = exList.get(i);
+      for (int j = 0; j < cEx.eItems.length; j++) {
+        Integer count=attrUses.get(cEx.eItems[j].attr);
+        if (count==null)
+          attrUses.put(cEx.eItems[j].attr,1);
+        else
+          attrUses.put(cEx.eItems[j].attr,count+1);
+      }
     }
-    else {
-      listOfFeatures=new ArrayList<String>(50);
-      for (int i=0; i<exList.size(); i++) {
-        CommonExplanation cEx=exList.get(i);
-        for (int j=0; j<cEx.eItems.length; j++)
-          if (!listOfFeatures.contains(cEx.eItems[j].attr))
-            listOfFeatures.add(cEx.eItems[j].attr);
+    listOfFeatures=new ArrayList<String>(attrUses.size());
+    for (Map.Entry<String,Integer> entry:attrUses.entrySet()) {
+      String aName=entry.getKey();
+      if (listOfFeatures.isEmpty())
+        listOfFeatures.add(aName);
+      else {
+        int count=entry.getValue(), idx=-1;
+        for (int i=0; i<listOfFeatures.size() && idx<0; i++)
+          if (count>attrUses.get(listOfFeatures.get(i)))
+            idx=i;
+        if (idx<0)
+          listOfFeatures.add(aName);
+        else
+          listOfFeatures.add(idx,aName);
       }
     }
   }
@@ -52,7 +69,7 @@ public class ExListTableModel extends AbstractTableModel {
       case 0: return new Integer(cEx.action);
       case 1: return new Integer(cEx.nUses);
       case 2: return new Integer(cEx.uses.size());
-      case 3: return new Double(row);
+      case 3: return (Double.isNaN(cEx.x1D))?new Double(row):new Double(cEx.x1D);
       case 4: return new Integer(cEx.eItems.length);
     }
     String attrName=listOfFeatures.get(col-columnNames.length);
@@ -102,8 +119,29 @@ public class ExListTableModel extends AbstractTableModel {
           max=dv.floatValue();
       }
       else
+      if (v instanceof double[]) {
+        double d[]=(double[])v, dv=d[d.length-1];
+        if (Double.isNaN(max) || max<dv)
+          max=(float)dv;
+      }
+      else
         return Float.NaN;
   }
     return max;
+  }
+  
+  public void stateChanged(ChangeEvent e) {
+    if (e.getSource() instanceof MySammonsProjection) {
+      MySammonsProjection sam=(MySammonsProjection)e.getSource();
+      double proj[][]=sam.lastPojectionCopy;
+      if (proj==null)
+        return;
+      if (proj[0].length==1) { // 1D projection
+        System.out.println("Table: update 1D projection coordinates (column X)");
+        for (int i=0; i<proj.length && i<exList.size(); i++)
+          exList.get(i).x1D=proj[i][0];
+      }
+      fireTableDataChanged();
+    }
   }
 }

@@ -10,6 +10,7 @@ import TapasUtilities.RenderLabelBarChart;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -123,7 +124,18 @@ public class SeeExList {
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
     
-    JTable table=new JTable(eTblModel);
+    JTable table=new JTable(eTblModel){
+      public String getToolTipText(MouseEvent e) {
+        java.awt.Point p = e.getPoint();
+        int rowIndex = rowAtPoint(p);
+        if (rowIndex>=0) {
+          int realRowIndex = convertRowIndexToModel(rowIndex);
+          return exList.get(realRowIndex).toHTML();
+        }
+        return "";
+      }
+      
+    };
     table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
     table.setFillsViewportHeight(true);
     table.setAutoCreateRowSorter(true);

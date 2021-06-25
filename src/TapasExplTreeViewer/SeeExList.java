@@ -4,6 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
+import TapasExplTreeViewer.ui.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.ItemSelectionManager;
 import TapasUtilities.MySammonsProjection;
@@ -188,6 +189,7 @@ public class SeeExList {
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
     
+    /*
     table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
       @Override
       public void valueChanged(ListSelectionEvent e) {
@@ -202,6 +204,11 @@ public class SeeExList {
         }
       }
     });
+    */
+    TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();
+    rowSelMan.setTable(table);
+    rowSelMan.setHighlighter(highlighter);
+    rowSelMan.setSelector(selector);
   
     JScrollPane scrollPane = new JScrollPane(table);
     

@@ -8,6 +8,8 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
@@ -38,6 +40,11 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
   public double scale=Double.NaN;
   
   /**
+   * x- and y-coordinates of the drawn points
+   */
+  protected int px[]=null, py[]=null;
+  
+  /**
    * Highlighting and selection
    */
   protected SingleHighlightManager highlighter=null;
@@ -55,6 +62,35 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     highlighter.addChangeListener(this);
     selector=new ItemSelectionManager();
     selector.addChangeListener(this);
+    addMouseListener(new MouseAdapter() {
+      @Override
+      public void mouseClicked(MouseEvent e) {
+        super.mouseClicked(e);
+        if (e.getClickCount()>1)
+          selector.deselectAll();
+        else {
+          ArrayList<Integer> sel=getPointIndexesAtPosition(e.getX(),e.getY(),dotRadius*2);
+          if (sel!=null)
+            selector.select(sel);
+        }
+      }
+      @Override
+      public void mouseExited(MouseEvent e) {
+        super.mouseExited(e);
+        highlighter.clearHighlighting();
+      }
+    });
+    addMouseMotionListener(new MouseAdapter() {
+      @Override
+      public void mouseMoved(MouseEvent e) {
+        super.mouseMoved(e);
+        int idx=getPointIndexAtPosition(e.getX(),e.getY(),dotRadius);
+        if (idx<0)
+          highlighter.clearHighlighting();
+        else
+          highlighter.highlight(new Integer(idx));
+      }
+    });
   }
   
   public SingleHighlightManager getHighlighter(){
@@ -166,9 +202,7 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     g.setColor(selectColor);
     for (int j=0; j<selected.size(); j++) {
       int i=selected.get(j);
-      int x=xMarg+(int)Math.round((proj[i][0]-xMin)*scale);
-      int y=yMarg+(int)Math.round((proj[i][1]-yMin)*scale);
-      g.drawOval(x-dotRadius-1,y-dotRadius-1,dotDiameter+2,dotDiameter+2);
+      g.drawOval(px[i]-dotRadius-1,py[i]-dotRadius-1,dotDiameter+2,dotDiameter+2);
     }
     g.setStroke(origStr);
     
@@ -181,8 +215,8 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
       return;
     Graphics2D g=(Graphics2D)gr;
     Stroke origStr=g.getStroke();
-    int x=xMarg+(int)Math.round((proj[hlIdx][0]-xMin)*scale);
-    int y=yMarg+(int)Math.round((proj[hlIdx][1]-yMin)*scale);
+    int x=px[hlIdx];
+    int y=py[hlIdx];
     g.setColor(highlightFillColor);
     g.fillOval(x-dotRadius-1,y-dotRadius-1,dotDiameter+2,dotDiameter+2);
     g.setStroke(new BasicStroke(2));
@@ -249,10 +283,14 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     g.setRenderingHints(rh);
     
     g.setColor(dotColor);
+    if (px==null || px.length!=proj.length)
+      px=new int[proj.length];
+    if (py==null || py.length!=proj.length)
+      py=new int[proj.length];
     for (int i=0; i<proj.length; i++) {
-      int x=xMarg+(int)Math.round((proj[i][0]-xMin)*scale);
-      int y=yMarg+(int)Math.round((proj[i][1]-yMin)*scale);
-      g.drawOval(x-dotRadius,y-dotRadius,dotDiameter,dotDiameter);
+      px[i]=xMarg+(int)Math.round((proj[i][0]-xMin)*scale);
+      py[i]=yMarg+(int)Math.round((proj[i][1]-yMin)*scale);
+      g.drawOval(px[i]-dotRadius,py[i]-dotRadius,dotDiameter,dotDiameter);
     }
     gr.drawImage(off_Image,0,0,null);
     off_Valid=true;
@@ -263,5 +301,36 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
   public void redraw(){
     if (isShowing())
       paintComponent(getGraphics());
+  }
+  
+  public int getPointIndexAtPosition(int x, int y, int tolerance) {
+    if (px==null || py==null || x<xMarg || y<yMarg)
+      return -1;
+    int idx=-1, diffX=Integer.MAX_VALUE, diffY=diffX;
+    for (int i=0; i<px.length; i++)
+      if (Math.abs(px[i]-x)<=tolerance && Math.abs(py[i]-y)<=tolerance) {
+        int dx=Math.abs(px[i]-x), dy=Math.abs(py[i]-y);
+        if (idx<0 || dx+dy<diffX+diffY) {
+          idx=i; diffX=dx; diffY=dy;
+        }
+      }
+    return idx;
+  }
+  
+  public ArrayList<Integer> getPointIndexesAtPosition(int x,int y,int radius) {
+    if (px==null || py==null || x<xMarg || y<yMarg)
+      return null;
+    int sqRadius=radius*radius;
+    ArrayList<Integer> indexes=new ArrayList<Integer>(50);
+    for (int i=0; i<px.length; i++)
+      if (Math.abs(px[i]-x)<radius && Math.abs(py[i]-y)<radius) {
+        int dx=px[i]-x, dy=py[i]-y;
+        dx*=dx; dy*=dy;
+        if (dx+dy<sqRadius)
+          indexes.add(i);
+      }
+    if (indexes.isEmpty())
+      return null;
+    return indexes;
   }
 }

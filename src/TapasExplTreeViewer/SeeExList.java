@@ -5,11 +5,16 @@ import TapasDataReader.Flight;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
+import TapasUtilities.ItemSelectionManager;
 import TapasUtilities.MySammonsProjection;
 import TapasUtilities.RenderLabelBarChart;
+import TapasUtilities.SingleHighlightManager;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.util.ArrayList;
@@ -123,6 +128,9 @@ public class SeeExList {
     plotFrame.pack();
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
+  
+    SingleHighlightManager highlighter=pp.getHighlighter();
+    ItemSelectionManager selector=pp.getSelector();
     
     JTable table=new JTable(eTblModel){
       public String getToolTipText(MouseEvent e) {
@@ -130,16 +138,47 @@ public class SeeExList {
         int rowIndex = rowAtPoint(p);
         if (rowIndex>=0) {
           int realRowIndex = convertRowIndexToModel(rowIndex);
+          highlighter.highlight(new Integer(realRowIndex));
           return exList.get(realRowIndex).toHTML();
         }
+        highlighter.clearHighlighting();
         return "";
       }
       
     };
+    table.addMouseListener(new MouseAdapter() {
+      private void reactToMousePosition(MouseEvent e) {
+        int rowIndex=table.rowAtPoint(e.getPoint());
+        if (rowIndex<0)
+          highlighter.clearHighlighting();
+        else {
+          int realRowIndex = table.convertRowIndexToModel(rowIndex);
+          highlighter.highlight(new Integer(realRowIndex));
+        }
+      }
+      @Override
+      public void mouseEntered(MouseEvent e) {
+        reactToMousePosition(e);
+        super.mouseEntered(e);
+      }
+  
+      @Override
+      public void mouseExited(MouseEvent e) {
+        highlighter.clearHighlighting();
+        super.mouseExited(e);
+      }
+  
+      @Override
+      public void mouseMoved(MouseEvent e) {
+        reactToMousePosition(e);
+        super.mouseMoved(e);
+      }
+    });
+    
     table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
     table.setFillsViewportHeight(true);
     table.setAutoCreateRowSorter(true);
-    table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
     table.setRowSelectionAllowed(true);
     table.setColumnSelectionAllowed(false);
     for (int i=0; i<eTblModel.columnNames.length; i++)
@@ -148,6 +187,21 @@ public class SeeExList {
             new RenderLabelBarChart(0, eTblModel.getColumnMax(i)));
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
+    
+    table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+      @Override
+      public void valueChanged(ListSelectionEvent e) {
+        int rows[]=table.getSelectedRows();
+        if (rows==null || rows.length<1)
+          selector.deselectAll();
+        else {
+          ArrayList<Integer> selection=new ArrayList<Integer>(rows.length);
+          for (int i=0; i<rows.length; i++)
+            selection.add(table.convertRowIndexToModel(rows[i]));
+          selector.updateSelection(selection);
+        }
+      }
+    });
   
     JScrollPane scrollPane = new JScrollPane(table);
     

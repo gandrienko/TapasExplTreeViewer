@@ -12,10 +12,10 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
 public class ProjectionPlot2D extends JPanel implements ChangeListener {
-  public static Color dotColor=new Color(50,50,50,50),
+  public static Color dotColor=new Color(50,50,50,90),
       highlightColor=new Color(255,0,0,160),
       highlightFillColor=new Color(255,255,0,100),
-      selectColor=new Color(0,0,0,160);
+      selectColor=new Color(0,0,0,200);
   public static int dotRadius=4, dotDiameter=dotRadius*2;
   /**
    * Matrix of distances between the objects to project and show
@@ -214,7 +214,7 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
       off_Image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = off_Image.createGraphics();
   
-    g.setColor(new Color(180,180,180));
+    g.setColor(getBackground());
     g.fillRect(0,0,w+1,h+1);
     
     if (proj==null || proj[0].length!=2)

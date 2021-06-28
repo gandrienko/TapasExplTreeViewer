@@ -125,6 +125,8 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
       MySammonsProjection sam = (MySammonsProjection) e.getSource();
       proj =(sam.done)?sam.getProjection():sam.bestProjection;
       if (proj != null && proj[0].length==2) {
+        xMin=xMax=yMin=yMax=xDiff=yDiff=Double.NaN;
+        scale=Double.NaN;
         System.out.println("Projection plot: updating the 2D projection");
         off_Valid=false; off_selected_Valid=false;
         repaint();

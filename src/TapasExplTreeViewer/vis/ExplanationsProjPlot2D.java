@@ -2,7 +2,9 @@ package TapasExplTreeViewer.vis;
 
 import TapasDataReader.CommonExplanation;
 
+import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
 public class ExplanationsProjPlot2D extends ProjectionPlot2D {
@@ -12,6 +14,11 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   
   public ArrayList<CommonExplanation> explanations = null;
   public int maxNUses = 0;
+  
+  public ExplanationsProjPlot2D(){
+    ToolTipManager.sharedInstance().registerComponent(this);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
+  }
   
   public void setExplanations(ArrayList<CommonExplanation> explanations) {
     this.explanations = explanations;
@@ -53,5 +60,16 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     g.drawOval(x-dotRadius,y-dotRadius,dotDiameter,dotDiameter);
     if (origStr!=null)
       g.setStroke(origStr);
+  }
+ 
+  public String getToolTipText(MouseEvent me) {
+    if (!isShowing())
+      return null;
+    if (me.getButton() != MouseEvent.NOBUTTON)
+      return null;
+    int idx=getPointIndexAtPosition(me.getX(),me.getY(),dotRadius);
+    if (idx<0)
+      return null;
+    return explanations.get(idx).toHTML();
   }
 }

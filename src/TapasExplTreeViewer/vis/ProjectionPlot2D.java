@@ -181,6 +181,22 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     return true;
   }
   
+  protected Stroke strokeSelected=new BasicStroke(2);
+  
+  public void drawPoint(Graphics2D g, int pIdx, int x, int y, boolean highlighted, boolean selected) {
+    if (highlighted) {
+      g.setColor(highlightFillColor);
+      g.fillOval(x-dotRadius-1,y-dotRadius-1,dotDiameter+2,dotDiameter+2);
+    }
+    Stroke origStr=(selected || highlighted)?g.getStroke():null;
+    if (selected || highlighted)
+      g.setStroke(strokeSelected);
+    g.setColor((highlighted)?highlightColor:(selected)?selectColor:dotColor);
+    g.drawOval(x-dotRadius,y-dotRadius,dotDiameter,dotDiameter);
+    if (origStr!=null)
+      g.setStroke(origStr);
+  }
+  
   public void drawSelected(Graphics gr) {
     if (selected==null || selected.isEmpty() || proj==null || Double.isNaN(scale))
       return;
@@ -200,14 +216,10 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     off_selected=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = off_selected.createGraphics();
     
-    Stroke origStr=g.getStroke();
-    g.setStroke(new BasicStroke(2));
-    g.setColor(selectColor);
     for (int j=0; j<selected.size(); j++) {
       int i=selected.get(j);
-      g.drawOval(px[i]-dotRadius-1,py[i]-dotRadius-1,dotDiameter+2,dotDiameter+2);
+      drawPoint(g,i,px[i],py[i],false,true);
     }
-    g.setStroke(origStr);
     
     gr.drawImage(off_selected,0,0,null);
     off_selected_Valid=true;
@@ -216,16 +228,7 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
   public void drawHighlighted(Graphics gr) {
     if (hlIdx<0 || proj==null || Double.isNaN(scale))
       return;
-    Graphics2D g=(Graphics2D)gr;
-    Stroke origStr=g.getStroke();
-    int x=px[hlIdx];
-    int y=py[hlIdx];
-    g.setColor(highlightFillColor);
-    g.fillOval(x-dotRadius-1,y-dotRadius-1,dotDiameter+2,dotDiameter+2);
-    g.setStroke(new BasicStroke(2));
-    g.setColor(highlightColor);
-    g.drawOval(x-dotRadius-1,y-dotRadius-1,dotDiameter+2,dotDiameter+2);
-    g.setStroke(origStr);
+    drawPoint((Graphics2D)gr,hlIdx,px[hlIdx],py[hlIdx],true,false);
   }
   
   public void paintComponent(Graphics gr) {
@@ -295,7 +298,7 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     for (int i=0; i<proj.length; i++) {
       px[i]=xMarg+(int)Math.round((proj[i][0]-xMin)*scale);
       py[i]=yMarg+(int)Math.round((proj[i][1]-yMin)*scale);
-      g.drawOval(px[i]-dotRadius,py[i]-dotRadius,dotDiameter,dotDiameter);
+      drawPoint(g,i,px[i],py[i],false,false);
     }
     gr.drawImage(off_Image,0,0,null);
     off_Valid=true;

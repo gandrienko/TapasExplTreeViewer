@@ -4,6 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
+import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasUtilities.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.ItemSelectionManager;
@@ -103,8 +104,9 @@ public class SeeExList {
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
 
     ExListTableModel eTblModel=new ExListTableModel(exList,attrMinMax);
-    
-    ProjectionPlot2D pp=new ProjectionPlot2D();
+  
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
+    pp.setExplanations(exList);
     
     SwingWorker worker=new SwingWorker() {
       public double d[][]=null;
@@ -238,7 +240,8 @@ public class SeeExList {
           }
         ExListTableModel subModel=new ExListTableModel(exSubset,attrMinMax);
   
-        ProjectionPlot2D subPP=new ProjectionPlot2D();
+        ExplanationsProjPlot2D subPP=new ExplanationsProjPlot2D();
+        subPP.setExplanations(exSubset);
   
         SwingWorker worker=new SwingWorker() {
           public double d[][]=null;

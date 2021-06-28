@@ -4,7 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
-import TapasExplTreeViewer.ui.TableRowsSelectionManager;
+import TapasUtilities.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.ItemSelectionManager;
 import TapasUtilities.MySammonsProjection;

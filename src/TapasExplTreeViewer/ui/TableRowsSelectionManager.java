@@ -15,13 +15,15 @@ import java.util.ArrayList;
  * Listens to highlighting and selection change events and responds by
  * highlighting and selection of table rows.
  */
-public class TableRowsSelectionManager implements ChangeListener, ListSelectionListener {
+public class TableRowsSelectionManager
+    implements ChangeListener, ListSelectionListener {
   /**
    * The table where to highlight and select rows
    */
   public JTable table=null;
   protected SingleHighlightManager highlighter=null;
   protected ItemSelectionManager selector=null;
+  protected int hlIdx=-1;
   
   public void setTable(JTable table) {
     this.table=table;
@@ -81,7 +83,20 @@ public class TableRowsSelectionManager implements ChangeListener, ListSelectionL
     }
     else
       if (e.getSource().equals(highlighter)) {
-        //
+        if (hlIdx>=0) {
+          int row=table.convertRowIndexToView(hlIdx);
+          Rectangle rect=table.getCellRect(row,0,true);
+          rect.width=table.getWidth();
+          table.repaint(rect);
+        }
+        Integer hl=(Integer)highlighter.getHighlighted();
+        if (hl==null) return;
+        hlIdx=hl;
+        int row=table.convertRowIndexToView(hlIdx);
+        Rectangle rect=table.getCellRect(row,0,true);
+        rect.width=table.getWidth();
+        table.repaint(rect);
+        table.scrollRectToVisible(rect);
       }
   }
   public void valueChanged(ListSelectionEvent e) {

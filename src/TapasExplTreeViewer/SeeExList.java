@@ -12,8 +12,11 @@ import TapasUtilities.RenderLabelBarChart;
 import TapasUtilities.SingleHighlightManager;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -133,6 +136,8 @@ public class SeeExList {
     SingleHighlightManager highlighter=pp.getHighlighter();
     ItemSelectionManager selector=pp.getSelector();
     
+    Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
+    
     JTable table=new JTable(eTblModel){
       public String getToolTipText(MouseEvent e) {
         java.awt.Point p = e.getPoint();
@@ -146,6 +151,18 @@ public class SeeExList {
         return "";
       }
       
+      public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+        Component c = super.prepareRenderer(renderer, row, column);
+        if (highlighter==null || highlighter.getHighlighted()==null ||
+                ((Integer)highlighter.getHighlighted())!=convertRowIndexToModel(row)) {
+          ((JComponent) c).setBorder(null);
+          c.setBackground((isRowSelected(row))?getSelectionBackground():getBackground());
+          return c;
+        }
+        ((JComponent) c).setBorder(highlightBorder);
+        c.setBackground(ProjectionPlot2D.highlightFillColor);
+        return c;
+      }
     };
     table.addMouseListener(new MouseAdapter() {
       private void reactToMousePosition(MouseEvent e) {

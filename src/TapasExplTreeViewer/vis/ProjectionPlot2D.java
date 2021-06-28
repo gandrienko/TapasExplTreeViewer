@@ -251,6 +251,8 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
   
     g.setColor(getBackground());
     g.fillRect(0,0,w+1,h+1);
+    g.setColor(Color.black);
+    g.drawRect(0,0,w-2,h-2);
     
     if (proj==null || proj[0].length!=2)
       return;

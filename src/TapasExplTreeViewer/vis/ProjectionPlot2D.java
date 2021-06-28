@@ -154,7 +154,8 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
             selected=new ArrayList<Integer>(100);
           selected.clear();
           for (int i=0; i<currSel.size(); i++)
-            selected.add((Integer)currSel.get(i));
+            if (currSel.get(i) instanceof Integer)
+              selected.add((Integer)currSel.get(i));
         }
         off_selected_Valid=false;
         if (off_Valid)

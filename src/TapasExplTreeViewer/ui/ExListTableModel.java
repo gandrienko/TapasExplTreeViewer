@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
+import TapasExplTreeViewer.clustering.ClustersAssignments;
 import TapasUtilities.MySammonsProjection;
 
 import javax.swing.event.ChangeEvent;
@@ -17,7 +18,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public ArrayList<CommonExplanation> exList=null;
   public Hashtable<String,int[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
-  public String columnNames[] = {"Action", "N uses", "N flights", "X", "N conditions"};
+  public int order[]=null, clusters[]=null;
+  public String columnNames[] = {"Action", "N uses", "N flights", "X", "Order", "Cluster", "N conditions"};
   
   public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,int[]> attrMinMax) {
     this.exList=exList;
@@ -60,9 +62,31 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public int getRowCount() {
     return exList.size();
   }
+  
   public Class getColumnClass(int c) {
     return (getValueAt(0, c) == null) ? null : getValueAt(0, c).getClass();
   }
+  
+  public void setCusterAssignments(ClustersAssignments clAss) {
+    if (clAss==null || clAss.objIndexes==null)
+      return;
+    if (order==null || order.length!=exList.size())
+      order = new int[exList.size()];
+    if (clusters==null || clusters.length!=exList.size())
+      clusters = new int[exList.size()];
+    for (int i=0; i<order.length; i++) {
+      order[i] = i; clusters[i]=-1;
+    }
+    for (int i=0; i<clAss.objIndexes.length; i++) {
+      int idx=clAss.objIndexes[i];
+      if (idx>=0 && idx<exList.size()) {
+        order[idx]=i;
+        clusters[idx]=clAss.clusters[i];
+      }
+    }
+    fireTableDataChanged();
+  }
+  
   public Object getValueAt(int row, int col) {
     CommonExplanation cEx=exList.get(row);
     switch (col) {
@@ -70,7 +94,9 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       case 1: return new Integer(cEx.nUses);
       case 2: return new Integer(cEx.uses.size());
       case 3: return (Double.isNaN(cEx.x1D))?new Double(row):new Double(cEx.x1D);
-      case 4: return new Integer(cEx.eItems.length);
+      case 4: return (order==null)?new Integer(row):new Integer(order[row]);
+      case 5: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
+      case 6: return new Integer(cEx.eItems.length);
     }
     String attrName=listOfFeatures.get(col-columnNames.length);
     double values[]={Double.NaN,Double.NaN,Double.NaN,Double.NaN};
@@ -143,5 +169,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       }
       fireTableDataChanged();
     }
+    else
+      if (e.getSource() instanceof ClustersAssignments)
+        setCusterAssignments((ClustersAssignments)e.getSource());
   }
 }

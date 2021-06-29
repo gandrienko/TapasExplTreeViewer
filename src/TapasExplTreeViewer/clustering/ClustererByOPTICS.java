@@ -6,6 +6,7 @@ import it.unipi.di.sax.optics.ClusterObject;
 import it.unipi.di.sax.optics.DistanceMeter;
 
 import javax.swing.*;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,7 +26,31 @@ public class ClustererByOPTICS
   /**
    * The objects ordered by the clustering algorithm
    */
-  protected ArrayList<ClusterObject<Integer>> objOrdered=null;
+  protected ArrayList<ClusterObject> objOrdered=null;
+  /**
+   * Shows the reachability plot
+   */
+  protected ReachPlotPanel plotPanel =null;
+  
+  protected ArrayList<ChangeListener> changeListeners=null;
+  
+  public void addChangeListener(ChangeListener l) {
+    if (changeListeners==null)
+      changeListeners=new ArrayList(5);
+    if (!changeListeners.contains(l)) {
+      changeListeners.add(l);
+      if (plotPanel!=null)
+        plotPanel.addChangeListener(l);
+    }
+  }
+  
+  public void removeChangeListener(ChangeListener l) {
+    if (l!=null && changeListeners!=null) {
+      changeListeners.remove(l);
+      if (plotPanel!=null)
+        plotPanel.removeChangeListener(l);
+    }
+  }
   
   public void setDistanceMatrix(double distances[][]) {
     this.distances = distances;
@@ -106,7 +131,7 @@ public class ClustererByOPTICS
    */
   public void emit(ClusterObject o) {
     if (objOrdered==null)
-      objOrdered=new ArrayList<ClusterObject<Integer>>(objToCluster.size());
+      objOrdered=new ArrayList<ClusterObject>(objToCluster.size());
     objOrdered.add((ClusterObject<Integer>)o);
     if (objOrdered.size()%250==0)
       System.out.println("OPTICS clustering: "+objOrdered.size()+" objects put in order");
@@ -119,10 +144,10 @@ public class ClustererByOPTICS
     }
     System.out.println("OPTICS clustering finished!");
     
-    ReachPlotPanel rp=new ReachPlotPanel(objOrdered);
+    plotPanel =new ReachPlotPanel(objOrdered);
     JFrame fr = new JFrame("OPTICS reachability plot");
     fr.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-    fr.getContentPane().add(rp, BorderLayout.CENTER);
+    fr.getContentPane().add(plotPanel, BorderLayout.CENTER);
     //Display the window.
     fr.pack();
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
@@ -130,5 +155,50 @@ public class ClustererByOPTICS
       fr.setSize(Math.round(0.8f*size.width),fr.getHeight());
     fr.setLocation((size.width-fr.getWidth())/2, size.height-fr.getHeight()-40);
     fr.setVisible(true);
+    
+    if (changeListeners!=null)
+      for (int i=0; i<changeListeners.size(); i++)
+        plotPanel.addChangeListener(changeListeners.get(i));
+  }
+  
+  public static ClustersAssignments makeClusters(ArrayList<ClusterObject> objOrdered,
+                                                 double distThreshold) {
+    if (objOrdered==null || objOrdered.isEmpty())
+      return null;
+    ClustersAssignments clAss=new ClustersAssignments();
+    clAss.clusters=new int[objOrdered.size()];
+    clAss.objIndexes=new int[objOrdered.size()];
+    clAss.nClusters=0;
+    int currClusterSize=0;
+    for (int i=0; i<objOrdered.size(); i++) {
+      clAss.clusters[i]=-1; //noise
+      clAss.objIndexes[i]=-1;
+      ClusterObject clObj=objOrdered.get(i);
+      if (clObj.getOriginalObject() instanceof ClusterObject) {
+        ClusterObject origObj=(ClusterObject)clObj.getOriginalObject();
+        if (origObj.getOriginalObject() instanceof Integer)
+          clAss.objIndexes[i]=(Integer)origObj.getOriginalObject();
+      }
+      double d=clObj.getReachabilityDistance();
+      if (!Double.isNaN(d) && !Double.isInfinite(d) && d<distThreshold) {
+        if (clAss.nClusters == 0 || (i > 0 && clAss.clusters[i - 1] < 0)) { //new cluster
+          if (currClusterSize>0) {
+            if (clAss.minSize<1 || clAss.minSize>currClusterSize)
+              clAss.minSize=currClusterSize;
+            if (clAss.maxSize<currClusterSize)
+              clAss.maxSize=currClusterSize;
+          }
+          clAss.clusters[i] = clAss.nClusters++;
+          currClusterSize=1;
+        }
+        else {
+          clAss.clusters[i] = clAss.clusters[i - 1]; //continuation of the previous cluster
+          ++currClusterSize;
+        }
+      }
+      else
+        ++clAss.nNoise;
+    }
+    return clAss;
   }
 }

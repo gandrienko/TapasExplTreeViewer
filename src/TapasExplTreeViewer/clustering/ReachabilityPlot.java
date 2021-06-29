@@ -11,12 +11,15 @@ import java.util.ArrayList;
 
 public class ReachabilityPlot extends JPanel {
   public static int minBarW=2;
+  public static Color color1=new Color(255,140,0),
+    color2=new Color(255-color1.getRed(),255-color1.getGreen(), 255-color1.getBlue());
   /**
    * Objects ordered by the clustering algorithm
    */
-  protected ArrayList<ClusterObject<Integer>> objOrdered = null;
+  protected ArrayList<ClusterObject> objOrdered = null;
   public double maxDistance=Double.NaN;
   public double threshold=Double.NaN;
+  public ClustersAssignments clAss=null;
   
   protected int barW=minBarW;
   /**
@@ -32,7 +35,7 @@ public class ReachabilityPlot extends JPanel {
   protected BufferedImage off_Image=null, off_selected=null;
   protected boolean off_Valid=false, off_selected_Valid =false;
   
-  public ReachabilityPlot (ArrayList<ClusterObject<Integer>> objOrdered) {
+  public ReachabilityPlot (ArrayList<ClusterObject> objOrdered) {
     this.objOrdered=objOrdered;
     if (objOrdered!=null && !objOrdered.isEmpty()) {
       setPreferredSize(new Dimension(Math.max(1200, minBarW * objOrdered.size()+10), 300));
@@ -52,6 +55,25 @@ public class ReachabilityPlot extends JPanel {
   
   public void setThreshold(double threshold) {
     this.threshold = threshold;
+    if (isShowing() && off_Image!=null && off_Valid &&
+            !Double.isNaN(threshold) && threshold>0 && threshold<maxDistance) {
+      Graphics g=getGraphics();
+      g.drawImage(off_Image,0,0,null);
+      int h=getHeight(), w=getWidth();
+      double scale=(h-10)/maxDistance;
+      int th=(int)Math.round(scale*threshold);
+      g.setColor(Color.red);
+      g.drawLine(0,h-5-th,w,h-5-th);
+    }
+  }
+  
+  public double getThreshold() {
+    return threshold;
+  }
+  
+  public void setCusterAssignments(ClustersAssignments clAss) {
+    this.clAss=clAss;
+    off_Valid=false;
     if (isShowing())
       redraw();
   }
@@ -90,6 +112,12 @@ public class ReachabilityPlot extends JPanel {
     //todo: draw the bar
   }
   
+  public static Color getColorForCluster(int cluster) {
+    if (cluster<0)
+      return Color.gray;
+    return (cluster%2==0)?color1:color2;
+  }
+  
   public void paintComponent(Graphics gr) {
     if (gr==null)
       return;
@@ -106,12 +134,6 @@ public class ReachabilityPlot extends JPanel {
         gr.drawImage(off_Image,0,0,null);
         drawSelected(gr);
         drawHighlighted(gr);
-  
-        if (!Double.isNaN(threshold) && threshold>0 && threshold<maxDistance){
-          int th=(int)Math.round(scale*threshold);
-          gr.setColor(Color.red);
-          gr.drawLine(0,h-5-th,w,h-5-th);
-        }
         return;
       }
     }
@@ -134,21 +156,26 @@ public class ReachabilityPlot extends JPanel {
       double rd = objOrdered.get(i).getReachabilityDistance(), cd = objOrdered.get(i).getCoreDistance();
       int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?
                                    (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
-      if (barH>0)
-        g.fillRect(x,h-5-barH,barW,barH);
+      if (barH>0) {
+        if (clAss!=null)
+          g.setColor(getColorForCluster(clAss.clusters[i]));
+        else
+          g.setColor(Color.gray);
+        g.fillRect(x, h - 5 - barH, barW, barH);
+      }
       x+=barW;
+    }
+  
+    if (!Double.isNaN(threshold) && threshold>0 && threshold<maxDistance){
+      int th=(int)Math.round(scale*threshold);
+      g.setColor(Color.red);
+      g.drawLine(0,h-5-th,w,h-5-th);
     }
   
     gr.drawImage(off_Image,0,0,null);
     off_Valid=true;
     drawSelected(gr);
     drawHighlighted(gr);
-    
-    if (!Double.isNaN(threshold) && threshold>0 && threshold<maxDistance){
-      int th=(int)Math.round(scale*threshold);
-      g.setColor(Color.red);
-      g.drawLine(0,h-5-th,w,h-5-th);
-    }
   }
   
   public void redraw(){

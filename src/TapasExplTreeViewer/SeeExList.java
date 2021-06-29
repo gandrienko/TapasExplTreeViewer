@@ -3,6 +3,7 @@ package TapasExplTreeViewer;
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
+import TapasExplTreeViewer.clustering.ReachabilityPlot;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
@@ -104,23 +105,20 @@ public class SeeExList {
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
     
+    System.out.println("Computing distance matrix...");
     double distanceMatrix[][]=CommonExplanation.computeDistances(exList,attrMinMax);
     if (distanceMatrix==null) {
       System.out.println("Failed to compute a matrix of distances between the explanations!");
       return;
     }
+    System.out.println("Distance matrix ready!");
   
     ClustererByOPTICS clOptics=new ClustererByOPTICS();
     clOptics.setDistanceMatrix(distanceMatrix);
     clOptics.doClustering();
-  
-    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
 
     ExListTableModel eTblModel=new ExListTableModel(exList,attrMinMax);
-  
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
-    pp.setExplanations(exList);
-    pp.setDistanceMatrix(distanceMatrix);
+    clOptics.addChangeListener(eTblModel);
     
     SwingWorker worker=new SwingWorker() {
       @Override
@@ -136,7 +134,14 @@ public class SeeExList {
     };
     worker.execute();
   
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+  
+    /**/
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
+    pp.setExplanations(exList);
+    pp.setDistanceMatrix(distanceMatrix);
     pp.setPreferredSize(new Dimension(800,800));
+
     JFrame plotFrame=new JFrame("Projection plot");
     plotFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     plotFrame.getContentPane().add(pp);
@@ -146,6 +151,7 @@ public class SeeExList {
   
     SingleHighlightManager highlighter=pp.getHighlighter();
     ItemSelectionManager selector=pp.getSelector();
+    /**/
     
     Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
     
@@ -162,19 +168,28 @@ public class SeeExList {
         return "";
       }
       
+      /**/
       public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
+        Color bkColor=(isRowSelected(row))?getSelectionBackground():getBackground();
+        int rowIdx=convertRowIndexToModel(row);
+        boolean isCluster=eTblModel.getColumnName(column).equalsIgnoreCase("cluster");
+        if (isCluster)
+          bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,column));
+        c.setBackground(bkColor);
         if (highlighter==null || highlighter.getHighlighted()==null ||
-                ((Integer)highlighter.getHighlighted())!=convertRowIndexToModel(row)) {
+                ((Integer)highlighter.getHighlighted())!=rowIdx) {
           ((JComponent) c).setBorder(null);
-          c.setBackground((isRowSelected(row))?getSelectionBackground():getBackground());
           return c;
         }
         ((JComponent) c).setBorder(highlightBorder);
-        c.setBackground(ProjectionPlot2D.highlightFillColor);
+        if (!isCluster)
+          c.setBackground(ProjectionPlot2D.highlightFillColor);
         return c;
       }
+      /**/
     };
+    /**/
     table.addMouseListener(new MouseAdapter() {
       private void reactToMousePosition(MouseEvent e) {
         int rowIndex=table.rowAtPoint(e.getPoint());
@@ -203,6 +218,7 @@ public class SeeExList {
         super.mouseMoved(e);
       }
     });
+    /**/
     
     table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
     table.setFillsViewportHeight(true);
@@ -211,16 +227,19 @@ public class SeeExList {
     table.setRowSelectionAllowed(true);
     table.setColumnSelectionAllowed(false);
     for (int i=0; i<eTblModel.columnNames.length; i++)
-      if (eTblModel.getColumnClass(i).equals(Integer.class))
+      if (eTblModel.getColumnClass(i).equals(Integer.class) &&
+              !eTblModel.getColumnName(i).equalsIgnoreCase("cluster"))
         table.getColumnModel().getColumn(i).setCellRenderer(
-            new RenderLabelBarChart(0, eTblModel.getColumnMax(i)));
+            new RenderLabelBarChart(0,eTblModel.getColumnMax(i)));
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
     
+    /**/
     TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();
     rowSelMan.setTable(table);
     rowSelMan.setHighlighter(highlighter);
     rowSelMan.setSelector(selector);
+    /**/
   
     JScrollPane scrollPane = new JScrollPane(table);
     
@@ -232,6 +251,7 @@ public class SeeExList {
     fr.setLocation(30, 30);
     fr.setVisible(true);
   
+    /**/
     JPopupMenu menu=new JPopupMenu();
     JMenuItem mit=new JMenuItem("Extract the selected subset to a separate view");
     menu.add(mit);
@@ -259,6 +279,21 @@ public class SeeExList {
             distances =CommonExplanation.computeDistances(exSubset,attrMinMax);
             if (distances ==null)
               return false;
+            File file=new File("distances.csv");
+            try {
+              file.createNewFile();
+              FileWriter writer=new FileWriter(file);
+              for (int i=0; i<distances.length; i++) {
+                StringBuffer sb=new StringBuffer();
+                for (int j=0; j<distances.length; j++) {
+                  if (j>0)
+                    sb.append(",");
+                  sb.append(distances[i][j]);
+                }
+                writer.write(sb.toString()+"\r\n");
+              }
+              writer.close();
+            } catch (Exception ex) {}
             subPP.setDistanceMatrix(distances);
             MySammonsProjection sam=new MySammonsProjection(distances,1,300,true);
             sam.runProjection(5,50,subModel);
@@ -380,5 +415,6 @@ public class SeeExList {
         }
       }
     });
+    /**/
   }
 }

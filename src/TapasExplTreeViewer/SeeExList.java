@@ -2,6 +2,7 @@ package TapasExplTreeViewer;
 
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
+import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
@@ -96,10 +97,22 @@ public class SeeExList {
           CommonExplanation.addExplanation(exList,f.expl[i],
               true,attrMinMax,true);
     }
-    if (exList.isEmpty())
+    if (exList.isEmpty()) {
       System.out.println("Failed to reconstruct the list of common explanations!");
+      return;
+    }
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
+    
+    double distanceMatrix[][]=CommonExplanation.computeDistances(exList,attrMinMax);
+    if (distanceMatrix==null) {
+      System.out.println("Failed to compute a matrix of distances between the explanations!");
+      return;
+    }
+  
+    ClustererByOPTICS clOptics=new ClustererByOPTICS();
+    clOptics.setDistanceMatrix(distanceMatrix);
+    clOptics.doClustering();
   
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
 
@@ -107,16 +120,12 @@ public class SeeExList {
   
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
     pp.setExplanations(exList);
+    pp.setDistanceMatrix(distanceMatrix);
     
     SwingWorker worker=new SwingWorker() {
-      public double d[][]=null;
       @Override
       public Boolean doInBackground(){
-        d=CommonExplanation.computeDistances(exList,attrMinMax);
-        if (d==null)
-          return false;
-        pp.setDistanceMatrix(d);
-        MySammonsProjection sam=new MySammonsProjection(d,1,300,true);
+        MySammonsProjection sam=new MySammonsProjection(distanceMatrix,1,300,true);
         sam.runProjection(5,50,eTblModel);
         return true;
       }
@@ -244,20 +253,20 @@ public class SeeExList {
         subPP.setExplanations(exSubset);
   
         SwingWorker worker=new SwingWorker() {
-          public double d[][]=null;
+          public double distances[][]=null;
           @Override
           public Boolean doInBackground(){
-            d=CommonExplanation.computeDistances(exSubset,attrMinMax);
-            if (d==null)
+            distances =CommonExplanation.computeDistances(exSubset,attrMinMax);
+            if (distances ==null)
               return false;
-            subPP.setDistanceMatrix(d);
-            MySammonsProjection sam=new MySammonsProjection(d,1,300,true);
+            subPP.setDistanceMatrix(distances);
+            MySammonsProjection sam=new MySammonsProjection(distances,1,300,true);
             sam.runProjection(5,50,subModel);
             return true;
           }
           @Override
           protected void done() {
-            //pp.setDistanceMatrix(d);
+            //pp.setDistanceMatrix(distances);
           }
         };
         worker.execute();

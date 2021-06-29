@@ -120,6 +120,10 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     }
   }
   
+  public double[][] getDistances() {
+    return distances;
+  }
+  
   public void stateChanged(ChangeEvent e) {
     if (e.getSource() instanceof MySammonsProjection) {
       MySammonsProjection sam = (MySammonsProjection) e.getSource();
@@ -127,7 +131,7 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
       if (proj != null && proj[0].length==2) {
         xMin=xMax=yMin=yMax=xDiff=yDiff=Double.NaN;
         scale=Double.NaN;
-        System.out.println("Projection plot: updating the 2D projection");
+        //System.out.println("Projection plot: updating the 2D projection");
         off_Valid=false; off_selected_Valid=false;
         repaint();
       }

@@ -10,10 +10,13 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
-public class ProjectionPlot2D extends JPanel implements ChangeListener {
+public class ProjectionPlot2D extends JPanel
+    implements ChangeListener, MouseListener, MouseMotionListener {
   public static Color dotColor=new Color(50,50,50,90),
       highlightColor=new Color(255,0,0,160),
       highlightFillColor=new Color(255,255,0,100),
@@ -62,35 +65,9 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     highlighter.addChangeListener(this);
     selector=new ItemSelectionManager();
     selector.addChangeListener(this);
-    addMouseListener(new MouseAdapter() {
-      @Override
-      public void mouseClicked(MouseEvent e) {
-        super.mouseClicked(e);
-        if (e.getClickCount()>1)
-          selector.deselectAll();
-        else {
-          ArrayList<Integer> sel=getPointIndexesAtPosition(e.getX(),e.getY(),dotRadius*2);
-          if (sel!=null)
-            selector.select(sel);
-        }
-      }
-      @Override
-      public void mouseExited(MouseEvent e) {
-        super.mouseExited(e);
-        highlighter.clearHighlighting();
-      }
-    });
-    addMouseMotionListener(new MouseAdapter() {
-      @Override
-      public void mouseMoved(MouseEvent e) {
-        super.mouseMoved(e);
-        int idx=getPointIndexAtPosition(e.getX(),e.getY(),dotRadius);
-        if (idx<0)
-          highlighter.clearHighlighting();
-        else
-          highlighter.highlight(new Integer(idx));
-      }
-    });
+    
+    addMouseMotionListener(this);
+    addMouseListener(this);
   }
   
   public ProjectionPlot2D(double coords[][]) {
@@ -178,7 +155,7 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     else
       if (e.getSource().equals(selector)) {
         ArrayList currSel=selector.selected;
-        if (sameContent(currSel,selected))
+        if (ItemSelectionManager.sameContent(currSel,selected))
           return;
         if (currSel==null || currSel.isEmpty())
           selected.clear();
@@ -218,22 +195,6 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     //System.out.println("Projection plot: updating the 2D projection");
     off_Valid=false; off_selected_Valid=false;
     repaint();
-  }
-  
-  /**
-   * Assumes that both lists contain unique elements, no duplicates
-   */
-  public static boolean sameContent(ArrayList a1, ArrayList a2) {
-    if (a1==null || a1.isEmpty())
-      return a2==null || a2.isEmpty();
-    if (a2==null || a2.isEmpty())
-      return false;
-    if (a1.size()!=a2.size())
-      return false;
-    for (int i=0; i<a1.size(); i++)
-      if (!a2.contains(a1))
-        return false;
-    return true;
   }
   
   protected Stroke strokeSelected=new BasicStroke(2);
@@ -395,5 +356,69 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     if (indexes.isEmpty())
       return null;
     return indexes;
+  }
+  
+  protected int pressX=-1, pressY=-1, dragX=-1, dragY=-1;
+
+  public void mousePressed(MouseEvent e) {
+    if (e.getButton()==MouseEvent.BUTTON1){
+      pressX=e.getX(); pressY=e.getY();
+    }
+  }
+  
+  public void mouseReleased(MouseEvent e) {
+    if (pressX>=0 && pressY>=0 && dragX>=0 && dragX>=0) {
+      int x1=Math.min(pressX,dragX), x2=Math.max(pressX,dragX),
+          y1=Math.min(pressY,dragY), y2=Math.max(pressY,dragY);
+      if (x1<x2 || y1<y2) {
+        ArrayList<Integer> indexes=new ArrayList<Integer>(50);
+        for (int i=0; i<px.length; i++)
+          if (px[i]>=x1 && px[i]<=x2 && py[i]>=y1 && py[i]<=y2)
+            indexes.add(i);
+        if (!indexes.isEmpty())
+          selector.select(indexes);
+      }
+    }
+    pressX=pressY=dragX=dragY=-1;
+  }
+  
+  public void mouseClicked(MouseEvent e) {
+    if (e.getClickCount()>1)
+      selector.deselectAll();
+    else
+      if (e.getButton()==MouseEvent.BUTTON1){
+        ArrayList<Integer> sel=getPointIndexesAtPosition(e.getX(),e.getY(),dotRadius*2);
+        if (sel!=null)
+          selector.select(sel);
+      }
+  }
+  
+  public void mouseExited(MouseEvent e) {
+    highlighter.clearHighlighting();
+  }
+  
+  public void mouseEntered(MouseEvent e) { }
+  
+  public void mouseMoved(MouseEvent e) {
+    int idx=getPointIndexAtPosition(e.getX(),e.getY(),dotRadius);
+    if (idx<0)
+      highlighter.clearHighlighting();
+    else
+      highlighter.highlight(new Integer(idx));
+  }
+  public void mouseDragged(MouseEvent e) {
+    if (pressX>=0 && pressY>=0){
+      if (dragX>=0 && dragY>=0 && (dragX!=pressX || dragY!=pressY))
+        redraw();
+      dragX=e.getX(); dragY=e.getY();
+      Rectangle r=new Rectangle(Math.min(pressX,dragX),Math.min(pressY,dragY),
+          Math.abs(pressX-dragX),Math.abs(pressY-dragY));
+      if (r.width>0 || r.height>0) {
+        Graphics g = getGraphics();
+        g.setColor(new Color(0,0,0,96));
+        g.drawRect(r.x,r.y,r.width,r.height);
+        g.fillRect(r.x,r.y,r.width,r.height);
+      }
+    }
   }
 }

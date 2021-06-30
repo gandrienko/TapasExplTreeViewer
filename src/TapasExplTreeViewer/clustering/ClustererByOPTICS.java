@@ -1,5 +1,7 @@
 package TapasExplTreeViewer.clustering;
 
+import TapasUtilities.ItemSelectionManager;
+import TapasUtilities.SingleHighlightManager;
 import it.unipi.di.sax.optics.AnotherOptics;
 import it.unipi.di.sax.optics.ClusterListener;
 import it.unipi.di.sax.optics.ClusterObject;
@@ -34,6 +36,11 @@ public class ClustererByOPTICS
   protected ReachPlotPanel plotPanel =null;
   
   protected ArrayList<ChangeListener> changeListeners=null;
+  /**
+   * Highlighting and selection
+   */
+  protected SingleHighlightManager highlighter=null;
+  protected ItemSelectionManager selector=null;
   
   public void addChangeListener(ChangeListener l) {
     if (changeListeners==null)
@@ -62,6 +69,18 @@ public class ClustererByOPTICS
         objToCluster.add(clObj);
       }
     }
+  }
+  
+  public void setHighlighter(SingleHighlightManager highlighter) {
+    this.highlighter = highlighter;
+    if (plotPanel!=null)
+      plotPanel.setHighlighter(highlighter);
+  }
+  
+  public void setSelector(ItemSelectionManager selector) {
+    this.selector = selector;
+    if (plotPanel!=null)
+      plotPanel.setSelector(selector);
   }
   
   /**
@@ -156,6 +175,9 @@ public class ClustererByOPTICS
       fr.setSize(Math.round(0.8f*size.width),fr.getHeight());
     fr.setLocation((size.width-fr.getWidth())/2, size.height-fr.getHeight()-40);
     fr.setVisible(true);
+    
+    plotPanel.setHighlighter(highlighter);
+    plotPanel.setSelector(selector);
     
     if (changeListeners!=null) {
       ClustersAssignments clAss=ClustererByOPTICS.makeClusters(objOrdered,Double.NaN);

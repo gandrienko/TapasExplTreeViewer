@@ -156,6 +156,9 @@ public class SeeExList {
   
     SingleHighlightManager highlighter=pp.getHighlighter();
     ItemSelectionManager selector=pp.getSelector();
+
+    clOptics.setHighlighter(highlighter);
+    clOptics.setSelector(selector);
     /**/
     
     JTable table=new JTable(eTblModel){
@@ -246,6 +249,7 @@ public class SeeExList {
     rowSelMan.setTable(table);
     rowSelMan.setHighlighter(highlighter);
     rowSelMan.setSelector(selector);
+    rowSelMan.setMayScrollTable(false);
     /**/
   
     JScrollPane scrollPane = new JScrollPane(table);

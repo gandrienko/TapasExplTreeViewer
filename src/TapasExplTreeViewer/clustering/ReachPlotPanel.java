@@ -1,5 +1,7 @@
 package TapasExplTreeViewer.clustering;
 
+import TapasUtilities.ItemSelectionManager;
+import TapasUtilities.SingleHighlightManager;
 import it.unipi.di.sax.optics.ClusterObject;
 
 import javax.swing.*;
@@ -46,6 +48,14 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
     bp.add(new JLabel("max = "+String.format("%.5f",rPlot.getMaxDistance())),BorderLayout.EAST);
     add(bp,BorderLayout.SOUTH);
     thresholdSlider.addChangeListener(this);
+  }
+  
+  public void setHighlighter(SingleHighlightManager highlighter) {
+    rPlot.setHighlighter(highlighter);
+  }
+  
+  public void setSelector(ItemSelectionManager selector) {
+    rPlot.setSelector(selector);
   }
   
   public void stateChanged(ChangeEvent e) {

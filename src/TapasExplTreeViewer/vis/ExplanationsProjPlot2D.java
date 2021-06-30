@@ -42,9 +42,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
       dotDiameter=2*dotRadius;
     Color color=dotColor;
     if (!highlighted && !selected) {
-      float actionRatio = (10 - ((float) ex.action)) / 10;
-      color = Color.getHSBColor(actionRatio * (hsbBlue[0] - hsbRed[0]),1,1);
-      color=new Color(color.getRed(),color.getGreen(),color.getBlue(),100);
+      color=getColorForAction(ex.action);
       g.setColor(color);
       g.fillOval(x-dotRadius-1,y-dotRadius-1,dotDiameter+2,dotDiameter+2);
     }
@@ -71,5 +69,11 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     if (idx<0)
       return null;
     return explanations.get(idx).toHTML();
+  }
+  
+  public static Color getColorForAction(int action) {
+    float actionRatio = (10 - ((float) action)) / 10;
+    Color color = Color.getHSBColor(actionRatio * (hsbBlue[0] - hsbRed[0]),1,1);
+    return new Color(color.getRed(),color.getGreen(),color.getBlue(),100);
   }
 }

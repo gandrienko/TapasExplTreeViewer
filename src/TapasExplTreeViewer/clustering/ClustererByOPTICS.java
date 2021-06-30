@@ -6,6 +6,7 @@ import it.unipi.di.sax.optics.ClusterObject;
 import it.unipi.di.sax.optics.DistanceMeter;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.util.ArrayList;
@@ -156,9 +157,14 @@ public class ClustererByOPTICS
     fr.setLocation((size.width-fr.getWidth())/2, size.height-fr.getHeight()-40);
     fr.setVisible(true);
     
-    if (changeListeners!=null)
-      for (int i=0; i<changeListeners.size(); i++)
+    if (changeListeners!=null) {
+      ClustersAssignments clAss=ClustererByOPTICS.makeClusters(objOrdered,Double.NaN);
+      ChangeEvent e=new ChangeEvent(clAss);
+      for (int i = 0; i < changeListeners.size(); i++) {
         plotPanel.addChangeListener(changeListeners.get(i));
+        changeListeners.get(i).stateChanged(e);
+      }
+    }
   }
   
   public static ClustersAssignments makeClusters(ArrayList<ClusterObject> objOrdered,
@@ -179,25 +185,27 @@ public class ClustererByOPTICS
         if (origObj.getOriginalObject() instanceof Integer)
           clAss.objIndexes[i]=(Integer)origObj.getOriginalObject();
       }
-      double d=clObj.getReachabilityDistance();
-      if (!Double.isNaN(d) && !Double.isInfinite(d) && d<distThreshold) {
-        if (clAss.nClusters == 0 || (i > 0 && clAss.clusters[i - 1] < 0)) { //new cluster
-          if (currClusterSize>0) {
-            if (clAss.minSize<1 || clAss.minSize>currClusterSize)
-              clAss.minSize=currClusterSize;
-            if (clAss.maxSize<currClusterSize)
-              clAss.maxSize=currClusterSize;
+      if (!Double.isNaN(distThreshold)) {
+        double d = clObj.getReachabilityDistance();
+        if (!Double.isNaN(d) && !Double.isInfinite(d) && d < distThreshold) {
+          if (clAss.nClusters == 0 || (i > 0 && clAss.clusters[i - 1] < 0)) { //new cluster
+            if (currClusterSize > 0) {
+              if (clAss.minSize < 1 || clAss.minSize > currClusterSize)
+                clAss.minSize = currClusterSize;
+              if (clAss.maxSize < currClusterSize)
+                clAss.maxSize = currClusterSize;
+            }
+            clAss.clusters[i] = clAss.nClusters++;
+            currClusterSize = 1;
           }
-          clAss.clusters[i] = clAss.nClusters++;
-          currClusterSize=1;
+          else {
+            clAss.clusters[i] = clAss.clusters[i - 1]; //continuation of the previous cluster
+            ++currClusterSize;
+          }
         }
-        else {
-          clAss.clusters[i] = clAss.clusters[i - 1]; //continuation of the previous cluster
-          ++currClusterSize;
-        }
+        else
+          ++clAss.nNoise;
       }
-      else
-        ++clAss.nNoise;
     }
     return clAss;
   }

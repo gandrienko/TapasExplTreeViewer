@@ -6,6 +6,7 @@ import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
+import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasUtilities.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
@@ -30,6 +31,9 @@ import java.util.Map;
 import java.util.TreeSet;
 
 public class SeeExList {
+  
+  public static Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
+
   public static void main(String[] args) {
     String parFileName = (args != null && args.length > 0) ? args[0] : "params.txt";
   
@@ -153,8 +157,6 @@ public class SeeExList {
     ItemSelectionManager selector=pp.getSelector();
     /**/
     
-    Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
-    
     JTable table=new JTable(eTblModel){
       public String getToolTipText(MouseEvent e) {
         java.awt.Point p = e.getPoint();
@@ -258,150 +260,10 @@ public class SeeExList {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        ArrayList selected=selector.getSelected();
-        if (selected.size()<5)
-          return;
-        ArrayList<CommonExplanation> exSubset=new ArrayList<CommonExplanation>(selected.size());
-        for (int i=0; i<selected.size(); i++)
-          if (selected.get(i) instanceof Integer) {
-            int idx=(Integer)selected.get(i);
-            exSubset.add(exList.get(idx));
-          }
-        ExListTableModel subModel=new ExListTableModel(exSubset,attrMinMax);
-  
-        ExplanationsProjPlot2D subPP=new ExplanationsProjPlot2D();
-        subPP.setExplanations(exSubset);
-  
-        SwingWorker worker=new SwingWorker() {
-          public double distances[][]=null;
-          @Override
-          public Boolean doInBackground(){
-            distances =CommonExplanation.computeDistances(exSubset,attrMinMax);
-            if (distances ==null)
-              return false;
-            File file=new File("distances.csv");
-            try {
-              file.createNewFile();
-              FileWriter writer=new FileWriter(file);
-              for (int i=0; i<distances.length; i++) {
-                StringBuffer sb=new StringBuffer();
-                for (int j=0; j<distances.length; j++) {
-                  if (j>0)
-                    sb.append(",");
-                  sb.append(distances[i][j]);
-                }
-                writer.write(sb.toString()+"\r\n");
-              }
-              writer.close();
-            } catch (Exception ex) {}
-            subPP.setDistanceMatrix(distances);
-            MySammonsProjection sam=new MySammonsProjection(distances,1,300,true);
-            sam.runProjection(5,50,subModel);
-            return true;
-          }
-          @Override
-          protected void done() {
-            //pp.setDistanceMatrix(distances);
-          }
-        };
-        worker.execute();
-
-        subPP.setPreferredSize(new Dimension(500,500));
-        JFrame pf=new JFrame("Subset projection plot ("+exSubset.size()+" points)");
-        pf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        pf.getContentPane().add(subPP);
-        pf.pack();
-        pf.setLocation(size.width-pf.getWidth()-20, size.height-pf.getHeight()-40);
-        pf.setVisible(true);
-  
-        SingleHighlightManager hlSub=subPP.getHighlighter();
-        ItemSelectionManager selSub=subPP.getSelector();
-  
-        JTable subTbl=new JTable(subModel){
-          public String getToolTipText(MouseEvent e) {
-            java.awt.Point p = e.getPoint();
-            int rowIndex = rowAtPoint(p);
-            if (rowIndex>=0) {
-              int realRowIndex = convertRowIndexToModel(rowIndex);
-              hlSub.highlight(new Integer(realRowIndex));
-              return exSubset.get(realRowIndex).toHTML();
-            }
-            hlSub.clearHighlighting();
-            return "";
-          }
-    
-          public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-            Component c = super.prepareRenderer(renderer, row, column);
-            if (hlSub==null || hlSub.getHighlighted()==null ||
-                    ((Integer)hlSub.getHighlighted())!=convertRowIndexToModel(row)) {
-              ((JComponent) c).setBorder(null);
-              c.setBackground((isRowSelected(row))?getSelectionBackground():getBackground());
-              return c;
-            }
-            ((JComponent) c).setBorder(highlightBorder);
-            c.setBackground(ProjectionPlot2D.highlightFillColor);
-            return c;
-          }
-        };
-        subTbl.addMouseListener(new MouseAdapter() {
-          private void reactToMousePosition(MouseEvent e) {
-            int rowIndex=subTbl.rowAtPoint(e.getPoint());
-            if (rowIndex<0)
-              hlSub.clearHighlighting();
-            else {
-              int realRowIndex = subTbl.convertRowIndexToModel(rowIndex);
-              hlSub.highlight(new Integer(realRowIndex));
-            }
-          }
-          @Override
-          public void mouseEntered(MouseEvent e) {
-            reactToMousePosition(e);
-            super.mouseEntered(e);
-          }
-    
-          @Override
-          public void mouseExited(MouseEvent e) {
-            highlighter.clearHighlighting();
-            super.mouseExited(e);
-          }
-    
-          @Override
-          public void mouseMoved(MouseEvent e) {
-            reactToMousePosition(e);
-            super.mouseMoved(e);
-          }
-        });
-
-        subTbl.setPreferredScrollableViewportSize(
-            new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
-        subTbl.setFillsViewportHeight(true);
-        subTbl.setAutoCreateRowSorter(true);
-        subTbl.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        subTbl.setRowSelectionAllowed(true);
-        subTbl.setColumnSelectionAllowed(false);
-        for (int i=0; i<subModel.columnNames.length; i++)
-          if (subModel.getColumnClass(i).equals(Integer.class))
-            subTbl.getColumnModel().getColumn(i).setCellRenderer(
-                new RenderLabelBarChart(0, subModel.getColumnMax(i)));
-        for (int i=subModel.columnNames.length; i<subModel.getColumnCount(); i++)
-          subTbl.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
-  
-        TableRowsSelectionManager subSelMan=new TableRowsSelectionManager();
-        subSelMan.setTable(subTbl);
-        subSelMan.setHighlighter(hlSub);
-        subSelMan.setSelector(selSub);
-  
-        JScrollPane scrollPane = new JScrollPane(subTbl);
-  
-        JFrame fr = new JFrame("Subset of explanations (" + exSubset.size() + ")");
-        fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
-        //Display the window.
-        fr.pack();
-        fr.setLocation(size.width-fr.getWidth()-10, 40);
-        fr.setVisible(true);
+        extractSubset(exList,distanceMatrix,selector,attrMinMax);
       }
     });
+  
     
     pp.addMouseListener(new MouseAdapter() {
       @Override
@@ -409,12 +271,176 @@ public class SeeExList {
         super.mousePressed(e);
         if (selector.hasSelection() && e.getButton()>MouseEvent.BUTTON1) {
           ArrayList selected=selector.getSelected();
-          if (selected.size()<5)
-            return;
-          menu.show(pp,e.getX(),e.getY());
+          if (selected.size()>5)
+            menu.show(pp,e.getX(),e.getY());
         }
       }
     });
     /**/
+  }
+  
+  public static void extractSubset(ArrayList<CommonExplanation> exList,
+                                   double distanceMatrix[][],
+                                   ItemSelectionManager selector,
+                                   Hashtable<String,int[]> attrMinMax) {
+    ArrayList selected=selector.getSelected();
+    if (selected.size()<5)
+      return;
+    ArrayList<CommonExplanation> exSubset=new ArrayList<CommonExplanation>(selected.size());
+    int idx[]=new int[selected.size()];
+    int nEx=0;
+    for (int i=0; i<selected.size(); i++)
+      if (selected.get(i) instanceof Integer) {
+        idx[nEx]=(Integer)selected.get(i);
+        exSubset.add(exList.get(idx[nEx]));
+        ++nEx;
+      }
+    ExListTableModel subModel=new ExListTableModel(exSubset,attrMinMax);
+    
+    double distances[][]=new double[nEx][nEx];
+    for (int i=0; i<nEx; i++) {
+      distances[i][i]=0;
+      int ii=idx[i];
+      for (int j=i+1; j<nEx; j++) {
+        int jj=idx[j];
+        distances[i][j]=distances[j][i]=distanceMatrix[ii][jj];
+      }
+    }
+  
+    ExplanationsProjPlot2D subPP=new ExplanationsProjPlot2D();
+    subPP.setExplanations(exSubset);
+  
+    SwingWorker worker=new SwingWorker() {
+      @Override
+      public Boolean doInBackground(){
+        subPP.setDistanceMatrix(distances);
+        MySammonsProjection sam=new MySammonsProjection(distances,1,300,true);
+        sam.runProjection(5,50,subModel);
+        return true;
+      }
+      @Override
+      protected void done() {
+        //pp.setDistanceMatrix(distances);
+      }
+    };
+    worker.execute();
+  
+    subPP.setPreferredSize(new Dimension(500,500));
+    JFrame pf=new JFrame("Subset projection plot ("+exSubset.size()+" points)");
+    pf.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    pf.getContentPane().add(subPP);
+    pf.pack();
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    pf.setLocation(size.width-pf.getWidth()-20, size.height-pf.getHeight()-40);
+    pf.setVisible(true);
+  
+    SingleHighlightManager hlSub=subPP.getHighlighter();
+    ItemSelectionManager selSub=subPP.getSelector();
+  
+    JTable subTbl=new JTable(subModel){
+      public String getToolTipText(MouseEvent e) {
+        java.awt.Point p = e.getPoint();
+        int rowIndex = rowAtPoint(p);
+        if (rowIndex>=0) {
+          int realRowIndex = convertRowIndexToModel(rowIndex);
+          hlSub.highlight(new Integer(realRowIndex));
+          return exSubset.get(realRowIndex).toHTML();
+        }
+        hlSub.clearHighlighting();
+        return "";
+      }
+    
+      public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+        Component c = super.prepareRenderer(renderer, row, column);
+        if (hlSub==null || hlSub.getHighlighted()==null ||
+                ((Integer)hlSub.getHighlighted())!=convertRowIndexToModel(row)) {
+          ((JComponent) c).setBorder(null);
+          c.setBackground((isRowSelected(row))?getSelectionBackground():getBackground());
+          return c;
+        }
+        ((JComponent) c).setBorder(highlightBorder);
+        c.setBackground(ProjectionPlot2D.highlightFillColor);
+        return c;
+      }
+    };
+    subTbl.addMouseListener(new MouseAdapter() {
+      private void reactToMousePosition(MouseEvent e) {
+        int rowIndex=subTbl.rowAtPoint(e.getPoint());
+        if (rowIndex<0)
+          hlSub.clearHighlighting();
+        else {
+          int realRowIndex = subTbl.convertRowIndexToModel(rowIndex);
+          hlSub.highlight(new Integer(realRowIndex));
+        }
+      }
+      @Override
+      public void mouseEntered(MouseEvent e) {
+        reactToMousePosition(e);
+        super.mouseEntered(e);
+      }
+    
+      @Override
+      public void mouseExited(MouseEvent e) {
+        hlSub.clearHighlighting();
+        super.mouseExited(e);
+      }
+    
+      @Override
+      public void mouseMoved(MouseEvent e) {
+        reactToMousePosition(e);
+        super.mouseMoved(e);
+      }
+    });
+  
+    subTbl.setPreferredScrollableViewportSize(
+        new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
+    subTbl.setFillsViewportHeight(true);
+    subTbl.setAutoCreateRowSorter(true);
+    subTbl.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+    subTbl.setRowSelectionAllowed(true);
+    subTbl.setColumnSelectionAllowed(false);
+    for (int i=0; i<subModel.columnNames.length; i++)
+      if (subModel.getColumnClass(i).equals(Integer.class))
+        subTbl.getColumnModel().getColumn(i).setCellRenderer(
+            new RenderLabelBarChart(0, subModel.getColumnMax(i)));
+    for (int i=subModel.columnNames.length; i<subModel.getColumnCount(); i++)
+      subTbl.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
+  
+    TableRowsSelectionManager subSelMan=new TableRowsSelectionManager();
+    subSelMan.setTable(subTbl);
+    subSelMan.setHighlighter(hlSub);
+    subSelMan.setSelector(selSub);
+  
+    JScrollPane scrollPane = new JScrollPane(subTbl);
+  
+    JFrame fr = new JFrame("Subset of explanations (" + exSubset.size() + ")");
+    fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
+    //Display the window.
+    fr.pack();
+    fr.setLocation(size.width-fr.getWidth()-10, 40);
+    fr.setVisible(true);
+  
+    JPopupMenu menu=new JPopupMenu();
+    JMenuItem mit=new JMenuItem("Export the distance matrix to a file");
+    menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        MatrixWriter.writeMatrixToFile(distances,"distances.csv",true);
+      }
+    });
+    
+    subPP.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mousePressed(MouseEvent e) {
+        super.mousePressed(e);
+        if (selector.hasSelection() && e.getButton()>MouseEvent.BUTTON1) {
+          ArrayList selected=selector.getSelected();
+          if (selected.size()>5)
+            menu.show(subPP,e.getX(),e.getY());
+        }
+      }
+    });
   }
 }

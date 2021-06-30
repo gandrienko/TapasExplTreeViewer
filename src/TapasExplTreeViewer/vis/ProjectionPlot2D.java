@@ -93,12 +93,39 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
     });
   }
   
+  public ProjectionPlot2D(double coords[][]) {
+    this();
+    proj=coords;
+  }
+  
   public SingleHighlightManager getHighlighter(){
     return highlighter;
   }
   
   public ItemSelectionManager getSelector() {
     return selector;
+  }
+  
+  public void setHighlighter(SingleHighlightManager highlighter) {
+    if (this.highlighter!=null)
+      if (this.highlighter.equals(highlighter))
+        return;
+      else
+        this.highlighter.removeChangeListener(this);
+    this.highlighter = highlighter;
+    if (highlighter!=null)
+      highlighter.addChangeListener(this);
+  }
+  
+  public void setSelector(ItemSelectionManager selector) {
+    if (this.selector!=null)
+      if (this.selector.equals(selector))
+        return;
+      else
+        this.selector.removeChangeListener(this);
+    this.selector = selector;
+    if (selector!=null)
+      selector.addChangeListener(this);
   }
   
   public void setDistanceMatrix(double distances[][]) {
@@ -167,6 +194,30 @@ public class ProjectionPlot2D extends JPanel implements ChangeListener {
         if (off_Valid)
           redraw();
       }
+  }
+  
+  public int getNPoints() {
+    if (proj!=null)
+      return proj.length;
+    if (distances!=null)
+      return distances.length;
+    return 0;
+  }
+  
+  public void setOtherCoordinates(double coords[][]) {
+    if (coords==null)
+      return;
+    if (coords.length!=getNPoints()) {
+      System.out.println("The new coordinates are for "+coords.length+
+                             " points but must be for "+getNPoints()+" points!");
+      return;
+    }
+    proj=coords;
+    xMin=xMax=yMin=yMax=xDiff=yDiff=Double.NaN;
+    scale=Double.NaN;
+    //System.out.println("Projection plot: updating the 2D projection");
+    off_Valid=false; off_selected_Valid=false;
+    repaint();
   }
   
   /**

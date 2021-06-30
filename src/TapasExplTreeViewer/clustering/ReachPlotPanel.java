@@ -70,6 +70,10 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
       }
       else {
         rPlot.setThreshold(th);
+        int sliderValue=(int)Math.round(th/rPlot.getMaxDistance()*thresholdSlider.getMaximum());
+        thresholdSlider.removeChangeListener(this);
+        thresholdSlider.setValue(sliderValue);
+        thresholdSlider.addChangeListener(this);
         makeAndShowClusters();
       }
     }

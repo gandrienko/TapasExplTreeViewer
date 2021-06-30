@@ -20,6 +20,13 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   }
   
+  public ExplanationsProjPlot2D(ArrayList<CommonExplanation> explanations, double coords[][]) {
+    super(coords);
+    ToolTipManager.sharedInstance().registerComponent(this);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
+    setExplanations(explanations);
+  }
+  
   public void setExplanations(ArrayList<CommonExplanation> explanations) {
     this.explanations = explanations;
     maxNUses = 0;

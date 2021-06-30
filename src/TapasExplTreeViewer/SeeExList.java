@@ -6,6 +6,7 @@ import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
+import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasUtilities.TableRowsSelectionManager;
@@ -174,10 +175,14 @@ public class SeeExList {
       public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
         Color bkColor=(isRowSelected(row))?getSelectionBackground():getBackground();
-        int rowIdx=convertRowIndexToModel(row);
-        boolean isCluster=eTblModel.getColumnName(column).equalsIgnoreCase("cluster");
+        int rowIdx=convertRowIndexToModel(row), colIdx=convertColumnIndexToModel(column);
+        String colName=eTblModel.getColumnName(colIdx);
+        boolean isCluster=colName.equalsIgnoreCase("cluster");
         if (isCluster)
           bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,column));
+        boolean isAction=!isCluster && colName.equalsIgnoreCase("action");
+        if (isAction)
+          bkColor=ExplanationsProjPlot2D.getColorForAction((Integer)eTblModel.getValueAt(rowIdx,column));
         c.setBackground(bkColor);
         if (highlighter==null || highlighter.getHighlighted()==null ||
                 ((Integer)highlighter.getHighlighted())!=rowIdx) {
@@ -185,7 +190,7 @@ public class SeeExList {
           return c;
         }
         ((JComponent) c).setBorder(highlightBorder);
-        if (!isCluster)
+        if (!isCluster && !isAction)
           c.setBackground(ProjectionPlot2D.highlightFillColor);
         return c;
       }
@@ -255,24 +260,75 @@ public class SeeExList {
   
     /**/
     JPopupMenu menu=new JPopupMenu();
-    JMenuItem mit=new JMenuItem("Extract the selected subset to a separate view");
+    JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
+    menu.add(mitExtract);
+    mitExtract.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        extractSubset(exList,distanceMatrix,selector,attrMinMax,eTblModel.order,eTblModel.clusters);
+      }
+    });
+  
+    JMenuItem mit=new JMenuItem("Read point coordinates from a file");
     menu.add(mit);
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(exList,distanceMatrix,selector,attrMinMax);
+        double coords[][]= CoordinatesReader.readCoordinatesFromChosenFile();
+        if (coords==null) {
+          System.out.println("No coordinates could be read!");
+          return;
+        }
+        if (coords.length!=exList.size()) {
+          System.out.println("The new coordinates are for "+coords.length+
+                                 " points but must be for "+exList.size()+" points!");
+          return;
+        }
+        System.out.println("Trying to create another plot...");
+        ExplanationsProjPlot2D anotherPlot=new ExplanationsProjPlot2D(exList,coords);
+        anotherPlot.setPreferredSize(new Dimension(800,800));
+        anotherPlot.setSelector(selector);
+        anotherPlot.setHighlighter(highlighter);
+  
+        anotherPlot.addMouseListener(new MouseAdapter() {
+          @Override
+          public void mousePressed(MouseEvent e) {
+            super.mousePressed(e);
+            if (e.getButton()>MouseEvent.BUTTON1) {
+              ArrayList selected=selector.getSelected();
+              mitExtract.setEnabled(selected!=null && selected.size()>5);
+              menu.show(anotherPlot,e.getX(),e.getY());
+            }
+          }
+        });
+  
+        JFrame fr=new JFrame(CoordinatesReader.lastFileName);
+        fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        fr.getContentPane().add(anotherPlot);
+        fr.pack();
+        Point p=plotFrame.getLocationOnScreen();
+        fr.setLocation(Math.max(10,p.x-30), Math.max(10,p.y-50));
+        fr.setVisible(true);
+      }
+    });
+    
+    mit=new JMenuItem("Export the distance matrix to a file");
+    menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        MatrixWriter.writeMatrixToFile(distanceMatrix,"allDistances.csv",true);
       }
     });
   
-    
     pp.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
         super.mousePressed(e);
-        if (selector.hasSelection() && e.getButton()>MouseEvent.BUTTON1) {
+        if (e.getButton()>MouseEvent.BUTTON1) {
           ArrayList selected=selector.getSelected();
-          if (selected.size()>5)
-            menu.show(pp,e.getX(),e.getY());
+          mitExtract.setEnabled(selected!=null && selected.size()>5);
+          menu.show(pp,e.getX(),e.getY());
         }
       }
     });
@@ -282,7 +338,9 @@ public class SeeExList {
   public static void extractSubset(ArrayList<CommonExplanation> exList,
                                    double distanceMatrix[][],
                                    ItemSelectionManager selector,
-                                   Hashtable<String,int[]> attrMinMax) {
+                                   Hashtable<String,int[]> attrMinMax,
+                                   int origOPTICSOrder[],
+                                   int origClusters[]) {
     ArrayList selected=selector.getSelected();
     if (selected.size()<5)
       return;
@@ -295,8 +353,6 @@ public class SeeExList {
         exSubset.add(exList.get(idx[nEx]));
         ++nEx;
       }
-    ExListTableModel subModel=new ExListTableModel(exSubset,attrMinMax);
-    
     double distances[][]=new double[nEx][nEx];
     for (int i=0; i<nEx; i++) {
       distances[i][i]=0;
@@ -309,6 +365,8 @@ public class SeeExList {
   
     ExplanationsProjPlot2D subPP=new ExplanationsProjPlot2D();
     subPP.setExplanations(exSubset);
+  
+    ExListTableModel subModel=new ExListTableModel(exSubset,attrMinMax);
   
     SwingWorker worker=new SwingWorker() {
       @Override
@@ -324,6 +382,17 @@ public class SeeExList {
       }
     };
     worker.execute();
+  
+    subModel.clusters=(origClusters==null)?null:new int[nEx];
+    subModel.order=(origOPTICSOrder==null)?null:new int[nEx];
+    if (subModel.clusters!=null || subModel.order!=null) {
+      for (int i = 0; i < nEx; i++) {
+        if (subModel.clusters != null)
+          subModel.clusters[i]=origClusters[idx[i]];
+        if (subModel.order!=null)
+          subModel.order[i]=origOPTICSOrder[i];
+      }
+    }
   
     subPP.setPreferredSize(new Dimension(500,500));
     JFrame pf=new JFrame("Subset projection plot ("+exSubset.size()+" points)");
@@ -352,14 +421,24 @@ public class SeeExList {
     
       public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
+        Color bkColor=(isRowSelected(row))?getSelectionBackground():getBackground();
+        int rowIdx=convertRowIndexToModel(row), colIdx=convertColumnIndexToModel(column);
+        String colName=subModel.getColumnName(colIdx);
+        boolean isCluster=colName.equalsIgnoreCase("cluster");
+        if (isCluster)
+          bkColor= ReachabilityPlot.getColorForCluster((Integer)subModel.getValueAt(rowIdx,column));
+        boolean isAction=!isCluster && colName.equalsIgnoreCase("action");
+        if (isAction)
+          bkColor=ExplanationsProjPlot2D.getColorForAction((Integer)subModel.getValueAt(rowIdx,column));
+        c.setBackground(bkColor);
         if (hlSub==null || hlSub.getHighlighted()==null ||
                 ((Integer)hlSub.getHighlighted())!=convertRowIndexToModel(row)) {
           ((JComponent) c).setBorder(null);
-          c.setBackground((isRowSelected(row))?getSelectionBackground():getBackground());
           return c;
         }
         ((JComponent) c).setBorder(highlightBorder);
-        c.setBackground(ProjectionPlot2D.highlightFillColor);
+        if (!isCluster && !isAction)
+          c.setBackground(ProjectionPlot2D.highlightFillColor);
         return c;
       }
     };

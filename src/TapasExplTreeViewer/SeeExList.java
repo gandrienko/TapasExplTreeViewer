@@ -124,20 +124,6 @@ public class SeeExList {
 
     ExListTableModel eTblModel=new ExListTableModel(exList,attrMinMax);
     clOptics.addChangeListener(eTblModel);
-    
-    SwingWorker worker=new SwingWorker() {
-      @Override
-      public Boolean doInBackground(){
-        MySammonsProjection sam=new MySammonsProjection(distanceMatrix,1,300,true);
-        sam.runProjection(5,50,eTblModel);
-        return true;
-      }
-      @Override
-      protected void done() {
-        //pp.setDistanceMatrix(d);
-      }
-    };
-    worker.execute();
   
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
   

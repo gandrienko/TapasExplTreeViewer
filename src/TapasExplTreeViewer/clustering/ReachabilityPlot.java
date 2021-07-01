@@ -8,10 +8,14 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
-public class ReachabilityPlot extends JPanel implements ChangeListener {
+public class ReachabilityPlot extends JPanel
+    implements ChangeListener, MouseListener, MouseMotionListener {
   public static int minBarW=2;
   public static Color color1=new Color(255,140,0),
     color2=new Color(255-color1.getRed(),255-color1.getGreen(), 255-color1.getBlue());
@@ -28,7 +32,8 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
   public double threshold=Double.NaN;
   public ClustersAssignments clAss=null;
   
-  protected int barW=minBarW;
+  protected int barW=minBarW, xMarg=5, yMarg=5, plotW=0, plotH=0;
+  protected double scale=Double.NaN;
   /**
    * Highlighting and selection
    */
@@ -61,6 +66,8 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
           maxDistance=cd;
       }
     }
+    addMouseListener(this);
+    addMouseMotionListener(this);
   }
   
   public int getOrigObjIndex(ClusterObject clObj) {
@@ -83,11 +90,9 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
             !Double.isNaN(threshold) && threshold>0 && threshold<maxDistance) {
       Graphics g=getGraphics();
       g.drawImage(off_Image,0,0,null);
-      int h=getHeight(), w=getWidth();
-      double scale=(h-10)/maxDistance;
       int th=(int)Math.round(scale*threshold);
       g.setColor(Color.red);
-      g.drawLine(0,h-5-th,w,h-5-th);
+      g.drawLine(0,plotH-yMarg-th,plotW,plotH-yMarg-th);
     }
   }
   
@@ -124,14 +129,27 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
       selector.addChangeListener(this);
   }
   
+  public int getOrigObjIdxAtPosition(int x, int y) {
+    if (x<xMarg || x>plotW-xMarg || y<yMarg || y>plotH-yMarg)
+      return -1;
+    int idx=(x-xMarg)/barW;
+    if (idx<0 || idx>=objOrdered.size())
+      return -1;
+    double rd = objOrdered.get(idx).getReachabilityDistance(), cd = objOrdered.get(idx).getCoreDistance();
+    int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?
+                                 (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
+    if (y<plotH - yMarg - barH)
+      return -1;
+    return getOrigObjIndex(objOrdered.get(idx));
+  }
+  
   public void drawSelected(Graphics gr) {
     if (selected==null || selected.isEmpty() || objOrdered==null || Double.isNaN(maxDistance))
       return;
-    int w=getWidth(), h=getHeight();
-    if (w<1 || h<1)
+    if (plotW<1 || plotH<1)
       return;
     if (off_selected!=null && off_selected_Valid) {
-      if (off_selected.getWidth()!=w || off_selected.getHeight()!=h) {
+      if (off_selected.getWidth()!=plotW || off_selected.getHeight()!=plotH) {
         off_selected = null; off_selected_Valid =false;
       }
       else {
@@ -140,11 +158,9 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
       }
     }
     
-    off_selected=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
+    off_selected=new BufferedImage(plotW,plotH,BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = off_selected.createGraphics();
 
-    double scale=(h-10)/maxDistance;
-    
     for (int j=0; j<selected.size(); j++) {
       int i=selected.get(j);
       int idx=origObjIndexesInOrder[i];
@@ -155,9 +171,9 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
                                    (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
       if (barH>0) {
         g.setColor(selectColor);
-        int x=5+idx*barW;
-        g.fillRect(x, h - 5 - barH, barW, barH);
-        g.drawRect(x, h - 5 - barH, barW, barH);
+        int x=xMarg+idx*barW;
+        g.fillRect(x, plotH - yMarg - barH, barW, barH);
+        g.drawRect(x, plotH - yMarg - barH, barW, barH);
       }
     }
     
@@ -172,16 +188,14 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
     if (idx<0)
       return;
     double rd = objOrdered.get(idx).getReachabilityDistance(), cd = objOrdered.get(idx).getCoreDistance();
-    int h=getHeight();
-    double scale=(h-10)/maxDistance;
     int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?
                                  (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
     if (barH>0) {
       gr.setColor(highlightFillColor);
-      int x=5+idx*barW;
-      gr.fillRect(x, h - 5 - barH, barW, barH);
+      int x=xMarg+idx*barW;
+      gr.fillRect(x, plotH - yMarg - barH, barW, barH);
       gr.setColor(highlightColor);
-      gr.drawRect(x, h - 5 - barH, barW, barH);
+      gr.drawRect(x, plotH - yMarg - barH, barW, barH);
     }
   }
   
@@ -194,12 +208,13 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
   public void paintComponent(Graphics gr) {
     if (gr==null)
       return;
-    int w=getWidth(), h=getHeight();
-    if (w<1 || h<1)
+    plotW=getWidth();
+    plotH=getHeight();
+    if (plotW<1 || plotH<1)
       return;
-    double scale=(h-10)/maxDistance;
+    scale=(plotH-10)/maxDistance;
     if (off_Image!=null && off_Valid) {
-      if (off_Image.getWidth()!=w || off_Image.getHeight()!=h) {
+      if (off_Image.getWidth()!=plotW || off_Image.getHeight()!=plotH) {
         off_Image = null; off_Valid=false;
         off_selected_Valid=false;
       }
@@ -211,19 +226,19 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
       }
     }
   
-    if (off_Image==null || off_Image.getWidth()!=w || off_Image.getHeight()!=h)
-      off_Image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
+    if (off_Image==null || off_Image.getWidth()!=plotW || off_Image.getHeight()!=plotH)
+      off_Image=new BufferedImage(plotW,plotH,BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = off_Image.createGraphics();
   
     g.setColor(getBackground());
-    g.fillRect(0,0,w+1,h+1);
+    g.fillRect(0,0,plotW+1,plotH+1);
     
     if (objOrdered==null || Double.isNaN(maxDistance))
       return;
     
-    barW=Math.max(minBarW,(w-10)/objOrdered.size());
+    barW=Math.max(minBarW,(plotW-10)/objOrdered.size());
     
-    int x=5;
+    int x=xMarg;
     g.setColor(Color.gray);
     for (int i=0; i<objOrdered.size(); i++) {
       double rd = objOrdered.get(i).getReachabilityDistance(), cd = objOrdered.get(i).getCoreDistance();
@@ -234,7 +249,7 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
           g.setColor(getColorForCluster(clAss.clusters[i]));
         else
           g.setColor(Color.gray);
-        g.fillRect(x, h - 5 - barH, barW, barH);
+        g.fillRect(x, plotH - yMarg - barH, barW, barH);
       }
       x+=barW;
     }
@@ -242,7 +257,7 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
     if (!Double.isNaN(threshold) && threshold>0 && threshold<maxDistance){
       int th=(int)Math.round(scale*threshold);
       g.setColor(Color.red);
-      g.drawLine(0,h-5-th,w,h-5-th);
+      g.drawLine(0,plotH-yMarg-th,plotW,plotH-yMarg-th);
     }
   
     gr.drawImage(off_Image,0,0,null);
@@ -287,6 +302,74 @@ public class ReachabilityPlot extends JPanel implements ChangeListener {
         if (off_Valid)
           redraw();
       }
+  }
+  
+  protected int pressX=-1, dragX=-1;
+  
+  public void mousePressed(MouseEvent e) {
+    if (e.getButton()==MouseEvent.BUTTON1)
+      pressX=e.getX();
+  }
+  
+  public void mouseReleased(MouseEvent e) {
+    if (pressX>=0 && dragX>=0 && dragX!=pressX) {
+      int x1=Math.min(pressX,dragX), x2=Math.max(pressX,dragX);
+      int idx1=Math.max((x1-xMarg)/barW,0), idx2=Math.min((x2-xMarg)/barW,objOrdered.size()-1);
+      if (idx1<=idx2) {
+        ArrayList<Integer> indexes=new ArrayList<Integer>(idx2-idx1+1);
+        for (int i=idx1; i<=idx2; i++)
+          indexes.add(new Integer(getOrigObjIndex(objOrdered.get(i))));
+        if (!indexes.isEmpty())
+          if (selector.areAllSelected(indexes))
+            selector.deselect(indexes);
+          else
+            selector.select(indexes);
+      }
+    }
+    pressX=dragX=-1;
+  }
+  
+  public void mouseClicked(MouseEvent e) {
+    if (e.getClickCount()>1)
+      selector.deselectAll();
+    else
+      if (e.getButton()==MouseEvent.BUTTON1){
+        int origIdx=getOrigObjIdxAtPosition(e.getX(), e.getY());
+        if (origIdx>=0) {
+          int idx=new Integer(origIdx);
+          if (selector.isSelected(idx))
+            selector.deselect(idx);
+          else
+            selector.select(idx);
+        }
+      }
+  }
+  
+  public void mouseExited(MouseEvent e) {
+    highlighter.clearHighlighting();
+  }
+  
+  public void mouseEntered(MouseEvent e) { }
+  
+  public void mouseMoved(MouseEvent e) {
+    int idx=getOrigObjIdxAtPosition(e.getX(), e.getY());
+    if (idx<0)
+      highlighter.clearHighlighting();
+    else
+      highlighter.highlight(new Integer(idx));
+  }
+  public void mouseDragged(MouseEvent e) {
+    if (pressX>=0){
+      if (dragX>=0 && dragX!=pressX)
+        redraw();
+      dragX=e.getX();
+      if (dragX!=pressX) {
+        int x=Math.min(pressX,dragX), w=Math.abs(dragX-pressX);
+        Graphics g = getGraphics();
+        g.setColor(new Color(0,0,0,96));
+        g.fillRect(x,0,w,plotH);
+      }
+    }
   }
 }
 

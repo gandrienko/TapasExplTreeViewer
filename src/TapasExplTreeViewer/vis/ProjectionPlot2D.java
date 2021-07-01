@@ -367,7 +367,7 @@ public class ProjectionPlot2D extends JPanel
   }
   
   public void mouseReleased(MouseEvent e) {
-    if (pressX>=0 && pressY>=0 && dragX>=0 && dragX>=0) {
+    if (pressX>=0 && pressY>=0 && dragX>=0 && dragY>=0) {
       int x1=Math.min(pressX,dragX), x2=Math.max(pressX,dragX),
           y1=Math.min(pressY,dragY), y2=Math.max(pressY,dragY);
       if (x1<x2 || y1<y2) {
@@ -376,7 +376,10 @@ public class ProjectionPlot2D extends JPanel
           if (px[i]>=x1 && px[i]<=x2 && py[i]>=y1 && py[i]<=y2)
             indexes.add(i);
         if (!indexes.isEmpty())
-          selector.select(indexes);
+          if (selector.areAllSelected(indexes))
+            selector.deselect(indexes);
+          else
+            selector.select(indexes);
       }
     }
     pressX=pressY=dragX=dragY=-1;
@@ -389,7 +392,10 @@ public class ProjectionPlot2D extends JPanel
       if (e.getButton()==MouseEvent.BUTTON1){
         ArrayList<Integer> sel=getPointIndexesAtPosition(e.getX(),e.getY(),dotRadius*2);
         if (sel!=null)
-          selector.select(sel);
+          if (selector.areAllSelected(sel))
+            selector.deselect(sel);
+          else
+            selector.select(sel);
       }
   }
   

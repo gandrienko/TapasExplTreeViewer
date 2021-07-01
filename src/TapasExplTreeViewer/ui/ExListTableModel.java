@@ -19,7 +19,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,int[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Action", "N uses", "N flights", "X", "Order", "Cluster", "N conditions"};
+  public String columnNames[] = {"Action", "N uses", "N flights", "Order", "Cluster", "N conditions"};
   
   public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,int[]> attrMinMax) {
     this.exList=exList;
@@ -93,10 +93,9 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       case 0: return new Integer(cEx.action);
       case 1: return new Integer(cEx.nUses);
       case 2: return new Integer(cEx.uses.size());
-      case 3: return (Double.isNaN(cEx.x1D))?new Double(row):new Double(cEx.x1D);
-      case 4: return (order==null)?new Integer(row):new Integer(order[row]);
-      case 5: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
-      case 6: return new Integer(cEx.eItems.length);
+      case 3: return (order==null)?new Integer(row):new Integer(order[row]);
+      case 4: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
+      case 5: return new Integer(cEx.eItems.length);
     }
     String attrName=listOfFeatures.get(col-columnNames.length);
     double values[]={Double.NaN,Double.NaN,Double.NaN,Double.NaN};

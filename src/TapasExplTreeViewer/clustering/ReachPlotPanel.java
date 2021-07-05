@@ -21,7 +21,7 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
   
   protected JLabel labTop=null;
   protected JSlider thresholdSlider=null;
-  protected JTextField tfThreshold=null;
+  protected JTextField tfThreshold=null, tfRadius=null, tfNeighbors=null;
   
   public ReachPlotPanel(ArrayList<ClusterObject> objOrdered) {
     this.objOrdered=objOrdered;

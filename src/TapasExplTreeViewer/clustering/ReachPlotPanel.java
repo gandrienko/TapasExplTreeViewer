@@ -14,6 +14,10 @@ import java.util.ArrayList;
 
 public class ReachPlotPanel extends JPanel implements ChangeListener, ActionListener {
   /**
+   * Runs the clustering algorithm (OPTICS)
+   */
+  public OPTICS_Runner optics=null;
+  /**
    * Objects ordered by the clustering algorithm
    */
   protected ArrayList<ClusterObject> objOrdered = null;
@@ -23,8 +27,10 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
   protected JSlider thresholdSlider=null;
   protected JTextField tfThreshold=null, tfRadius=null, tfNeighbors=null;
   
-  public ReachPlotPanel(ArrayList<ClusterObject> objOrdered) {
+  public ReachPlotPanel(ArrayList<ClusterObject> objOrdered, OPTICS_Runner optics) {
     this.objOrdered=objOrdered;
+    this.optics=optics;
+    
     rPlot=new ReachabilityPlot(objOrdered);
     
     setLayout(new BorderLayout());
@@ -32,11 +38,26 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
     scp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
     add(scp,BorderLayout.CENTER);
     
-    labTop=new JLabel("Maximal reachability distance: "+String.format("%.5f",rPlot.getMaxDistance()),JLabel.CENTER);
-    add(labTop,BorderLayout.NORTH);
+    JPanel p=new JPanel(new GridLayout(0,1));
+    add(p,BorderLayout.NORTH);
+    if (optics!=null) {
+      tfRadius=new JTextField(String.format("%.5f",optics.getNeibRadius(),10));
+      tfNeighbors=new JTextField(String.valueOf(optics.getMinNeighbors()),3);
+      JButton b=new JButton("Run again");
+      b.setActionCommand("run");
+      b.addActionListener(this);
+      Panel pp = new Panel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+      pp.add(new JLabel("Neighbourhood radius:",JLabel.RIGHT));
+      pp.add(tfRadius);
+      pp.add(new JLabel("Minimal N of neighbours:",JLabel.RIGHT));
+      pp.add(tfNeighbors);
+    }
+    labTop=new JLabel("Maximal reachability distance: "+
+                          String.format("%.5f",rPlot.getMaxDistance()),JLabel.CENTER);
+    p.add(labTop);
     
     tfThreshold=new JTextField(10);
-    JPanel p=new JPanel(new FlowLayout(FlowLayout.CENTER,5,0));
+    p=new JPanel(new FlowLayout(FlowLayout.CENTER,5,0));
     p.add(new JLabel("Distance threshold for clustering:"));
     p.add(tfThreshold);
     tfThreshold.addActionListener(this);

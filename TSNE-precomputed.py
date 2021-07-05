@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 from sklearn import manifold
 
-print(f"Arguments count: {len(sys.argv)}")
-for i, arg in enumerate(sys.argv):
-    print(f"Argument {i:>6}: {arg}")
+#print(f"Arguments count: {len(sys.argv)}")
+#for i, arg in enumerate(sys.argv):
+#    print(f"Argument {i:>6}: {arg}")
 #print(sys.argv[0])
 #print(sys.argv[1])
         

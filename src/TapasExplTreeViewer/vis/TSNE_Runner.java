@@ -48,12 +48,13 @@ public class TSNE_Runner implements ProjectionProvider{
         public Boolean doInBackground(){
           //todo: run t-SNE; get projection to proj
           MatrixWriter.writeMatrixToFile(distances,"distances.csv",true);
-          String command="cmd.exe /C TSNE-precomputed.bat distances";
+          int perplexity=50;
+          String command="cmd.exe /C TSNE-precomputed.bat distances "+perplexity;
           try {
             Process p = Runtime.getRuntime().exec(command);
             int exit_value = p.waitFor();
             System.out.println("TSNE: finished, code="+exit_value);
-            proj= CoordinatesReader.readCoordinatesFromFile("distances_out_p30.csv");
+            proj= CoordinatesReader.readCoordinatesFromFile("distances_out_p"+perplexity+".csv");
             notifyChange();
           } catch (Exception e) {
             e.printStackTrace();

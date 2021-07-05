@@ -111,6 +111,10 @@ public class ProjectionPlot2D extends JPanel
     }
   }
   
+  public ProjectionProvider getProjectionProvider() {
+    return projectionProvider;
+  }
+  
   public void setDistanceMatrix(double distances[][]) {
     this.distances=distances;
     if (distances!=null && projectionProvider!=null) {
@@ -132,6 +136,16 @@ public class ProjectionPlot2D extends JPanel
         //System.out.println("Projection plot: updating the 2D projection");
         off_Valid=false; off_selected_Valid=false;
         repaint();
+        JFrame fr=null;
+        Component c=this;
+        while (fr==null && c!=null) {
+          if (c instanceof JFrame)
+            fr=(JFrame)c;
+          else
+            c=c.getParent();
+        }
+        if (fr!=null)
+          fr.setTitle(projectionProvider.getProjectionTitle());
       }
     }
     else

@@ -136,7 +136,7 @@ public class SeeExList {
     pp.setProjectionProvider(new TSNE_Runner());
     pp.setPreferredSize(new Dimension(800,800));
 
-    JFrame plotFrame=new JFrame("Projection plot");
+    JFrame plotFrame=new JFrame(pp.getProjectionProvider().getProjectionTitle());
     plotFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     plotFrame.getContentPane().add(pp);
     plotFrame.pack();
@@ -313,6 +313,17 @@ public class SeeExList {
         MatrixWriter.writeMatrixToFile(distanceMatrix,"allDistances.csv",true);
       }
     });
+    
+    if (pp.getProjectionProvider() instanceof TSNE_Runner) {
+      mit=new JMenuItem("Re-run t-SNE with another perplexity setting");
+      menu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          runTSNE((TSNE_Runner)pp.getProjectionProvider());
+        }
+      });
+    }
   
     pp.addMouseListener(new MouseAdapter() {
       @Override
@@ -326,6 +337,24 @@ public class SeeExList {
       }
     });
     /**/
+  }
+  
+  public static void runTSNE(TSNE_Runner tsne) {
+    String value=JOptionPane.showInputDialog("Enter an integer from 5 to 100:",
+        tsne.getPerplexity());
+    if (value==null)
+      return;
+    try {
+      int p=Integer.parseInt(value);
+      if (p<5 || p>100) {
+        System.out.println("Illegal perplexity: "+p);
+        return;
+      }
+      tsne.setPerplexity(p);
+      tsne.runAlgorithm();
+    } catch (Exception ex) {
+      System.out.println(ex);
+    }
   }
   
   public static void extractSubset(ArrayList<CommonExplanation> exList,
@@ -501,6 +530,17 @@ public class SeeExList {
         MatrixWriter.writeMatrixToFile(distances,"distances.csv",true);
       }
     });
+  
+    if (subPP.getProjectionProvider() instanceof TSNE_Runner) {
+      mit=new JMenuItem("Re-run t-SNE with another perplexity setting");
+      menu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          runTSNE((TSNE_Runner)subPP.getProjectionProvider());
+        }
+      });
+    }
     
     subPP.addMouseListener(new MouseAdapter() {
       @Override

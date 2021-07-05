@@ -73,4 +73,8 @@ public class SammonsMappingRunner implements ChangeListener, ProjectionProvider 
       notifyChange();
     }
   }
+  
+  public String getProjectionTitle() {
+    return "Sammon\'s mapping";
+  }
 }

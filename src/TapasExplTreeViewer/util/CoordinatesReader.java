@@ -27,12 +27,15 @@ public class CoordinatesReader {
   }
   
   public static double[][] readCoordinatesFromFile(String pathName) {
+    System.out.println("Trying to read coordinates from file "+pathName);
     return readCoordinatesFromFile(new File(pathName));
   }
   
   public static double[][] readCoordinatesFromFile(File file) {
-    if (file==null || !file.exists())
+    if (file==null || !file.exists()) {
+      System.out.println("The file does not exist!");
       return null;
+    }
     
     BufferedReader br = null;
     try {

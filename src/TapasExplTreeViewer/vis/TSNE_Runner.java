@@ -53,7 +53,7 @@ public class TSNE_Runner implements ProjectionProvider{
             Process p = Runtime.getRuntime().exec(command);
             int exit_value = p.waitFor();
             System.out.println("TSNE: finished, code="+exit_value);
-            proj= CoordinatesReader.readCoordinatesFromFile("distances_out_p30");
+            proj= CoordinatesReader.readCoordinatesFromFile("distances_out_p30.csv");
             notifyChange();
           } catch (Exception e) {
             e.printStackTrace();

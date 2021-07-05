@@ -10,6 +10,7 @@ import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasExplTreeViewer.vis.SammonsMappingRunner;
+import TapasExplTreeViewer.vis.TSNE_Runner;
 import TapasUtilities.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.ItemSelectionManager;
@@ -132,7 +133,7 @@ public class SeeExList {
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
     pp.setExplanations(exList);
     pp.setDistanceMatrix(distanceMatrix);
-    pp.setProjectionProvider(new SammonsMappingRunner());
+    pp.setProjectionProvider(new TSNE_Runner());
     pp.setPreferredSize(new Dimension(800,800));
 
     JFrame plotFrame=new JFrame("Projection plot");
@@ -364,7 +365,7 @@ public class SeeExList {
       @Override
       public Boolean doInBackground(){
         subPP.setDistanceMatrix(distances);
-        subPP.setProjectionProvider(new SammonsMappingRunner());
+        subPP.setProjectionProvider(new TSNE_Runner());
         return true;
       }
       @Override

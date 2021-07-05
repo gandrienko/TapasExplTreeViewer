@@ -9,6 +9,7 @@ import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
+import TapasExplTreeViewer.vis.SammonsMappingRunner;
 import TapasUtilities.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.ItemSelectionManager;
@@ -131,6 +132,7 @@ public class SeeExList {
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
     pp.setExplanations(exList);
     pp.setDistanceMatrix(distanceMatrix);
+    pp.setProjectionProvider(new SammonsMappingRunner());
     pp.setPreferredSize(new Dimension(800,800));
 
     JFrame plotFrame=new JFrame("Projection plot");
@@ -362,8 +364,7 @@ public class SeeExList {
       @Override
       public Boolean doInBackground(){
         subPP.setDistanceMatrix(distances);
-        MySammonsProjection sam=new MySammonsProjection(distances,1,300,true);
-        sam.runProjection(5,50,subModel);
+        subPP.setProjectionProvider(new SammonsMappingRunner());
         return true;
       }
       @Override

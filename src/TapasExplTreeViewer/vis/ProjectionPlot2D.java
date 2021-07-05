@@ -1,14 +1,12 @@
 package TapasExplTreeViewer.vis;
 
 import TapasUtilities.ItemSelectionManager;
-import TapasUtilities.MySammonsProjection;
 import TapasUtilities.SingleHighlightManager;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -29,7 +27,7 @@ public class ProjectionPlot2D extends JPanel
   /**
    * Creates a projection based on the distance matrix
    */
-  protected MySammonsProjection sam=null;
+  protected ProjectionProvider projectionProvider=null;
   /**
    * The projection obtained (updated iteratively)
    */
@@ -105,22 +103,19 @@ public class ProjectionPlot2D extends JPanel
       selector.addChangeListener(this);
   }
   
+  public void setProjectionProvider(ProjectionProvider projectionProvider) {
+    this.projectionProvider = projectionProvider;
+    if (distances!=null && projectionProvider!=null) {
+      projectionProvider.addChangeListener(this);
+      projectionProvider.setDistanceMatrix(distances);
+    }
+  }
+  
   public void setDistanceMatrix(double distances[][]) {
     this.distances=distances;
-    if (distances!=null) {
-      ChangeListener listener=this;
-      SwingWorker worker=new SwingWorker() {
-        @Override
-        public Boolean doInBackground(){
-          sam=new MySammonsProjection(distances,2,250,true);
-          sam.runProjection(5,50,listener);
-          return true;
-        }
-        @Override
-        protected void done() {
-        }
-      };
-      worker.execute();
+    if (distances!=null && projectionProvider!=null) {
+      projectionProvider.addChangeListener(this);
+      projectionProvider.setDistanceMatrix(distances);
     }
   }
   
@@ -129,9 +124,8 @@ public class ProjectionPlot2D extends JPanel
   }
   
   public void stateChanged(ChangeEvent e) {
-    if (e.getSource() instanceof MySammonsProjection) {
-      MySammonsProjection sam = (MySammonsProjection) e.getSource();
-      proj =(sam.done)?sam.getProjection():sam.bestProjection;
+    if (e.getSource().equals(projectionProvider)) {
+      proj =projectionProvider.getProjection();
       if (proj != null && proj[0].length==2) {
         xMin=xMax=yMin=yMax=xDiff=yDiff=Double.NaN;
         scale=Double.NaN;

@@ -62,7 +62,7 @@ public class TSNE_Runner implements ProjectionProvider{
         }
         @Override
         protected void done() {
-          notifyChange();
+          //notifyChange();
         }
       };
       worker.execute();

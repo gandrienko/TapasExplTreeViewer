@@ -71,28 +71,37 @@ public class ClustererByOPTICS extends OPTICS_Runner {
     }
     System.out.println("OPTICS clustering finished!");
     
-    plotPanel =new ReachPlotPanel(objOrdered,this);
-    JFrame fr = new JFrame("OPTICS reachability plot");
-    fr.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-    fr.getContentPane().add(plotPanel, BorderLayout.CENTER);
-    //Display the window.
-    fr.pack();
-    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    if (fr.getWidth()>0.8*size.width)
-      fr.setSize(Math.round(0.8f*size.width),fr.getHeight());
-    fr.setLocation((size.width-fr.getWidth())/2, size.height-fr.getHeight()-40);
-    fr.setVisible(true);
-    
-    plotPanel.setHighlighter(highlighter);
-    plotPanel.setSelector(selector);
-    
-    if (changeListeners!=null) {
-      ClustersAssignments clAss=makeClusters(objOrdered,Double.NaN);
-      ChangeEvent e=new ChangeEvent(clAss);
-      for (int i = 0; i < changeListeners.size(); i++) {
-        plotPanel.addChangeListener(changeListeners.get(i));
-        changeListeners.get(i).stateChanged(e);
+    if (plotPanel==null) {
+      plotPanel = new ReachPlotPanel(objOrdered, this);
+      JFrame fr = new JFrame("OPTICS reachability plot");
+      fr.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+      fr.getContentPane().add(plotPanel, BorderLayout.CENTER);
+      //Display the window.
+      fr.pack();
+      Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
+      if (fr.getWidth() > 0.8 * size.width)
+        fr.setSize(Math.round(0.8f * size.width), fr.getHeight());
+      fr.setLocation((size.width - fr.getWidth()) / 2, size.height - fr.getHeight() - 40);
+      fr.setVisible(true);
+  
+      plotPanel.setHighlighter(highlighter);
+      plotPanel.setSelector(selector);
+  
+      if (changeListeners != null) {
+        for (int i = 0; i < changeListeners.size(); i++)
+          plotPanel.addChangeListener(changeListeners.get(i));
       }
+    }
+    else {
+      //update the reachability plot
+      plotPanel.updateObjectsOrder(objOrdered);
+    }
+  
+    if (changeListeners != null) {
+      ClustersAssignments clAss = makeClusters(objOrdered, Double.NaN);
+      ChangeEvent e = new ChangeEvent(clAss);
+      for (int i = 0; i < changeListeners.size(); i++)
+        changeListeners.get(i).stateChanged(e);
     }
   }
 }

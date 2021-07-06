@@ -48,9 +48,25 @@ public class ReachabilityPlot extends JPanel
   protected boolean off_Valid=false, off_selected_Valid =false;
   
   public ReachabilityPlot (ArrayList<ClusterObject> objOrdered) {
+    setObjectsOrder(objOrdered);
+    addMouseListener(this);
+    addMouseMotionListener(this);
+    ToolTipManager.sharedInstance().registerComponent(this);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
+  }
+  
+  public void setObjectsOrder(ArrayList<ClusterObject> objOrdered) {
     this.objOrdered=objOrdered;
     if (objOrdered!=null && !objOrdered.isEmpty()) {
-      setPreferredSize(new Dimension(Math.max(1200, minBarW * objOrdered.size()+10), 300));
+      if (!isShowing())
+        setPreferredSize(new Dimension(Math.max(1200, minBarW * objOrdered.size()+10), 300));
+      
+      maxDistance=Double.NaN;
+      threshold=Double.NaN;
+      scale=Double.NaN;
+      clAss=null;
+      off_Valid=off_selected_Valid=false;
+      
       origObjIndexesInOrder=new int[objOrdered.size()];
       for (int i=0; i<origObjIndexesInOrder.length; i++)
         origObjIndexesInOrder[i]=-1;
@@ -63,9 +79,9 @@ public class ReachabilityPlot extends JPanel
         if (!Double.isNaN(rd) && !Double.isInfinite(rd) && (Double.isNaN(maxDistance) || maxDistance<rd))
           maxDistance=rd;
       }
+      if (isShowing())
+        redraw();
     }
-    addMouseListener(this);
-    addMouseMotionListener(this);
   }
   
   public int getOrigObjIndex(ClusterObject clObj) {
@@ -133,9 +149,8 @@ public class ReachabilityPlot extends JPanel
     int idx=(x-xMarg)/barW;
     if (idx<0 || idx>=objOrdered.size())
       return -1;
-    double rd = objOrdered.get(idx).getReachabilityDistance(), cd = objOrdered.get(idx).getCoreDistance();
-    int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?
-                                 (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
+    double rd = objOrdered.get(idx).getReachabilityDistance();
+    int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?plotH-yMarg:scale*rd);
     if (y<plotH - yMarg - barH)
       return -1;
     return getOrigObjIndex(objOrdered.get(idx));
@@ -164,9 +179,8 @@ public class ReachabilityPlot extends JPanel
       int idx=origObjIndexesInOrder[i];
       if (idx<0)
         continue;
-      double rd = objOrdered.get(idx).getReachabilityDistance(), cd = objOrdered.get(idx).getCoreDistance();
-      int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?
-                                   (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
+      double rd = objOrdered.get(idx).getReachabilityDistance();
+      int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?plotH-yMarg:scale*rd);
       if (barH>0) {
         g.setColor(selectColor);
         int x=xMarg+idx*barW;
@@ -185,9 +199,8 @@ public class ReachabilityPlot extends JPanel
     int idx=origObjIndexesInOrder[hlIdx];
     if (idx<0)
       return;
-    double rd = objOrdered.get(idx).getReachabilityDistance(), cd = objOrdered.get(idx).getCoreDistance();
-    int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?
-                                 (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
+    double rd = objOrdered.get(idx).getReachabilityDistance();
+    int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?plotH-yMarg:scale*rd);
     if (barH>0) {
       gr.setColor(highlightFillColor);
       int x=xMarg+idx*barW;
@@ -239,9 +252,8 @@ public class ReachabilityPlot extends JPanel
     int x=xMarg;
     g.setColor(Color.gray);
     for (int i=0; i<objOrdered.size(); i++) {
-      double rd = objOrdered.get(i).getReachabilityDistance(), cd = objOrdered.get(i).getCoreDistance();
-      int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?
-                                   (Double.isNaN(cd) || Double.isInfinite(cd))?0:scale*cd:scale*rd);
+      double rd = objOrdered.get(i).getReachabilityDistance();
+      int barH=(int)Math.round((Double.isNaN(rd) || Double.isInfinite(rd))?plotH-yMarg:scale*rd);
       if (barH>0) {
         if (clAss!=null)
           g.setColor(getColorForCluster(clAss.clusters[i]));
@@ -368,6 +380,27 @@ public class ReachabilityPlot extends JPanel
         g.fillRect(x,0,w,plotH);
       }
     }
+  }
+  
+  public String getToolTipText(MouseEvent me) {
+    if (!isShowing())
+      return null;
+    if (me.getButton() != MouseEvent.NOBUTTON)
+      return null;
+    int origIdx=getOrigObjIdxAtPosition(me.getX(), me.getY());
+    if (origIdx<0)
+      return null;
+    int idx=(me.getX()-xMarg)/barW;
+  
+    String txt="<html><body style=background-color:rgb(255,255,204)>";
+    txt += "<table border=0 cellmargin=3 cellpadding=3 cellspacing=3>";
+    txt+="<tr><td>Ordinal N</td><td>"+idx+"</td></tr>";
+    txt+="<tr><td>Original object index</td><td>"+origIdx+"</td></tr>";
+    txt+="<tr><td>Reachability distance</td><td>"+
+             String.format("%.5f",objOrdered.get(idx).getReachabilityDistance())+"</td></tr>";
+    txt += "</table>";
+    txt+="</body></html>";
+    return txt;
   }
 }
 

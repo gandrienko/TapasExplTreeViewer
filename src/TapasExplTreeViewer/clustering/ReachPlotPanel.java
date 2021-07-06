@@ -23,7 +23,7 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
   protected ArrayList<ClusterObject> objOrdered = null;
   public ReachabilityPlot rPlot=null;
   
-  protected JLabel labTop=null;
+  protected JLabel labTop=null, labMaxTh=null;
   protected JSlider thresholdSlider=null;
   protected JTextField tfThreshold=null, tfRadius=null, tfNeighbors=null;
   
@@ -51,6 +51,9 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
       pp.add(tfRadius);
       pp.add(new JLabel("Minimal N of neighbours:",JLabel.RIGHT));
       pp.add(tfNeighbors);
+      pp.add(new JLabel(" "));
+      pp.add(b);
+      p.add(pp);
     }
     labTop=new JLabel("Maximal reachability distance: "+
                           String.format("%.5f",rPlot.getMaxDistance()),JLabel.CENTER);
@@ -66,9 +69,24 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
     JPanel bp=new JPanel(new BorderLayout());
     bp.add(p,BorderLayout.WEST);
     bp.add(thresholdSlider,BorderLayout.CENTER);
-    bp.add(new JLabel("max = "+String.format("%.5f",rPlot.getMaxDistance())),BorderLayout.EAST);
+    labMaxTh=new JLabel("max = "+String.format("%.5f",rPlot.getMaxDistance()));
+    bp.add(labMaxTh,BorderLayout.EAST);
     add(bp,BorderLayout.SOUTH);
     thresholdSlider.addChangeListener(this);
+  }
+  
+  public void updateObjectsOrder(ArrayList<ClusterObject> objOrdered) {
+    this.objOrdered=objOrdered;
+    rPlot.setObjectsOrder(objOrdered);
+    labTop.setText("Maximal reachability distance: "+
+                          String.format("%.5f",rPlot.getMaxDistance()));
+    labMaxTh.setText("max = "+String.format("%.5f",rPlot.getMaxDistance()));
+    tfThreshold.setText("");
+    thresholdSlider.removeChangeListener(this);
+    thresholdSlider.setValue(thresholdSlider.getMaximum());
+    thresholdSlider.addChangeListener(this);
+    tfRadius.setText(String.format("%.5f",optics.getNeibRadius()));
+    tfNeighbors.setText(Integer.toString(optics.getMinNeighbors()));
   }
   
   public void setHighlighter(SingleHighlightManager highlighter) {
@@ -107,6 +125,28 @@ public class ReachPlotPanel extends JPanel implements ChangeListener, ActionList
         thresholdSlider.addChangeListener(this);
         makeAndShowClusters();
       }
+    }
+    else
+    if (e.getActionCommand().equals("run")) {
+      double radius=Double.NaN;
+      try {
+        radius=Double.parseDouble(tfRadius.getText());
+      } catch (Exception ex) {}
+      if (Double.isNaN(radius) || radius<=0) {
+        System.out.println("Illegal radius!");
+        tfRadius.setText(String.format("%.5f",optics.getNeibRadius()));
+        return;
+      }
+      int n=0;
+      try {
+        n=Integer.parseInt(tfNeighbors.getText());
+      } catch (Exception ex) {}
+      if (n<=0) {
+        System.out.println("Illegal number of neighbours!");
+        tfNeighbors.setText(Integer.toString(optics.getMinNeighbors()));
+        return;
+      }
+      optics.doClustering(radius,n);
     }
   }
   

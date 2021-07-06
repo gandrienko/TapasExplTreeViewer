@@ -64,6 +64,7 @@ public class OPTICS_Runner
     this.minNeighbors=minNeighbors;
     System.out.println("Starting OPTICS clustering; max distance = "+neibRadius+
                            "; min N neighbors = "+minNeighbors);
+    objOrdered=null;
     AnotherOptics optics = new AnotherOptics(this);
     optics.addClusterListener(this);
     SwingWorker worker=new SwingWorker() {
@@ -123,7 +124,7 @@ public class OPTICS_Runner
   public void emit(ClusterObject o) {
     if (objOrdered==null)
       objOrdered=new ArrayList<ClusterObject>(objToCluster.size());
-    objOrdered.add((ClusterObject<Integer>)o);
+    objOrdered.add(o);
     if (objOrdered.size()%250==0)
       System.out.println("OPTICS clustering: "+objOrdered.size()+" objects put in order");
   }
@@ -158,8 +159,14 @@ public class OPTICS_Runner
       }
       if (!Double.isNaN(distThreshold)) {
         double d = clObj.getReachabilityDistance();
-        if (!Double.isNaN(d) && !Double.isInfinite(d) && d < distThreshold) {
-          if (clAss.nClusters == 0 || (i > 0 && clAss.clusters[i - 1] < 0)) { //new cluster
+        boolean reachable=!Double.isNaN(d) && !Double.isInfinite(d) && d < distThreshold;
+        boolean nextReachable=false;
+        if (!reachable && i+1<objOrdered.size()) {
+          d=objOrdered.get(i+1).getReachabilityDistance();
+          nextReachable=!Double.isNaN(d) && !Double.isInfinite(d) && d < distThreshold;
+        }
+        if (reachable || nextReachable) {
+          if (clAss.nClusters == 0 || nextReachable || (i > 0 && (clAss.clusters[i - 1] < 0))) { //new cluster
             if (currClusterSize > 0) {
               if (clAss.minSize < 1 || clAss.minSize > currClusterSize)
                 clAss.minSize = currClusterSize;
@@ -174,8 +181,9 @@ public class OPTICS_Runner
             ++currClusterSize;
           }
         }
-        else
+        else {
           ++clAss.nNoise;
+        }
       }
     }
     return clAss;

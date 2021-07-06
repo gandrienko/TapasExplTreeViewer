@@ -9,12 +9,10 @@ import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
-import TapasExplTreeViewer.vis.SammonsMappingRunner;
 import TapasExplTreeViewer.vis.TSNE_Runner;
 import TapasUtilities.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.ItemSelectionManager;
-import TapasUtilities.MySammonsProjection;
 import TapasUtilities.RenderLabelBarChart;
 import TapasUtilities.SingleHighlightManager;
 

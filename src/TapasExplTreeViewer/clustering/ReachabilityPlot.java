@@ -59,11 +59,9 @@ public class ReachabilityPlot extends JPanel
         int idx=getOrigObjIndex(clObj);
         if (idx>=0 && idx<origObjIndexesInOrder.length)
           origObjIndexesInOrder[idx]=i;
-        double rd=clObj.getReachabilityDistance(), cd=clObj.getCoreDistance();
+        double rd=clObj.getReachabilityDistance();
         if (!Double.isNaN(rd) && !Double.isInfinite(rd) && (Double.isNaN(maxDistance) || maxDistance<rd))
           maxDistance=rd;
-        if (!Double.isNaN(cd) && !Double.isInfinite(cd) && (Double.isNaN(maxDistance) || maxDistance<cd))
-          maxDistance=cd;
       }
     }
     addMouseListener(this);

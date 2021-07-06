@@ -170,10 +170,10 @@ public class SeeExList {
         String colName=eTblModel.getColumnName(colIdx);
         boolean isCluster=colName.equalsIgnoreCase("cluster");
         if (isCluster)
-          bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,column));
+          bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,colIdx));
         boolean isAction=!isCluster && colName.equalsIgnoreCase("action");
         if (isAction)
-          bkColor=ExplanationsProjPlot2D.getColorForAction((Integer)eTblModel.getValueAt(rowIdx,column));
+          bkColor=ExplanationsProjPlot2D.getColorForAction((Integer)eTblModel.getValueAt(rowIdx,colIdx));
         c.setBackground(bkColor);
         if (highlighter==null || highlighter.getHighlighted()==null ||
                 ((Integer)highlighter.getHighlighted())!=rowIdx) {
@@ -267,7 +267,8 @@ public class SeeExList {
     mitExtract.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(exList,distanceMatrix,selector,attrMinMax,eTblModel.order,eTblModel.clusters);
+        extractSubset(exList,distanceMatrix,selector,attrMinMax,
+            eTblModel.order,eTblModel.clusters,createdFiles);
       }
     });
   
@@ -329,9 +330,7 @@ public class SeeExList {
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          TSNE_Runner tsne=(TSNE_Runner)pp.getProjectionProvider();
-          tsne.setFileRegister(createdFiles);
-          runTSNE(tsne);
+          runTSNE((TSNE_Runner)pp.getProjectionProvider());
         }
       });
     }
@@ -373,7 +372,8 @@ public class SeeExList {
                                    ItemSelectionManager selector,
                                    Hashtable<String,int[]> attrMinMax,
                                    int origOPTICSOrder[],
-                                   int origClusters[]) {
+                                   int origClusters[],
+                                   ArrayList<File> createdFiles) {
     ArrayList selected=selector.getSelected();
     if (selected.size()<5)
       return;
@@ -405,7 +405,9 @@ public class SeeExList {
       @Override
       public Boolean doInBackground(){
         subPP.setDistanceMatrix(distances);
-        subPP.setProjectionProvider(new TSNE_Runner());
+        TSNE_Runner tsne=new TSNE_Runner();
+        tsne.setFileRegister(createdFiles);
+        subPP.setProjectionProvider(tsne);
         return true;
       }
       @Override
@@ -458,10 +460,10 @@ public class SeeExList {
         String colName=subModel.getColumnName(colIdx);
         boolean isCluster=colName.equalsIgnoreCase("cluster");
         if (isCluster)
-          bkColor= ReachabilityPlot.getColorForCluster((Integer)subModel.getValueAt(rowIdx,column));
+          bkColor= ReachabilityPlot.getColorForCluster((Integer)subModel.getValueAt(rowIdx,colIdx));
         boolean isAction=!isCluster && colName.equalsIgnoreCase("action");
         if (isAction)
-          bkColor=ExplanationsProjPlot2D.getColorForAction((Integer)subModel.getValueAt(rowIdx,column));
+          bkColor=ExplanationsProjPlot2D.getColorForAction((Integer)subModel.getValueAt(rowIdx,colIdx));
         c.setBackground(bkColor);
         if (hlSub==null || hlSub.getHighlighted()==null ||
                 ((Integer)hlSub.getHighlighted())!=convertRowIndexToModel(row)) {

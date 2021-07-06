@@ -29,6 +29,7 @@ public class TSNE_Runner implements ProjectionProvider{
    * When a file is created, it is registered in this list, to be deleted afterwards
    */
   public ArrayList<File> createdFiles=null;
+  protected boolean distanceMatrixPutInFile=false;
   
   protected ArrayList<ChangeListener> changeListeners=null;
   
@@ -81,9 +82,13 @@ public class TSNE_Runner implements ProjectionProvider{
         @Override
         public Boolean doInBackground(){
           String pathName=distFName+".csv";
-          MatrixWriter.writeMatrixToFile(distances,pathName,true);
-          if (createdFiles!=null)
-            createdFiles.add(new File(pathName));
+          File matrFile=new File(pathName);
+          if (!distanceMatrixPutInFile || !matrFile.exists()) {
+            MatrixWriter.writeMatrixToFile(distances, pathName, true);
+            if (createdFiles != null)
+              createdFiles.add(matrFile);
+            distanceMatrixPutInFile=true;
+          }
           String command="cmd.exe /C TSNE-precomputed.bat "+distFName+" "+perplexity;
           try {
             Process p = Runtime.getRuntime().exec(command);

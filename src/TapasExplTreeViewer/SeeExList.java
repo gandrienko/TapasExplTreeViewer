@@ -21,10 +21,7 @@ import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -126,12 +123,16 @@ public class SeeExList {
     clOptics.addChangeListener(eTblModel);
   
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    
+    ArrayList<File> createdFiles=new ArrayList<File>(20);
   
     /**/
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
     pp.setExplanations(exList);
     pp.setDistanceMatrix(distanceMatrix);
-    pp.setProjectionProvider(new TSNE_Runner());
+    TSNE_Runner tsne=new TSNE_Runner();
+    tsne.setFileRegister(createdFiles);
+    pp.setProjectionProvider(tsne);
     pp.setPreferredSize(new Dimension(800,800));
 
     JFrame plotFrame=new JFrame(pp.getProjectionProvider().getProjectionTitle());
@@ -242,12 +243,22 @@ public class SeeExList {
     JScrollPane scrollPane = new JScrollPane(table);
     
     JFrame fr = new JFrame("Explanations (" + exList.size() + ")");
-    fr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
     //Display the window.
     fr.pack();
     fr.setLocation(30, 30);
     fr.setVisible(true);
+    fr.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent e) {
+        super.windowClosing(e);
+        if (!createdFiles.isEmpty())
+          for (File f:createdFiles)
+            f.delete();
+        System.exit(0);
+      }
+    });
   
     /**/
     JPopupMenu menu=new JPopupMenu();
@@ -318,7 +329,9 @@ public class SeeExList {
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          runTSNE((TSNE_Runner)pp.getProjectionProvider());
+          TSNE_Runner tsne=(TSNE_Runner)pp.getProjectionProvider();
+          tsne.setFileRegister(createdFiles);
+          runTSNE(tsne);
         }
       });
     }

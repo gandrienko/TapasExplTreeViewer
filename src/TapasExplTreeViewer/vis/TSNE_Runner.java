@@ -6,6 +6,7 @@ import TapasExplTreeViewer.util.MatrixWriter;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import java.io.File;
 import java.util.ArrayList;
 
 public class TSNE_Runner implements ProjectionProvider{
@@ -24,6 +25,10 @@ public class TSNE_Runner implements ProjectionProvider{
    * The projection obtained (updated iteratively)
    */
   protected double proj[][]=null;
+  /**
+   * When a file is created, it is registered in this list, to be deleted afterwards
+   */
+  public ArrayList<File> createdFiles=null;
   
   protected ArrayList<ChangeListener> changeListeners=null;
   
@@ -64,6 +69,10 @@ public class TSNE_Runner implements ProjectionProvider{
     runAlgorithm();
   }
   
+  public void setFileRegister(ArrayList<File> createdFiles) {
+    this.createdFiles=createdFiles;
+  }
+  
   public void runAlgorithm() {
     if (distances != null) {
       System.out.println("Running the t-SNE algorithm");
@@ -71,15 +80,19 @@ public class TSNE_Runner implements ProjectionProvider{
       SwingWorker worker=new SwingWorker() {
         @Override
         public Boolean doInBackground(){
-          //todo: run t-SNE; get projection to proj
-          MatrixWriter.writeMatrixToFile(distances,
-              distFName+".csv",true);
+          String pathName=distFName+".csv";
+          MatrixWriter.writeMatrixToFile(distances,pathName,true);
+          if (createdFiles!=null)
+            createdFiles.add(new File(pathName));
           String command="cmd.exe /C TSNE-precomputed.bat "+distFName+" "+perplexity;
           try {
             Process p = Runtime.getRuntime().exec(command);
             int exit_value = p.waitFor();
             System.out.println("TSNE: finished, code="+exit_value);
-            proj= CoordinatesReader.readCoordinatesFromFile(distFName+"_out_p"+perplexity+".csv");
+            pathName=distFName+"_out_p"+perplexity+".csv";
+            proj= CoordinatesReader.readCoordinatesFromFile(pathName);
+            if (createdFiles!=null)
+              createdFiles.add(new File(pathName));
             notifyChange();
           } catch (Exception e) {
             e.printStackTrace();

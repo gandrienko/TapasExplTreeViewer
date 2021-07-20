@@ -4,6 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
+import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.util.CoordinatesReader;
@@ -106,6 +107,16 @@ public class SeeExList {
     }
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
+    
+    ArrayList<CommonExplanation> exList2=RuleMaster.removeLessGeneral(exList);
+    if (exList2.size()<exList.size()) {
+      System.out.println("Reduced the number of explanations from " +
+                             exList.size() + " to " + exList2.size());
+      exList.clear();
+      exList.addAll(exList2);
+    }
+    else
+      System.out.println("Did not manage to reduce the set of explanations!");
     
     System.out.println("Computing distance matrix...");
     double distanceMatrix[][]=CommonExplanation.computeDistances(exList,attrMinMax);

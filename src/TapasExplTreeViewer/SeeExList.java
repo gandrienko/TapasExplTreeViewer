@@ -158,6 +158,17 @@ public class SeeExList {
           } catch (NumberFormatException nfe) {
             System.out.println("Error in line "+line+": extracting attr value from rule item # "+i+" "+srule[i]);
           }
+          boolean changed=false;
+          if (ei.value<minmax[0]) {
+            minmax[0]=(int)ei.value; // ToDo
+            changed=true;
+          }
+          if (ei.value>minmax[1]) {
+            minmax[1]=(int)ei.value; // ToDo
+            changed=true;
+          }
+          if (changed)
+            attrMinMax.put(ei.attr,minmax);
           String sss=ss.substring((p1>=0)?p1+2:p2+1);
           double d=Double.NaN;
           double minmaxd[]=new double[2];
@@ -169,18 +180,12 @@ public class SeeExList {
             System.out.println("Error in line "+line+": extracting condition from rule item # "+i+" "+srule[i]);
           }
           if (p1>=0) { // condition <=
-            if (d>=minmax[1]) {
-              minmax[1]=(int)d; // ToDo
+            if (d>=minmax[1])
               minmaxd[1]=d;
-              attrMinMax.put(ei.attr,minmax);
-            }
           }
           else { // condition >
-            if (d<=minmax[0]) {
-              minmax[0]=(int)d; // ToDo
+            if (d<=minmax[0])
               minmaxd[0]=d;
-              attrMinMax.put(ei.attr,minmax);
-            }
           }
           ei.interval=minmaxd;
           ei.attr_core=ei.attr;

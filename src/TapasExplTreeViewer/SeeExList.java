@@ -7,6 +7,7 @@ import TapasDataReader.Flight;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
 import TapasExplTreeViewer.rules.RuleMaster;
+import TapasExplTreeViewer.rules.UnitedRule;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.util.CoordinatesReader;
@@ -210,8 +211,19 @@ public class SeeExList {
     if (exList2.size()<exList.size()) {
       System.out.println("Reduced the number of explanations from " +
               exList.size() + " to " + exList2.size());
-      exList.clear();
-      exList.addAll(exList2);
+      System.out.println("Trying to aggregate...");
+      ArrayList<UnitedRule> aggRules=RuleMaster.aggregate(UnitedRule.getRules(exList2),exList,0.75);
+      if (aggRules==null || aggRules.size()>=exList2.size()) {
+        System.out.println("Failed to aggregate!");
+        exList.clear();
+        exList.addAll(exList2);
+      }
+      else {
+        System.out.println("Reduced the number of explanations from " +
+                               exList2.size() + " to " + aggRules.size());
+        exList.clear();
+        exList.addAll(aggRules);
+      }
     }
     else
       System.out.println("Did not manage to reduce the set of explanations!");

@@ -20,7 +20,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,int[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Action", "N uses", "N flights", "Order", "Cluster", "N conditions"};
+  public String columnNames[] = {"Action", "N uses", "N data items", "Order", "Cluster", "N conditions"};
   
   public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,int[]> attrMinMax) {
     this.exList=exList;

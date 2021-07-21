@@ -99,7 +99,7 @@ public class SeeExList {
       if (f.expl!=null)
         for (int i=0; i<f.expl.length; i++)
           CommonExplanation.addExplanation(exList,f.expl[i],
-              true,attrMinMax,true);
+              false,attrMinMax,true);
     }
     if (exList.isEmpty()) {
       System.out.println("Failed to reconstruct the list of common explanations!");
@@ -107,7 +107,8 @@ public class SeeExList {
     }
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
-    
+  
+    System.out.println("Trying to reduce the explanation set by removing less general explanations...");
     ArrayList<CommonExplanation> exList2=RuleMaster.removeLessGeneral(exList);
     if (exList2.size()<exList.size()) {
       System.out.println("Reduced the number of explanations from " +

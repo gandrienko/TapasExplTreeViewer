@@ -2,6 +2,7 @@ package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.clustering.ClustersAssignments;
+import TapasExplTreeViewer.rules.UnitedRule;
 import TapasUtilities.MySammonsProjection;
 
 import javax.swing.event.ChangeEvent;
@@ -25,8 +26,10 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     this.exList=exList;
     this.attrMinMax =attrMinMax;
     Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
+    boolean hasUnitedRules=false;
     for (int i=0; i<exList.size(); i++) {
       CommonExplanation cEx = exList.get(i);
+      hasUnitedRules=hasUnitedRules || (cEx instanceof UnitedRule);
       for (int j = 0; j < cEx.eItems.length; j++) {
         Integer count=attrUses.get(cEx.eItems[j].attr);
         if (count==null)
@@ -50,6 +53,16 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         else
           listOfFeatures.add(idx,aName);
       }
+    }
+    if (hasUnitedRules) {
+      String moreColNames[]=new String[columnNames.length+3];
+      for (int i=0; i<columnNames.length; i++)
+        moreColNames[i]=columnNames[i];
+      int i=columnNames.length;
+      moreColNames[i++]="N same action";
+      moreColNames[i++]="N other actions";
+      moreColNames[i++]="Accuracy";
+      columnNames=moreColNames;
     }
   }
   public int getColumnCount() {
@@ -89,14 +102,24 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   
   public Object getValueAt(int row, int col) {
     CommonExplanation cEx=exList.get(row);
-    switch (col) {
-      case 0: return new Integer(cEx.action);
-      case 1: return new Integer(cEx.nUses);
-      case 2: return new Integer(cEx.uses.size());
-      case 3: return (order==null)?new Integer(row):new Integer(order[row]);
-      case 4: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
-      case 5: return new Integer(cEx.eItems.length);
-    }
+    if (col<columnNames.length)
+      switch (col) {
+        case 0: return new Integer(cEx.action);
+        case 1: return new Integer(cEx.nUses);
+        case 2: return new Integer(cEx.uses.size());
+        case 3: return (order==null)?new Integer(row):new Integer(order[row]);
+        case 4: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
+        case 5: return new Integer(cEx.eItems.length);
+        case 6: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigRight:1;
+        case 7: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigWrong:0;
+        case 8:
+          if (cEx instanceof UnitedRule) {
+            UnitedRule r=(UnitedRule)cEx;
+            return 100f*r.nOrigRight/(r.nOrigRight+r.nOrigWrong);
+          }
+          else
+            return 100f;
+      }
     String attrName=listOfFeatures.get(col-columnNames.length);
     double values[]={Double.NaN,Double.NaN,Double.NaN,Double.NaN};
     for (int i=0; i<cEx.eItems.length; i++)

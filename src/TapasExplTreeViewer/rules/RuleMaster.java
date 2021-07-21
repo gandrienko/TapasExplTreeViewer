@@ -2,10 +2,8 @@ package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
-import TapasDataReader.ExplanationItem;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Hashtable;
 
 /**
@@ -17,7 +15,7 @@ public class RuleMaster {
    * otherwise, returns null.
    * If two rules differ in the action (decision, prediction), returns null without checking the conditions.
    */
-  public static CommonExplanation selectMoreGeneral(CommonExplanation ex1, CommonExplanation ex2) {
+  public static UnitedRule selectMoreGeneral(CommonExplanation ex1, CommonExplanation ex2) {
     if (ex1==null || ex2==null)
       return null;
     if (ex1.action!=ex2.action)
@@ -36,12 +34,10 @@ public class RuleMaster {
    * @param ex2 - less general information
    * @return more general explanation with summarized uses
    */
-  public static CommonExplanation putTogether(CommonExplanation ex1, CommonExplanation ex2) {
-    if (ex1==null)
-      return ex2;
-    if (ex2==null)
-      return ex1;
-    CommonExplanation gEx= new CommonExplanation();
+  public static UnitedRule putTogether(CommonExplanation ex1, CommonExplanation ex2) {
+    if (ex1==null || ex2==null)
+      return null;
+    UnitedRule gEx= new UnitedRule();
     gEx.action=ex1.action;
     gEx.nUses=ex1.nUses+ex2.nUses;
     if (ex1.uses!=null) {
@@ -50,6 +46,10 @@ public class RuleMaster {
       gEx.uses.putAll(ex2.uses);
     }
     gEx.eItems=CommonExplanation.makeCopy(ex1.eItems);
+    gEx.fromRules=new ArrayList<UnitedRule>(5);
+    gEx.fromRules.add(UnitedRule.getRule(ex1));
+    gEx.fromRules.add(UnitedRule.getRule(ex2));
+    gEx.nOrigRight=2;
     return gEx;
   }
   
@@ -64,7 +64,7 @@ public class RuleMaster {
       CommonExplanation ex=exList.get(i);
       for (int j = i + 1; j < exList.size(); j++)
         if (!removed[j]) {
-          CommonExplanation gEx = selectMoreGeneral(ex, exList.get(j));
+          UnitedRule gEx = selectMoreGeneral(ex, exList.get(j));
           if (gEx != null) {
             removed[i]=removed[j]=true;
             ex=gEx;
@@ -72,13 +72,13 @@ public class RuleMaster {
         }
       if (removed[i]) {
         for (int j=moreGeneral.size()-1; j>=0; j--) {
-          CommonExplanation gEx = selectMoreGeneral(ex, moreGeneral.get(j));
+          UnitedRule gEx = selectMoreGeneral(ex, moreGeneral.get(j));
           if (gEx!=null) {
             moreGeneral.remove(j);
             ex=gEx;
           }
         }
-        moreGeneral.add(ex);
+        moreGeneral.add(UnitedRule.getRule(ex));
       }
     }
     if (moreGeneral.isEmpty())
@@ -89,7 +89,7 @@ public class RuleMaster {
       for (int i = 0; i < moreGeneral.size(); i++)
         for (int j = 0; j < exList.size(); j++)
           if (!removed[j]){
-            CommonExplanation gEx=selectMoreGeneral(moreGeneral.get(i),exList.get(j));
+            UnitedRule gEx=selectMoreGeneral(moreGeneral.get(i),exList.get(j));
             if (gEx!=null) {
               moreGeneral.add(i,gEx);
               moreGeneral.remove(i+1);
@@ -100,7 +100,9 @@ public class RuleMaster {
     } while (changed);
     for (int i=0; i<exList.size(); i++)
       if (!removed[i])
-        moreGeneral.add(exList.get(i));
+        moreGeneral.add(UnitedRule.getRule(exList.get(i)));
+    for (int i=0; i<moreGeneral.size(); i++)
+      ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoverages(exList);
     return  moreGeneral;
   }
 }

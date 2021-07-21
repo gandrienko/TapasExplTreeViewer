@@ -1,9 +1,12 @@
 package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
+import TapasDataReader.Explanation;
 import TapasDataReader.ExplanationItem;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Hashtable;
 
 /**
  * Intended to contain methods for minimisation and aggregation of a set of rules (or explanations)
@@ -19,50 +22,35 @@ public class RuleMaster {
       return null;
     if (ex1.action!=ex2.action)
       return null;
-    ExplanationItem e1[]=ex1.eItems, e2[]=ex2.eItems;
-    if (e1==null || e1.length<1 || e2==null || e2.length<1)
-      return null;
-    if (e1.length>e2.length) {
-      CommonExplanation ex=ex1; ex1=ex2; ex2=ex;
-      e1=ex1.eItems; e2=ex2.eItems;
-    }
-    boolean subsumes=true;
-    for (int i=0; i<e1.length && subsumes; i++) {
-      int i2 = -1;
-      for (int j = 0; j < e2.length && i2 < 0; j++)
-        if (e1[i].attr.equals(e2[j].attr))
-          i2 = j;
-      if (i2 < 0)
-        continue;
-      subsumes=includes(e1[i].interval,e2[i2].interval);
-    }
-    if (subsumes)
-      return ex1;
-    
-    if (e2.length>e1.length)
-      return null;
-    
-    CommonExplanation ex=ex1; ex1=ex2; ex2=ex;
-    e1=ex1.eItems; e2=ex2.eItems;
-    subsumes=true;
-    for (int i=0; i<e1.length && subsumes; i++) {
-      int i2 = -1;
-      for (int j = 0; j < e2.length && i2 < 0; j++)
-        if (e1[i].attr.equals(e2[j].attr))
-          i2 = j;
-      if (i2 < 0)
-        return null;
-      subsumes=includes(e1[i].interval,e2[i2].interval);
-    }
-    if (subsumes)
-      return ex1;
+    if (ex1.subsumes(ex2))
+      return putTogether(ex1,ex2);
+    if (ex2.subsumes(ex1))
+      return putTogether(ex2,ex1);
     return null;
   }
   
-  public static boolean includes(double interval1[], double interval2[]) {
-    if (interval1==null || interval2==null)
-      return false;
-    return interval1[0]<=interval2[0] && interval1[1]>=interval2[1];
+  /**
+   * Creates a new explanation with the same conditions as in ex1 (which is treated as more general)
+   * summarizing information about the uses of ex1 and ex2.
+   * @param ex1 - more general explanation
+   * @param ex2 - less general information
+   * @return more general explanation with summarized uses
+   */
+  public static CommonExplanation putTogether(CommonExplanation ex1, CommonExplanation ex2) {
+    if (ex1==null)
+      return ex2;
+    if (ex2==null)
+      return ex1;
+    CommonExplanation gEx= new CommonExplanation();
+    gEx.action=ex1.action;
+    gEx.nUses=ex1.nUses+ex2.nUses;
+    if (ex1.uses!=null) {
+      gEx.uses = new Hashtable<String, ArrayList<Explanation>>(ex1.uses.size(), ex2.uses.size());
+      gEx.uses.putAll(ex1.uses);
+      gEx.uses.putAll(ex2.uses);
+    }
+    gEx.eItems=CommonExplanation.makeCopy(ex1.eItems);
+    return gEx;
   }
   
   public static ArrayList<CommonExplanation> removeLessGeneral(ArrayList<CommonExplanation> exList) {
@@ -73,12 +61,24 @@ public class RuleMaster {
     for (int i=0; i<removed.length; i++)
       removed[i]=false;
     for (int i=0; i<exList.size()-1; i++) {
-      for (int j = i + 1; j < exList.size() && !removed[i]; j++) {
-        CommonExplanation gEx = selectMoreGeneral(exList.get(i), exList.get(j));
-        if (gEx != null) {
-          moreGeneral.add(gEx);
-          removed[i]=removed[j]=true;
+      CommonExplanation ex=exList.get(i);
+      for (int j = i + 1; j < exList.size(); j++)
+        if (!removed[j]) {
+          CommonExplanation gEx = selectMoreGeneral(ex, exList.get(j));
+          if (gEx != null) {
+            removed[i]=removed[j]=true;
+            ex=gEx;
+          }
         }
+      if (removed[i]) {
+        for (int j=moreGeneral.size()-1; j>=0; j--) {
+          CommonExplanation gEx = selectMoreGeneral(ex, moreGeneral.get(j));
+          if (gEx!=null) {
+            moreGeneral.remove(j);
+            ex=gEx;
+          }
+        }
+        moreGeneral.add(ex);
       }
     }
     if (moreGeneral.isEmpty())
@@ -91,10 +91,8 @@ public class RuleMaster {
           if (!removed[j]){
             CommonExplanation gEx=selectMoreGeneral(moreGeneral.get(i),exList.get(j));
             if (gEx!=null) {
-              if (!gEx.equals(moreGeneral.get(i))) {
-                moreGeneral.add(i,gEx);
-                moreGeneral.remove(i+1);
-              }
+              moreGeneral.add(i,gEx);
+              moreGeneral.remove(i+1);
               removed[j]=true;
               changed=true;
             }

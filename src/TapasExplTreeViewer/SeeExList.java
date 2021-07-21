@@ -108,17 +108,21 @@ public class SeeExList {
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
   
+    MainBody(attrMinMax,exList);
+  }
+
+  public static void MainBody (Hashtable<String,int[]> attrMinMax, ArrayList<CommonExplanation> exList) {
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
     ArrayList<CommonExplanation> exList2=RuleMaster.removeLessGeneral(exList);
     if (exList2.size()<exList.size()) {
       System.out.println("Reduced the number of explanations from " +
-                             exList.size() + " to " + exList2.size());
+              exList.size() + " to " + exList2.size());
       exList.clear();
       exList.addAll(exList2);
     }
     else
       System.out.println("Did not manage to reduce the set of explanations!");
-    
+
     System.out.println("Computing distance matrix...");
     double distanceMatrix[][]=CommonExplanation.computeDistances(exList,attrMinMax);
     if (distanceMatrix==null) {
@@ -126,18 +130,18 @@ public class SeeExList {
       return;
     }
     System.out.println("Distance matrix ready!");
-  
+
     ClustererByOPTICS clOptics=new ClustererByOPTICS();
     clOptics.setDistanceMatrix(distanceMatrix);
     clOptics.doClustering();
 
     ExListTableModel eTblModel=new ExListTableModel(exList,attrMinMax);
     clOptics.addChangeListener(eTblModel);
-  
+
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    
+
     ArrayList<File> createdFiles=new ArrayList<File>(20);
-  
+
     /**/
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
     pp.setExplanations(exList);
@@ -153,14 +157,14 @@ public class SeeExList {
     plotFrame.pack();
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
-  
+
     SingleHighlightManager highlighter=pp.getHighlighter();
     ItemSelectionManager selector=pp.getSelector();
 
     clOptics.setHighlighter(highlighter);
     clOptics.setSelector(selector);
     /**/
-    
+
     JTable table=new JTable(eTblModel){
       public String getToolTipText(MouseEvent e) {
         java.awt.Point p = e.getPoint();
@@ -173,7 +177,7 @@ public class SeeExList {
         highlighter.clearHighlighting();
         return "";
       }
-      
+
       /**/
       public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
@@ -215,13 +219,13 @@ public class SeeExList {
         reactToMousePosition(e);
         super.mouseEntered(e);
       }
-  
+
       @Override
       public void mouseExited(MouseEvent e) {
         highlighter.clearHighlighting();
         super.mouseExited(e);
       }
-  
+
       @Override
       public void mouseMoved(MouseEvent e) {
         reactToMousePosition(e);
@@ -229,7 +233,7 @@ public class SeeExList {
       }
     });
     /**/
-    
+
     table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
     table.setFillsViewportHeight(true);
     table.setAutoCreateRowSorter(true);
@@ -240,10 +244,10 @@ public class SeeExList {
       if (eTblModel.getColumnClass(i).equals(Integer.class) &&
               !eTblModel.getColumnName(i).equalsIgnoreCase("cluster"))
         table.getColumnModel().getColumn(i).setCellRenderer(
-            new RenderLabelBarChart(0,eTblModel.getColumnMax(i)));
+                new RenderLabelBarChart(0,eTblModel.getColumnMax(i)));
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
-    
+
     /**/
     TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();
     rowSelMan.setTable(table);
@@ -251,9 +255,9 @@ public class SeeExList {
     rowSelMan.setSelector(selector);
     rowSelMan.setMayScrollTable(false);
     /**/
-  
+
     JScrollPane scrollPane = new JScrollPane(table);
-    
+
     JFrame fr = new JFrame("Explanations (" + exList.size() + ")");
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
@@ -271,7 +275,7 @@ public class SeeExList {
         System.exit(0);
       }
     });
-  
+
     /**/
     JPopupMenu menu=new JPopupMenu();
     JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
@@ -280,10 +284,10 @@ public class SeeExList {
       @Override
       public void actionPerformed(ActionEvent e) {
         extractSubset(exList,distanceMatrix,selector,attrMinMax,
-            eTblModel.order,eTblModel.clusters,createdFiles);
+                eTblModel.order,eTblModel.clusters,createdFiles);
       }
     });
-  
+
     JMenuItem mit=new JMenuItem("Read point coordinates from a file");
     menu.add(mit);
     mit.addActionListener(new ActionListener() {
@@ -296,7 +300,7 @@ public class SeeExList {
         }
         if (coords.length!=exList.size()) {
           System.out.println("The new coordinates are for "+coords.length+
-                                 " points but must be for "+exList.size()+" points!");
+                  " points but must be for "+exList.size()+" points!");
           return;
         }
         System.out.println("Trying to create another plot...");
@@ -304,7 +308,7 @@ public class SeeExList {
         anotherPlot.setPreferredSize(new Dimension(800,800));
         anotherPlot.setSelector(selector);
         anotherPlot.setHighlighter(highlighter);
-  
+
         anotherPlot.addMouseListener(new MouseAdapter() {
           @Override
           public void mousePressed(MouseEvent e) {
@@ -316,7 +320,7 @@ public class SeeExList {
             }
           }
         });
-  
+
         JFrame fr=new JFrame(CoordinatesReader.lastFileName);
         fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         fr.getContentPane().add(anotherPlot);
@@ -326,7 +330,7 @@ public class SeeExList {
         fr.setVisible(true);
       }
     });
-    
+
     mit=new JMenuItem("Export the distance matrix to a file");
     menu.add(mit);
     mit.addActionListener(new ActionListener() {
@@ -335,7 +339,7 @@ public class SeeExList {
         MatrixWriter.writeMatrixToFile(distanceMatrix,"allDistances.csv",true);
       }
     });
-    
+
     if (pp.getProjectionProvider() instanceof TSNE_Runner) {
       mit=new JMenuItem("Re-run t-SNE with another perplexity setting");
       menu.add(mit);
@@ -346,7 +350,7 @@ public class SeeExList {
         }
       });
     }
-  
+
     pp.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
@@ -358,9 +362,9 @@ public class SeeExList {
         }
       }
     });
-    /**/
+
   }
-  
+
   public static void runTSNE(TSNE_Runner tsne) {
     String value=JOptionPane.showInputDialog("Enter an integer from 5 to 100:",
         tsne.getPerplexity());

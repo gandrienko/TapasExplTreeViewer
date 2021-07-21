@@ -172,28 +172,32 @@ public class SeeExList {
             attrMinMax.put(ei.attr,minmax);
           String sss=ss.substring((p1>=0)?p1+2:p2+1);
           double d=Double.NaN;
-          double minmaxd[]=new double[2];
-          minmaxd[0]=minmax[0];
-          minmaxd[1]=minmax[1];
+          double minmaxd[]=null; //new double[2];
+          //minmaxd[0]=minmax[0];
+          //minmaxd[1]=minmax[1];
           try {
             d=Double.valueOf(ss.substring(0,Math.max(p1,p2))).doubleValue();
           } catch (NumberFormatException nfe) {
             System.out.println("Error in line "+line+": extracting condition from rule item # "+i+" "+srule[i]);
           }
           if (p1>=0) { // condition <=
-            if (d>=minmax[1])
-              minmaxd[1]=d;
+            minmaxd=new double[]{Double.NEGATIVE_INFINITY,d};
+            //if (d>=minmax[1])
+              //minmaxd[1]=d;
           }
           else { // condition >
-            if (d<=minmax[0])
-              minmaxd[0]=d;
+            minmaxd=new double[]{d,Double.POSITIVE_INFINITY};
+            //if (d<=minmax[0])
+              //minmaxd[0]=d;
           }
           ei.interval=minmaxd;
           ei.attr_core=ei.attr;
           ei.sector="None";
           ex.eItems[i]=ei;
-          ex.FlightID=""+(line-1);
         }
+        ex.FlightID=""+(line-1);
+        ex.step=0;
+        ex.action=Integer.valueOf(s[2]); // ToDo
         vex.add(ex);
       }
       br.close();

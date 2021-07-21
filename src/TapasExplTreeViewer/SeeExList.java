@@ -119,6 +119,7 @@ public class SeeExList {
     System.out.println("* loading rules and data from "+fname);
     Hashtable<String,int[]> attrMinMax=new Hashtable<String, int[]>();
     Vector<String> attrs=new Vector<>();
+    Vector<Explanation> vex=new Vector<>();
     ArrayList<CommonExplanation> exList=new ArrayList<CommonExplanation>(10000);
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(fname))));
@@ -187,12 +188,14 @@ public class SeeExList {
           ex.eItems[i]=ei;
           ex.FlightID=""+(line-1);
         }
-        CommonExplanation.addExplanation(exList,ex,false,attrMinMax,true);
+        vex.add(ex);
       }
       br.close();
     } catch (IOException io) {
       System.out.println(io);
     }
+    for (Explanation ex:vex)
+      CommonExplanation.addExplanation(exList,ex,false,attrMinMax,true);
     MainBody(attrMinMax,exList);
   }
 

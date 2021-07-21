@@ -1,6 +1,8 @@
 package TapasExplTreeViewer;
 
 import TapasDataReader.CommonExplanation;
+import TapasDataReader.Explanation;
+import TapasDataReader.ExplanationItem;
 import TapasDataReader.Flight;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
@@ -24,10 +26,7 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.TreeSet;
+import java.util.*;
 
 public class SeeExList {
   
@@ -35,6 +34,11 @@ public class SeeExList {
 
   public static void main(String[] args) {
     String parFileName = (args != null && args.length > 0) ? args[0] : "params.txt";
+
+    if (!parFileName.startsWith("params")) {
+      mainSingleFile(parFileName);
+      return;
+    }
   
     String path=null;
     Hashtable<String,String> fNames=new Hashtable<String,String>(10);
@@ -108,6 +112,87 @@ public class SeeExList {
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
   
+    MainBody(attrMinMax,exList);
+  }
+
+  public static void mainSingleFile (String fname) {
+    System.out.println("* loading rules and data from "+fname);
+    Hashtable<String,int[]> attrMinMax=new Hashtable<String, int[]>();
+    Vector<String> attrs=new Vector<>();
+    ArrayList<CommonExplanation> exList=new ArrayList<CommonExplanation>(10000);
+    try {
+      BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(fname))));
+      String strLine=br.readLine();
+      int line=1;
+      String s[]=strLine.split(",");
+      for (int i=0; i<s.length; i++) {
+        int minmax[]=new int[2]; // ToDo
+        minmax[0]=Integer.MAX_VALUE;
+        minmax[1]=Integer.MIN_VALUE;
+        attrMinMax.put(s[i],minmax);
+        attrs.add(s[i]);
+      }
+      while ((strLine = br.readLine()) != null) {
+        line++;
+        s=strLine.split(",");
+        String srule[]=s[1].split("&");
+        Explanation ex=new Explanation();
+        ex.eItems=new ExplanationItem[srule.length];
+        for (int i=0; i<srule.length; i++) {
+          int p=srule[i].indexOf("=");
+          int attrIdx=-1;
+          try {
+            attrIdx=Integer.valueOf(srule[i].substring(0,p)).intValue();
+          } catch (NumberFormatException nfe) {
+            System.out.println("Error in line "+line+": extracting attr name from rule item # "+i+" "+srule[i]);
+          }
+          ExplanationItem ei=new ExplanationItem();
+          ei.attr=attrs.elementAt(attrIdx);
+          int minmax[]=attrMinMax.get(ei.attr); // ToDo
+          String ss=srule[i].substring(p+1);
+          int p1=ss.indexOf("<="), p2=ss.indexOf(">");
+          ei.value=Integer.MIN_VALUE;
+          try {
+            ei.value=Integer.valueOf(ss.substring(0,Math.max(p1,p2))).intValue();
+          } catch (NumberFormatException nfe) {
+            System.out.println("Error in line "+line+": extracting attr value from rule item # "+i+" "+srule[i]);
+          }
+          String sss=ss.substring((p1>=0)?p1+2:p2+1);
+          double d=Double.NaN;
+          double minmaxd[]=new double[2];
+          minmaxd[0]=minmax[0];
+          minmaxd[1]=minmax[1];
+          try {
+            d=Double.valueOf(ss.substring(0,Math.max(p1,p2))).doubleValue();
+          } catch (NumberFormatException nfe) {
+            System.out.println("Error in line "+line+": extracting condition from rule item # "+i+" "+srule[i]);
+          }
+          if (p1>=0) { // condition <=
+            if (d>=minmax[1]) {
+              minmax[1]=(int)d; // ToDo
+              minmaxd[1]=d;
+              attrMinMax.put(ei.attr,minmax);
+            }
+          }
+          else { // condition >
+            if (d<=minmax[0]) {
+              minmax[0]=(int)d; // ToDo
+              minmaxd[0]=d;
+              attrMinMax.put(ei.attr,minmax);
+            }
+          }
+          ei.interval=minmaxd;
+          ei.attr_core=ei.attr;
+          ei.sector="None";
+          ex.eItems[i]=ei;
+          ex.FlightID=""+(line-1);
+        }
+        CommonExplanation.addExplanation(exList,ex,false,attrMinMax,true);
+      }
+      br.close();
+    } catch (IOException io) {
+      System.out.println(io);
+    }
     MainBody(attrMinMax,exList);
   }
 

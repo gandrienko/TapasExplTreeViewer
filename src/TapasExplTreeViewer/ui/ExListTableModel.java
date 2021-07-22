@@ -93,9 +93,16 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     for (int i=0; i<clAss.objIndexes.length; i++) {
       int idx=clAss.objIndexes[i];
       if (idx>=0 && idx<exList.size()) {
+        if (order[idx]!=idx) {
+          System.out.println("Repeated order assignment to item #"+idx+
+                                ": previous value = "+order[idx]+", new value = "+i);
+        }
         order[idx]=i;
         clusters[idx]=clAss.clusters[i];
       }
+      else
+        System.out.println("Trying to assign the ordinal value "+i+" to item #"+idx+
+                               " while there are "+exList.size()+" items");
     }
     fireTableDataChanged();
   }

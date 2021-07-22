@@ -30,6 +30,10 @@ public class OPTICS_Runner
    */
   public int minNeighbors=5;
   /**
+   * Indicates which objects have been already ordered
+   */
+  protected boolean ordered[]=null;
+  /**
    * The objects ordered by the clustering algorithm
    */
   protected ArrayList<ClusterObject> objOrdered=null;
@@ -53,8 +57,16 @@ public class OPTICS_Runner
       for (int j=i+1; j<distances.length; j++)
         distSet.add(distances[i][j]);
     ArrayList<Double> distList=new ArrayList<Double>(distSet);
-    int idx=Math.max(3,Math.round(0.025f*distList.size()));
-    doClustering(distList.get(idx),5);
+    int idx=Math.round(0.025f*distList.size());
+    if (idx<5) {
+      idx = Math.round(0.125f * distList.size());
+      minNeighbors=3;
+    }
+    if (idx<5) {
+      idx = Math.round(0.25f * distList.size());
+      minNeighbors=2;
+    }
+    doClustering(distList.get(idx),minNeighbors);
   }
   
   public void doClustering(double neibRadius, int minNeighbors) {
@@ -65,6 +77,7 @@ public class OPTICS_Runner
     System.out.println("Starting OPTICS clustering; max distance = "+neibRadius+
                            "; min N neighbors = "+minNeighbors);
     objOrdered=null;
+    ordered=null;
     AnotherOptics optics = new AnotherOptics(this);
     optics.addClusterListener(this);
     SwingWorker worker=new SwingWorker() {
@@ -122,9 +135,24 @@ public class OPTICS_Runner
    * Receives an object from the clustering tool
    */
   public void emit(ClusterObject o) {
+    if (ordered==null) {
+      ordered=new boolean[objToCluster.size()];
+      for (int i=0; i<ordered.length; i++)
+        ordered[i]=false;
+    }
+    int idx=-1;
+    if (o.getOriginalObject() instanceof ClusterObject) {
+      ClusterObject origObj=(ClusterObject)o.getOriginalObject();
+      if (origObj.getOriginalObject() instanceof Integer) {
+        idx = (Integer) origObj.getOriginalObject();
+        if (ordered[idx])
+          return;
+      }
+    }
     if (objOrdered==null)
       objOrdered=new ArrayList<ClusterObject>(objToCluster.size());
     objOrdered.add(o);
+    ordered[idx]=true;
     if (objOrdered.size()%250==0)
       System.out.println("OPTICS clustering: "+objOrdered.size()+" objects put in order");
   }

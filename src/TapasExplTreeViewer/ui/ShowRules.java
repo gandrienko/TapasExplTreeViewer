@@ -188,7 +188,8 @@ public class ShowRules {
       @Override
       public void actionPerformed(ActionEvent e) {
         JFrame fr=clOptics.showPlot();
-        fr.toFront();;
+        if (fr!=null)
+          fr.toFront();;
       }
     });
     
@@ -240,10 +241,13 @@ public class ShowRules {
       @Override
       public void windowClosing(WindowEvent e) {
         super.windowClosing(e);
-        frames.remove(fr);
-        if (frames.isEmpty() && !createdFiles.isEmpty())
-          for (File f:createdFiles)
+        if (fr.equals(frames.get(0)) && !createdFiles.isEmpty()) {
+          for (File f : createdFiles)
             f.delete();
+          for (int i=0; i<frames.size(); i++)
+            frames.get(i).dispose();
+        }
+        frames.remove(fr);
       }
     });
     return fr;
@@ -286,6 +290,7 @@ public class ShowRules {
     plotFrame.pack();
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
+    frames.add(plotFrame);
  
     JPopupMenu menu=new JPopupMenu();
     JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
@@ -337,6 +342,7 @@ public class ShowRules {
         Point p=plotFrame.getLocationOnScreen();
         fr.setLocation(Math.max(10,p.x-30), Math.max(10,p.y-50));
         fr.setVisible(true);
+        frames.add(fr);
       }
     });
   

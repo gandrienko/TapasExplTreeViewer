@@ -123,8 +123,8 @@ public class SeeExList {
     }
     fr.addWindowListener(new WindowAdapter() {
       @Override
-      public void windowClosing(WindowEvent e) {
-        super.windowClosing(e);
+      public void windowClosed(WindowEvent e) {
+        super.windowClosed(e);
         System.exit(0);
       }
     });
@@ -220,8 +220,8 @@ public class SeeExList {
     }
     fr.addWindowListener(new WindowAdapter() {
       @Override
-      public void windowClosing(WindowEvent e) {
-        super.windowClosing(e);
+      public void windowClosed(WindowEvent e) {
+        super.windowClosed(e);
         System.exit(0);
       }
     });

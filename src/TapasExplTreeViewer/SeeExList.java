@@ -139,7 +139,7 @@ public class SeeExList {
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(fname))));
       String strLine=br.readLine();
-      int line=1;
+      int line=0;
       String s[]=strLine.split(",");
       for (int i=0; i<s.length; i++) {
         int minmax[]=new int[2]; // ToDo
@@ -154,6 +154,10 @@ public class SeeExList {
         String srule[]=s[1].split("&");
         Explanation ex=new Explanation();
         ex.eItems=new ExplanationItem[srule.length];
+        ex.FlightID=""+(line-1);
+        ex.step=0;
+        ex.action=Integer.valueOf(s[2]); // ToDo
+        vex.add(ex);
         for (int i=0; i<srule.length; i++) {
           int p=srule[i].indexOf("=");
           int attrIdx=-1;
@@ -186,33 +190,19 @@ public class SeeExList {
             attrMinMax.put(ei.attr,minmax);
           String sss=ss.substring((p1>=0)?p1+2:p2+1);
           double d=Double.NaN;
-          double minmaxd[]=null; //new double[2];
-          //minmaxd[0]=minmax[0];
-          //minmaxd[1]=minmax[1];
           try {
-            d=Double.valueOf(ss.substring(0,Math.max(p1,p2))).doubleValue();
+            d=Double.valueOf(sss).doubleValue();
           } catch (NumberFormatException nfe) {
             System.out.println("Error in line "+line+": extracting condition from rule item # "+i+" "+srule[i]);
           }
-          if (p1>=0) { // condition <=
-            minmaxd=new double[]{Double.NEGATIVE_INFINITY,d};
-            //if (d>=minmax[1])
-              //minmaxd[1]=d;
-          }
-          else { // condition >
-            minmaxd=new double[]{d,Double.POSITIVE_INFINITY};
-            //if (d<=minmax[0])
-              //minmaxd[0]=d;
-          }
-          ei.interval=minmaxd;
+          if (p1>=0) // condition <=
+            ei.interval=new double[]{Double.NEGATIVE_INFINITY,d};
+          else  // condition >
+            ei.interval=new double[]{d,Double.POSITIVE_INFINITY};
           ei.attr_core=ei.attr;
           ei.sector="None";
           ex.eItems[i]=ei;
         }
-        ex.FlightID=""+(line-1);
-        ex.step=0;
-        ex.action=Integer.valueOf(s[2]); // ToDo
-        vex.add(ex);
       }
       br.close();
     } catch (IOException io) {

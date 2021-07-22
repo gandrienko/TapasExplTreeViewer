@@ -3,6 +3,8 @@ package TapasExplTreeViewer.ui;
 import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
+import TapasExplTreeViewer.util.CoordinatesReader;
+import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasExplTreeViewer.vis.TSNE_Runner;
@@ -251,11 +253,27 @@ public class ShowRules {
                                double distanceMatrix[][],
                                SingleHighlightManager highlighter,
                                ItemSelectionManager selector){
+    TSNE_Runner tsne=new TSNE_Runner();
+    tsne.setFileRegister(createdFiles);
+    String value=JOptionPane.showInputDialog("Perplexity (integer; suggested range from 5 to 50) :",
+        tsne.getPerplexity());
+    if (value==null)
+      return null;
+    try {
+      int p=Integer.parseInt(value);
+      if (p<5 || p>100) {
+        System.out.println("Illegal perplexity: "+p);
+        return null;
+      }
+      tsne.setPerplexity(p);
+    } catch (Exception ex) {
+      System.out.println(ex);
+      return null;
+    }
+    
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
     pp.setExplanations(exList);
     pp.setDistanceMatrix(distanceMatrix);
-    TSNE_Runner tsne=new TSNE_Runner();
-    tsne.setFileRegister(createdFiles);
     pp.setProjectionProvider(tsne);
     pp.setHighlighter(highlighter);
     pp.setSelector(selector);
@@ -268,7 +286,105 @@ public class ShowRules {
     plotFrame.pack();
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
-    return plotFrame;
+ 
+    JPopupMenu menu=new JPopupMenu();
+    JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
+    menu.add(mitExtract);
+    mitExtract.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        extractSubset(selector,exList,distanceMatrix,attrMinMax);
+      }
+    });
+  
+    JMenuItem mit=new JMenuItem("Read point coordinates from a file");
+    menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        double coords[][]= CoordinatesReader.readCoordinatesFromChosenFile();
+        if (coords==null) {
+          System.out.println("No coordinates could be read!");
+          return;
+        }
+        if (coords.length!=exList.size()) {
+          System.out.println("The new coordinates are for "+coords.length+
+                                 " points but must be for "+exList.size()+" points!");
+          return;
+        }
+        System.out.println("Trying to create another plot...");
+        ExplanationsProjPlot2D anotherPlot=new ExplanationsProjPlot2D(exList,coords);
+        anotherPlot.setPreferredSize(new Dimension(800,800));
+        anotherPlot.setSelector(selector);
+        anotherPlot.setHighlighter(highlighter);
+      
+        anotherPlot.addMouseListener(new MouseAdapter() {
+          @Override
+          public void mousePressed(MouseEvent e) {
+            super.mousePressed(e);
+            if (e.getButton()>MouseEvent.BUTTON1) {
+              ArrayList selected=selector.getSelected();
+              mitExtract.setEnabled(selected!=null && selected.size()>5);
+              menu.show(anotherPlot,e.getX(),e.getY());
+            }
+          }
+        });
+      
+        JFrame fr=new JFrame(CoordinatesReader.lastFileName);
+        fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        fr.getContentPane().add(anotherPlot);
+        fr.pack();
+        Point p=plotFrame.getLocationOnScreen();
+        fr.setLocation(Math.max(10,p.x-30), Math.max(10,p.y-50));
+        fr.setVisible(true);
+      }
+    });
+  
+    mit=new JMenuItem("Export the distance matrix to a file");
+    menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        MatrixWriter.writeMatrixToFile(distanceMatrix,"allDistances.csv",true);
+      }
+    });
+  
+    mit=new JMenuItem("Re-run t-SNE with another perplexity setting");
+    menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        String value=JOptionPane.showInputDialog("Perplexity (integer; suggested range from 5 to 50) :",
+            tsne.getPerplexity());
+        if (value==null)
+          return;
+        try {
+          int p=Integer.parseInt(value);
+          if (p<5 || p>100) {
+            System.out.println("Illegal perplexity: "+p);
+            return;
+          }
+          tsne.setPerplexity(p);
+          tsne.runAlgorithm();
+        } catch (Exception ex) {
+          System.out.println(ex);
+          return;
+        }
+      }
+    });
+  
+    pp.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mousePressed(MouseEvent e) {
+        super.mousePressed(e);
+        if (e.getButton()>MouseEvent.BUTTON1) {
+          ArrayList selected=selector.getSelected();
+          mitExtract.setEnabled(selected!=null && selected.size()>5);
+          menu.show(pp,e.getX(),e.getY());
+        }
+      }
+    });
+   return plotFrame;
   }
   
   

@@ -8,6 +8,8 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 
 public class ClustererByOPTICS extends OPTICS_Runner {
@@ -15,6 +17,7 @@ public class ClustererByOPTICS extends OPTICS_Runner {
    * Shows the reachability plot
    */
   protected ReachPlotPanel plotPanel =null;
+  protected JFrame plotFrame=null;
   
   protected ArrayList<ChangeListener> changeListeners=null;
   /**
@@ -22,6 +25,8 @@ public class ClustererByOPTICS extends OPTICS_Runner {
    */
   protected SingleHighlightManager highlighter=null;
   protected ItemSelectionManager selector=null;
+  
+  protected boolean toShowPlot=false;
   
   public void addChangeListener(ChangeListener l) {
     if (changeListeners==null)
@@ -71,31 +76,12 @@ public class ClustererByOPTICS extends OPTICS_Runner {
     }
     System.out.println("OPTICS clustering finished!");
     
-    if (plotPanel==null) {
-      plotPanel = new ReachPlotPanel(objOrdered, this);
-      JFrame fr = new JFrame("OPTICS reachability plot");
-      fr.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-      fr.getContentPane().add(plotPanel, BorderLayout.CENTER);
-      //Display the window.
-      fr.pack();
-      Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
-      if (fr.getWidth() > 0.8 * size.width)
-        fr.setSize(Math.round(0.8f * size.width), fr.getHeight());
-      fr.setLocation((size.width - fr.getWidth()) / 2, size.height - fr.getHeight() - 40);
-      fr.setVisible(true);
-  
-      plotPanel.setHighlighter(highlighter);
-      plotPanel.setSelector(selector);
-  
-      if (changeListeners != null) {
-        for (int i = 0; i < changeListeners.size(); i++)
-          plotPanel.addChangeListener(changeListeners.get(i));
-      }
-    }
-    else {
+    if (plotPanel!=null)
       //update the reachability plot
       plotPanel.updateObjectsOrder(objOrdered);
-    }
+    else
+      if (toShowPlot)
+        showPlot();
   
     if (changeListeners != null) {
       ClustersAssignments clAss = makeClusters(objOrdered, Double.NaN);
@@ -103,5 +89,46 @@ public class ClustererByOPTICS extends OPTICS_Runner {
       for (int i = 0; i < changeListeners.size(); i++)
         changeListeners.get(i).stateChanged(e);
     }
+  }
+  
+  public JFrame showPlot() {
+    if (plotFrame!=null)
+      return plotFrame;
+    
+    if (objOrdered==null) {
+      toShowPlot = true;
+      return null;
+    }
+  
+    if (plotPanel==null) {
+      plotPanel = new ReachPlotPanel(objOrdered, this);
+    
+      plotPanel.setHighlighter(highlighter);
+      plotPanel.setSelector(selector);
+    
+      if (changeListeners != null) {
+        for (int i = 0; i < changeListeners.size(); i++)
+          plotPanel.addChangeListener(changeListeners.get(i));
+      }
+    }
+    
+    plotFrame = new JFrame("OPTICS reachability plot");
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add(plotPanel, BorderLayout.CENTER);
+    //Display the window.
+    plotFrame.pack();
+    Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
+    if (plotFrame.getWidth() > 0.8 * size.width)
+      plotFrame.setSize(Math.round(0.8f * size.width), plotFrame.getHeight());
+    plotFrame.setLocation((size.width - plotFrame.getWidth()) / 2, size.height - plotFrame.getHeight() - 40);
+    plotFrame.setVisible(true);
+    plotFrame.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent e) {
+        super.windowClosing(e);
+        plotFrame=null;
+      }
+    });
+    return plotFrame;
   }
 }

@@ -10,6 +10,7 @@ import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.rules.UnitedRule;
 import TapasExplTreeViewer.ui.ExListTableModel;
 import TapasExplTreeViewer.ui.JLabel_Subinterval;
+import TapasExplTreeViewer.ui.ShowRules;
 import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
@@ -113,7 +114,20 @@ public class SeeExList {
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
   
-    MainBody(attrMinMax,exList);
+    //MainBody(attrMinMax,exList);
+    ShowRules showRules=new ShowRules(exList,attrMinMax);
+    JFrame fr=showRules.showRulesInTable();
+    if (fr==null) {
+      System.out.println("Failed to visualize the rules!");
+      return;
+    }
+    fr.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent e) {
+        super.windowClosing(e);
+        System.exit(0);
+      }
+    });
   }
 
   public static void mainSingleFile (String fname) {
@@ -206,7 +220,21 @@ public class SeeExList {
     }
     for (Explanation ex:vex)
       CommonExplanation.addExplanation(exList,ex,false,attrMinMax,true);
-    MainBody(attrMinMax,exList);
+    //MainBody(attrMinMax,exList);
+
+    ShowRules showRules=new ShowRules(exList,attrMinMax);
+    JFrame fr=showRules.showRulesInTable();
+    if (fr==null) {
+      System.out.println("Failed to visualize the rules!");
+      return;
+    }
+    fr.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent e) {
+        super.windowClosing(e);
+        System.exit(0);
+      }
+    });
   }
 
   public static void MainBody (Hashtable<String,int[]> attrMinMax, ArrayList<CommonExplanation> exList) {

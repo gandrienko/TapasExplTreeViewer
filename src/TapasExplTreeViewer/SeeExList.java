@@ -313,7 +313,7 @@ public class SeeExList {
         if (rowIndex>=0) {
           int realRowIndex = convertRowIndexToModel(rowIndex);
           hlSub.highlight(new Integer(realRowIndex));
-          return exSubset.get(realRowIndex).toHTML();
+          return exSubset.get(realRowIndex).toHTML(attrMinMax);
         }
         hlSub.clearHighlighting();
         return "";

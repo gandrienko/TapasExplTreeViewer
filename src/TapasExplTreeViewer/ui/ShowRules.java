@@ -143,7 +143,7 @@ public class ShowRules {
         if (rowIndex>=0) {
           int realRowIndex = convertRowIndexToModel(rowIndex);
           highlighter.highlight(new Integer(realRowIndex));
-          return ((CommonExplanation)rules.get(realRowIndex)).toHTML();
+          return ((CommonExplanation)rules.get(realRowIndex)).toHTML(attrMinMax);
         }
         highlighter.clearHighlighting();
         return "";

@@ -155,7 +155,13 @@ public class ShowRules {
         if (rowIndex>=0) {
           int realRowIndex = convertRowIndexToModel(rowIndex);
           highlighter.highlight(new Integer(realRowIndex));
-          return ((CommonExplanation)rules.get(realRowIndex)).toHTML(attrMinMax);
+          int colIndex=columnAtPoint(p);
+          String s="";
+          if (colIndex>=0) {
+            int realColIndex=convertColumnIndexToModel(colIndex);
+            s=eTblModel.getColumnName(realColIndex);
+          }
+          return ((CommonExplanation)rules.get(realRowIndex)).toHTML(attrMinMax,s);
         }
         highlighter.clearHighlighting();
         return "";

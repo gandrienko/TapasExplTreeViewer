@@ -148,22 +148,10 @@ public class RuleMaster {
     ArrayList<UnitedRule> agRules=new ArrayList<UnitedRule>(ruleGroups.size()*2);
     for (int i=0; i<rules.size(); i++) {
       UnitedRule rule=rules.get(i);
-      if (minAccuracy>0) {
-        if (rule.nOrigRight<1) {
-          rule.countRightAndWrongCoverages(origRules);
-          if (rule.nOrigRight<1)
-            continue; //must not happen; it means that this rule does not cover any of origRules!
-        }
-        double accuracy=1.0*rule.nOrigRight/(rule.nOrigRight+rule.nOrigWrong);
-        if (accuracy<minAccuracy) {
-          agRules.add(rule);
-          continue;
-        }
-      }
       boolean added=false;
       for (int j=0; j<ruleGroups.size() && !added; j++) {
         UnitedRule rule2=ruleGroups.get(j).get(0);
-        if (rule.action==rule2.action/* && UnitedRule.sameFeatures(rule,rule2)*/) {
+        if (rule.action==rule2.action) {
           ruleGroups.get(j).add(rule);
           added=true;
         }
@@ -202,36 +190,41 @@ public class RuleMaster {
       double minDistance=Double.NaN;
       int i1=-1, i2=-1;
       for (int i=0; i<group.size()-1; i++)
-        for (int j=i+1; j<group.size(); j++)
-          if (UnitedRule.sameFeatures(group.get(i),group.get(j))) {
-            double d=UnitedRule.distance(group.get(i),group.get(j));
-            if (Double.isNaN(minDistance) || minDistance>d) {
-              minDistance=d;
-              i1=i; i2=j;
+        if (minAccuracy<=0 || getAccuracy(group.get(i),origRules)>=minAccuracy)
+          for (int j=i+1; j<group.size(); j++)
+            if ((minAccuracy<=0 || getAccuracy(group.get(j),origRules)>=minAccuracy) &&
+                UnitedRule.sameFeatures(group.get(i),group.get(j))) {
+              double d=UnitedRule.distance(group.get(i),group.get(j));
+              if (Double.isNaN(minDistance) || minDistance>d) {
+                minDistance=d;
+                i1=i; i2=j;
+              }
             }
-          }
       if (i1>=0 && i2>=0)  {
         UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2));
         if (union!=null) {
-          if (minAccuracy>0) {
-            if (union.nOrigRight<1) {
-              union.countRightAndWrongCoverages(origRules);
-              if (union.nOrigRight<1)
-                continue; //must not happen; it means that this rule does not cover any of origRules!
-            }
-            double accuracy=1.0*union.nOrigRight/(union.nOrigRight+union.nOrigWrong);
-            if (accuracy>=minAccuracy) {
-              group.remove(i2);
-              group.remove(i1);
-              for (int j=group.size()-1; j>=0; j--)
-                if (union.subsumes(group.get(j)))
-                  group.remove(j);
-              group.add(0,union);
-              united=true;
-            }
-          }
+          union.countRightAndWrongCoverages(origRules);
+          if (minAccuracy>0 && getAccuracy(union,origRules)<minAccuracy)
+            continue;
+          group.remove(i2);
+          group.remove(i1);
+          for (int j=group.size()-1; j>=0; j--)
+            if (union.subsumes(group.get(j)))
+              group.remove(j);
+          group.add(0,union);
+          united=true;
         }
       }
     } while (united);
+  }
+  
+  public static double getAccuracy(UnitedRule rule, ArrayList<CommonExplanation> origRules) {
+    if (rule==null || origRules==null)
+      return Double.NaN;
+    if (rule.nOrigRight<1)
+      rule.countRightAndWrongCoverages(origRules);
+    if (rule.nOrigRight<1)
+      return Double.NaN; //must not happen; it means that this rule does not cover any of origRules!
+    return 1.0*rule.nOrigRight/(rule.nOrigRight+rule.nOrigWrong);
   }
 }

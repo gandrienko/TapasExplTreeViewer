@@ -17,12 +17,12 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
    * The explanations to show
    */
   public ArrayList<CommonExplanation> exList=null;
-  public Hashtable<String,int[]> attrMinMax =null;
+  public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
   public String columnNames[] = {"Action", "N uses", "N data items", "Order", "Cluster", "N conditions"};
   
-  public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,int[]> attrMinMax) {
+  public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this.exList=exList;
     this.attrMinMax =attrMinMax;
     Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
@@ -137,7 +137,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
           values[1]=cEx.eItems[i].interval[1];
       }
     if (attrMinMax !=null && !Double.isNaN(values[0]) || !Double.isNaN(values[1]))  {
-      int minmax[]= attrMinMax.get(attrName);
+      float minmax[]= attrMinMax.get(attrName);
       if (minmax!=null) {
         values[2]=minmax[0];
         values[3]=minmax[1];

@@ -95,7 +95,7 @@ public class SeeExList {
       System.out.println("Failed to get original data!");
       System.exit(1);
     }
-    Hashtable<String,int[]> attrMinMax=new Hashtable<String, int[]>();
+    Hashtable<String,float[]> attrMinMax=new Hashtable<String, float[]>();
     TapasDataReader.Readers.readExplanations(path,steps,flights,attrMinMax);
     /**/
   
@@ -125,17 +125,18 @@ public class SeeExList {
 
   public static void mainSingleFile (String fname) {
     System.out.println("* loading rules and data from "+fname);
-    Hashtable<String,int[]> attrMinMax=new Hashtable<String, int[]>();
+    Hashtable<String,float[]> attrMinMax=new Hashtable<String, float[]>();
     Vector<String> attrs=new Vector<>();
     Vector<Explanation> vex=new Vector<>();
     ArrayList<CommonExplanation> exList=new ArrayList<CommonExplanation>(10000);
+    boolean bAllInts=true;
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(fname))));
       String strLine=br.readLine();
       int line=0;
       String s[]=strLine.split(",");
       for (int i=0; i<s.length; i++) {
-        int minmax[]=new int[2]; // ToDo
+        float minmax[]=new float[2];
         minmax[0]=Integer.MAX_VALUE;
         minmax[1]=Integer.MIN_VALUE;
         attrMinMax.put(s[i],minmax);
@@ -149,7 +150,9 @@ public class SeeExList {
         ex.eItems=new ExplanationItem[srule.length];
         ex.FlightID=""+(line-1);
         ex.step=0;
-        ex.action=Integer.valueOf(s[2]); // ToDo
+        ex.Q=Float.valueOf(s[2]);
+        bAllInts&=ex.Q==Math.round(ex.Q);
+        //ex.action=(int)ex.Q; // ToDo
         vex.add(ex);
         for (int i=0; i<srule.length; i++) {
           int p=srule[i].indexOf("=");
@@ -161,22 +164,22 @@ public class SeeExList {
           }
           ExplanationItem ei=new ExplanationItem();
           ei.attr=attrs.elementAt(attrIdx);
-          int minmax[]=attrMinMax.get(ei.attr); // ToDo
+          float minmax[]=attrMinMax.get(ei.attr);
           String ss=srule[i].substring(p+1);
           int p1=ss.indexOf("<="), p2=ss.indexOf(">");
-          ei.value=Integer.MIN_VALUE;
+          ei.value=Float.MIN_VALUE;
           try {
-            ei.value=Integer.valueOf(ss.substring(0,Math.max(p1,p2))).intValue();
+            ei.value=Float.valueOf(ss.substring(0,Math.max(p1,p2))).floatValue();
           } catch (NumberFormatException nfe) {
             System.out.println("Error in line "+line+": extracting attr value from rule item # "+i+" "+srule[i]);
           }
           boolean changed=false;
           if (ei.value<minmax[0]) {
-            minmax[0]=(int)ei.value; // ToDo
+            minmax[0]=ei.value;
             changed=true;
           }
           if (ei.value>minmax[1]) {
-            minmax[1]=(int)ei.value; // ToDo
+            minmax[1]=ei.value;
             changed=true;
           }
           if (changed)
@@ -201,6 +204,9 @@ public class SeeExList {
     } catch (IOException io) {
       System.out.println(io);
     }
+    if (bAllInts)
+      for (Explanation ex:vex)
+        ex.action=(int)ex.Q;
     for (Explanation ex:vex)
       CommonExplanation.addExplanation(exList,ex,false,attrMinMax,true);
     //MainBody(attrMinMax,exList);
@@ -213,7 +219,7 @@ public class SeeExList {
     }
   }
 
-  public static void MainBody (Hashtable<String,int[]> attrMinMax, ArrayList<CommonExplanation> exList) {
+  public static void MainBody (Hashtable<String,float[]> attrMinMax, ArrayList<CommonExplanation> exList) {
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
     ArrayList<CommonExplanation> exList2=RuleMaster.removeLessGeneral(exList);
     if (exList2.size()<exList.size()) {
@@ -499,7 +505,7 @@ public class SeeExList {
   public static void extractSubset(ArrayList<CommonExplanation> exList,
                                    double distanceMatrix[][],
                                    ItemSelectionManager selector,
-                                   Hashtable<String,int[]> attrMinMax,
+                                   Hashtable<String,float[]> attrMinMax,
                                    int origOPTICSOrder[],
                                    int origClusters[],
                                    ArrayList<File> createdFiles) {

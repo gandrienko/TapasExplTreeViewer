@@ -48,7 +48,7 @@ public class ShowRules {
   /**
    * The ranges of feature values
    */
-  public Hashtable<String,int[]> attrMinMax=null;
+  public Hashtable<String,float[]> attrMinMax=null;
   /**
    * The distances between the rules
    */
@@ -71,7 +71,7 @@ public class ShowRules {
   
   
   public ShowRules(ArrayList<CommonExplanation> exList,
-                   Hashtable<String,int[]> attrMinMax,
+                   Hashtable<String,float[]> attrMinMax,
                    double distances[][]) {
     this.exList=exList; this.attrMinMax=attrMinMax;
     this.distanceMatrix=distances;
@@ -85,7 +85,7 @@ public class ShowRules {
     }
   }
   
-  public ShowRules(ArrayList<CommonExplanation> exList, Hashtable<String,int[]> attrMinMax) {
+  public ShowRules(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this(exList,attrMinMax,null);
   }
   
@@ -116,7 +116,7 @@ public class ShowRules {
   
   public JFrame showRulesInTable(ArrayList rules,
                                  double distanceMatrix[][],
-                                 Hashtable<String,int[]> attrMinMax) {
+                                 Hashtable<String,float[]> attrMinMax) {
   
     SingleHighlightManager highlighter=new SingleHighlightManager();
     ItemSelectionManager selector=new ItemSelectionManager();
@@ -528,7 +528,7 @@ public class ShowRules {
   public void extractSubset(ItemSelectionManager selector,
                               ArrayList<CommonExplanation> exList,
                               double distanceMatrix[][],
-                              Hashtable<String,int[]> attrMinMax) {
+                              Hashtable<String,float[]> attrMinMax) {
     ArrayList selected = selector.getSelected();
     if (selected.size() < 5)
       return;
@@ -563,7 +563,7 @@ public class ShowRules {
    * by any other rules. Shows the resulting rule set in a table view.
    */
   public void getNonSubsumed(ArrayList<CommonExplanation> exList,
-                             Hashtable<String,int[]> attrMinMax) {
+                             Hashtable<String,float[]> attrMinMax) {
     if (exList==null || exList.size()<2)
       return;
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
@@ -583,7 +583,7 @@ public class ShowRules {
   }
   
   public void aggregate(ArrayList<CommonExplanation> exList,
-                        Hashtable<String,int[]> attrMinMax,
+                        Hashtable<String,float[]> attrMinMax,
                         double minAccuracy) {
     if (exList==null || exList.size()<2)
       return;

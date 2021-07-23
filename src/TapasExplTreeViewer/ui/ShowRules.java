@@ -3,6 +3,8 @@ package TapasExplTreeViewer.ui;
 import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
+import TapasExplTreeViewer.rules.RuleMaster;
+import TapasExplTreeViewer.rules.UnitedRule;
 import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
@@ -31,6 +33,19 @@ public class ShowRules {
    */
   public ArrayList<CommonExplanation> exList=null;
   /**
+   * Whether the rule set has been previously reduced by removing rules
+   * subsumed in more general rules.
+   */
+  public boolean nonSubsumed =false;
+  /**
+   * Whether the rule set consists of generalized rules obtained by aggregation.
+   */
+  public boolean aggregated=false;
+  /**
+   * The accuracy threshold used in aggregation
+   */
+  public double accThreshold=1;
+  /**
    * The ranges of feature values
    */
   public Hashtable<String,int[]> attrMinMax=null;
@@ -41,6 +56,18 @@ public class ShowRules {
   
   protected ArrayList<JFrame> frames=null;
   protected ArrayList<File> createdFiles=null;
+  /**
+   * A top frame is created once for each instance of ShowRules.
+   * When a top frame is closed, all other frames created by this instance of ShowRules
+   * are also closed.
+   * When the last top frame is closed, the temporary files that have been created
+   * are esased.
+   */
+  protected static ArrayList<JFrame> topFrames=null;
+  /**
+   * Whether this instance of ShowRules has already created its top frame
+   */
+  protected boolean topFrameCreated=false;
   
   
   public ShowRules(ArrayList<CommonExplanation> exList,
@@ -60,6 +87,27 @@ public class ShowRules {
   
   public ShowRules(ArrayList<CommonExplanation> exList, Hashtable<String,int[]> attrMinMax) {
     this(exList,attrMinMax,null);
+  }
+  
+  public void setCreatedFileRegister(ArrayList<File> createdFiles) {
+    if (createdFiles!=null)
+      this.createdFiles=createdFiles;
+  }
+  
+  public void setNonSubsumed(boolean nonSubsumed) {
+    this.nonSubsumed = nonSubsumed;
+  }
+  
+  public void setAggregated(boolean aggregated) {
+    this.aggregated = aggregated;
+  }
+  
+  public double getAccThreshold() {
+    return accThreshold;
+  }
+  
+  public void setAccThreshold(double accThreshold) {
+    this.accThreshold = accThreshold;
   }
   
   public JFrame showRulesInTable() {
@@ -210,47 +258,126 @@ public class ShowRules {
         extractSubset(selector,rules,distanceMatrix,attrMinMax);
       }
     });
+    
+    if (!nonSubsumed) {
+      menu.addSeparator();
+      menu.add(mit=new JMenuItem("Extract the non-subsumed rules to a separate view"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          getNonSubsumed(exList,attrMinMax);
+        }
+      });
+    }
+  
+    if (!aggregated) {
+      menu.addSeparator();
+      menu.add(mit=new JMenuItem("Otain generalized rules through aggregation"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          String value=JOptionPane.showInputDialog("Accuracy threshold from 0 to 1 :",
+              String.format("%.3f",accThreshold));
+          if (value==null)
+            return;
+          try {
+            double d=Double.parseDouble(value);
+            if (d<0 || d>1) {
+              System.out.println("Illegal threshold value!");
+              return;
+            }
+            aggregate(exList,attrMinMax,d);
+          } catch (Exception ex) {
+            System.out.println("Illegal threshold value!");
+            return;
+          }
+        }
+      });
+    }
+    
+    menu.addSeparator();
+    menu.add(mit=new JMenuItem("Quit"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        int result = JOptionPane.showConfirmDialog(null,"Sure? Do you want to exit?",
+            "Confirm quitting",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);
+        if(result == JOptionPane.YES_OPTION) {
+          eraseCreatedFiles();
+          System.exit(0);
+        }
+      }
+    });
   
     table.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
-      super.mousePressed(e);
-      if (e.getButton()>MouseEvent.BUTTON1) {
-        ArrayList selected=selector.getSelected();
-        mitExtract.setEnabled(selected!=null && selected.size()>5);
-        menu.show(table,e.getX(),e.getY());
-      }
+        super.mousePressed(e);
+        if (e.getButton()>MouseEvent.BUTTON1) {
+          ArrayList selected=selector.getSelected();
+          mitExtract.setEnabled(selected!=null && selected.size()>5);
+          menu.show(table,e.getX(),e.getY());
+        }
       }
     });
 
     JScrollPane scrollPane = new JScrollPane(table);
   
-    JFrame fr = new JFrame("Explanations (" + rules.size() + ")");
+    JFrame fr = new JFrame(((aggregated)?"Aggregated rules":
+                                (nonSubsumed)?"Extracted non-subsumed rules":
+                                    "Original distinct rules or explanations")+
+                               " (" + rules.size() + ")"+
+                               ((aggregated)?"; obtained with accuracy threshold "+
+                                                 String.format("%.3f",accThreshold):""));
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
     //Display the window.
     fr.pack();
-    fr.setLocation(30, 30);
+    int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
+    fr.setLocation(30+nFrames*30, 30+nFrames*15);
     fr.setVisible(true);
     
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(fr);
+    if (topFrameCreated) { //this will not be a top frame
+      if (frames==null)
+        frames=new ArrayList<JFrame>(20);
+      frames.add(fr);
+    }
+    else {
+      if (topFrames==null)
+        topFrames=new ArrayList<JFrame>(10);
+      topFrames.add(fr);
+      topFrameCreated=true;
+    }
     
     fr.addWindowListener(new WindowAdapter() {
       @Override
       public void windowClosing(WindowEvent e) {
         super.windowClosing(e);
-        if (fr.equals(frames.get(0)) && !createdFiles.isEmpty()) {
-          for (File f : createdFiles)
-            f.delete();
-          for (int i=0; i<frames.size(); i++)
-            frames.get(i).dispose();
+        if (topFrames.contains(fr)) {
+          if (frames!=null) {
+            for (int i = 0; i < frames.size(); i++)
+              frames.get(i).dispose();
+            frames.clear();
+          }
+          topFrames.remove(fr);
+          if (topFrames.isEmpty()) {
+            eraseCreatedFiles();
+            System.exit(0);
+          }
         }
-        frames.remove(fr);
+        else
+          if (frames!=null)
+            frames.remove(fr);
       }
     });
     return fr;
+  }
+  
+  public void eraseCreatedFiles () {
+    if (createdFiles!=null && !createdFiles.isEmpty())
+      for (File f : createdFiles)
+        f.delete();
+    createdFiles.clear();
   }
   
   public JFrame showProjection(ArrayList<CommonExplanation> exList,
@@ -290,6 +417,8 @@ public class ShowRules {
     plotFrame.pack();
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
     frames.add(plotFrame);
  
     JPopupMenu menu=new JPopupMenu();
@@ -342,6 +471,8 @@ public class ShowRules {
         Point p=plotFrame.getLocationOnScreen();
         fr.setLocation(Math.max(10,p.x-30), Math.max(10,p.y-50));
         fr.setVisible(true);
+        if (frames==null)
+          frames=new ArrayList<JFrame>(20);
         frames.add(fr);
       }
     });
@@ -394,13 +525,13 @@ public class ShowRules {
   }
   
   
-  public JFrame extractSubset(ItemSelectionManager selector,
+  public void extractSubset(ItemSelectionManager selector,
                               ArrayList<CommonExplanation> exList,
                               double distanceMatrix[][],
                               Hashtable<String,int[]> attrMinMax) {
     ArrayList selected = selector.getSelected();
     if (selected.size() < 5)
-      return null;
+      return;
     ArrayList<CommonExplanation> exSubset = new ArrayList<CommonExplanation>(selected.size());
     int idx[] = new int[selected.size()];
     int nEx = 0;
@@ -419,6 +550,67 @@ public class ShowRules {
         distances[i][j] = distances[j][i] = distanceMatrix[ii][jj];
       }
     }
-    return showRulesInTable(exSubset,distances,attrMinMax);
+    ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
+    showRules.setNonSubsumed(this.nonSubsumed);
+    showRules.setAggregated(this.aggregated);
+    showRules.setAccThreshold(accThreshold);
+    showRules.setCreatedFileRegister(createdFiles);
+    showRules.showRulesInTable();
+  }
+  
+  /**
+   * From the given set of rules or explanations, extracts those rules that are not subsumed
+   * by any other rules. Shows the resulting rule set in a table view.
+   */
+  public void getNonSubsumed(ArrayList<CommonExplanation> exList,
+                             Hashtable<String,int[]> attrMinMax) {
+    if (exList==null || exList.size()<2)
+      return;
+    System.out.println("Trying to reduce the explanation set by removing less general explanations...");
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList);
+    if (exList2.size()<exList.size()) {
+      System.out.println("Reduced the number of explanations from " +
+                             exList.size() + " to " + exList2.size());
+    }
+    else {
+      System.out.println("Did not manage to reduce the set of explanations!");
+      return;
+    }
+    ShowRules showRules=new ShowRules(exList2,attrMinMax);
+    showRules.setNonSubsumed(true);
+    showRules.setCreatedFileRegister(createdFiles);
+    showRules.showRulesInTable();
+  }
+  
+  public void aggregate(ArrayList<CommonExplanation> exList,
+                        Hashtable<String,int[]> attrMinMax,
+                        double minAccuracy) {
+    if (exList==null || exList.size()<2)
+      return;
+    if (!nonSubsumed) {
+      System.out.println("Prior to aggregation, trying to remove less general explanations...");
+      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList);
+      if  (exList2!=null && exList2.size()<exList.size()) {
+        System.out.println("Removal of subsumed rules has reduced the number of explanations from " +
+                               exList.size() + " to " + exList2.size());
+        exList = exList2;
+      }
+    }
+    System.out.println("Trying to aggregate the rules...");
+    ArrayList<UnitedRule> aggRules=RuleMaster.aggregate(UnitedRule.getRules(exList),exList,minAccuracy);
+    if (aggRules==null || aggRules.size()>=exList.size()) {
+      System.out.println("Failed to aggregate!");
+      return;
+    }
+    System.out.println("Reduced the number of explanations from " +
+                           exList.size() + " to " + aggRules.size());
+    ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
+    aggEx.addAll(aggRules);
+    ShowRules showRules=new ShowRules(aggEx,attrMinMax);
+    showRules.setNonSubsumed(true);
+    showRules.setAggregated(true);
+    showRules.setAccThreshold(minAccuracy);
+    showRules.setCreatedFileRegister(createdFiles);
+    showRules.showRulesInTable();
   }
 }

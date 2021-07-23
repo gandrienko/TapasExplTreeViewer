@@ -82,7 +82,7 @@ public class SeeExList {
     String fName=fNames.get("decisions");
     if (fName==null) {
       System.out.println("No decisions file name in the parameters!");
-      return;
+      System.exit(1);
     }
   
     System.out.println("Decisions file name = "+fName);
@@ -92,8 +92,8 @@ public class SeeExList {
     Hashtable<String, Flight> flights=
         TapasDataReader.Readers.readFlightDelaysFromDecisions(fName,steps);
     if (flights==null || flights.isEmpty()) {
-      System.out.println("Failed to get flight data!");
-      return;
+      System.out.println("Failed to get original data!");
+      System.exit(1);
     }
     Hashtable<String,int[]> attrMinMax=new Hashtable<String, int[]>();
     TapasDataReader.Readers.readExplanations(path,steps,flights,attrMinMax);
@@ -109,7 +109,7 @@ public class SeeExList {
     }
     if (exList.isEmpty()) {
       System.out.println("Failed to reconstruct the list of common explanations!");
-      return;
+      System.exit(1);
     }
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
@@ -119,15 +119,8 @@ public class SeeExList {
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
-      return;
+      System.exit(1);
     }
-    fr.addWindowListener(new WindowAdapter() {
-      @Override
-      public void windowClosed(WindowEvent e) {
-        super.windowClosed(e);
-        System.exit(0);
-      }
-    });
   }
 
   public static void mainSingleFile (String fname) {
@@ -216,15 +209,8 @@ public class SeeExList {
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
-      return;
+      System.exit(1);
     }
-    fr.addWindowListener(new WindowAdapter() {
-      @Override
-      public void windowClosed(WindowEvent e) {
-        super.windowClosed(e);
-        System.exit(0);
-      }
-    });
   }
 
   public static void MainBody (Hashtable<String,int[]> attrMinMax, ArrayList<CommonExplanation> exList) {

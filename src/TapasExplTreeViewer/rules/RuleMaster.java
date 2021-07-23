@@ -85,18 +85,19 @@ public class RuleMaster {
    * Removes explanations (or rules) covered by other rules with the same actions whose conditians are more general.
    * @return reduced set of explanations (rules).
    */
-  public static ArrayList<CommonExplanation> removeLessGeneral(ArrayList<CommonExplanation> exList) {
-    if (exList==null || exList.size()<2)
-      return exList;
-    ArrayList<CommonExplanation> moreGeneral=new ArrayList<CommonExplanation>(exList.size());
-    boolean removed[]=new boolean[exList.size()];
+  public static ArrayList<CommonExplanation> removeLessGeneral(ArrayList<CommonExplanation> rules,
+                                                               ArrayList<CommonExplanation> origRules) {
+    if (rules==null || rules.size()<2)
+      return rules;
+    ArrayList<CommonExplanation> moreGeneral=new ArrayList<CommonExplanation>(rules.size());
+    boolean removed[]=new boolean[rules.size()];
     for (int i=0; i<removed.length; i++)
       removed[i]=false;
-    for (int i=0; i<exList.size()-1; i++) {
-      CommonExplanation ex=exList.get(i);
-      for (int j = i + 1; j < exList.size(); j++)
+    for (int i=0; i<rules.size()-1; i++) {
+      CommonExplanation ex=rules.get(i);
+      for (int j = i + 1; j < rules.size(); j++)
         if (!removed[j]) {
-          UnitedRule gEx = selectMoreGeneral(ex, exList.get(j));
+          UnitedRule gEx = selectMoreGeneral(ex, rules.get(j));
           if (gEx != null) {
             removed[i]=removed[j]=true;
             ex=gEx;
@@ -114,14 +115,14 @@ public class RuleMaster {
       }
     }
     if (moreGeneral.isEmpty())
-      return exList; //nothing reduced
+      return rules; //nothing reduced
     boolean changed;
     do {
       changed=false;
       for (int i = 0; i < moreGeneral.size(); i++)
-        for (int j = 0; j < exList.size(); j++)
+        for (int j = 0; j < rules.size(); j++)
           if (!removed[j]){
-            UnitedRule gEx=selectMoreGeneral(moreGeneral.get(i),exList.get(j));
+            UnitedRule gEx=selectMoreGeneral(moreGeneral.get(i),rules.get(j));
             if (gEx!=null) {
               moreGeneral.add(i,gEx);
               moreGeneral.remove(i+1);
@@ -130,11 +131,11 @@ public class RuleMaster {
             }
           }
     } while (changed);
-    for (int i=0; i<exList.size(); i++)
+    for (int i=0; i<rules.size(); i++)
       if (!removed[i])
-        moreGeneral.add(UnitedRule.getRule(exList.get(i)));
+        moreGeneral.add(UnitedRule.getRule(rules.get(i)));
     for (int i=0; i<moreGeneral.size(); i++)
-      ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoverages(exList);
+      ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoverages((origRules!=null)?origRules:rules);
     return  moreGeneral;
   }
   

@@ -31,7 +31,7 @@ public class ShowRules {
   /**
    * The very original rule set (before any transformations have been applied)
    */
-  public ArrayList<CommonExplanation> origExList=null;
+  public ArrayList<CommonExplanation> origRules =null;
   /**
    * The rules or explanations to be visualized
    */
@@ -93,12 +93,12 @@ public class ShowRules {
     this(exList,attrMinMax,null);
   }
   
-  public ArrayList<CommonExplanation> getOrigExList() {
-    return origExList;
+  public ArrayList<CommonExplanation> getOrigRules() {
+    return origRules;
   }
   
-  public void setOrigExList(ArrayList<CommonExplanation> origExList) {
-    this.origExList = origExList;
+  public void setOrigRules(ArrayList<CommonExplanation> origRules) {
+    this.origRules = origRules;
   }
   
   public void setCreatedFileRegister(ArrayList<File> createdFiles) {
@@ -277,48 +277,50 @@ public class ShowRules {
       }
     });
     
-    if (!nonSubsumed) {
-      menu.addSeparator();
-      menu.add(mit=new JMenuItem("Extract the non-subsumed rules to a separate view"));
-      mit.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          getNonSubsumed(exList,attrMinMax);
-        }
-      });
-    }
+    menu.addSeparator();
+    menu.add(mit=new JMenuItem("Extract the non-subsumed rules to a separate view"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        getNonSubsumed(exList,attrMinMax);
+      }
+    });
   
-    if (!aggregated) {
-      menu.addSeparator();
-      menu.add(mit=new JMenuItem("Otain generalized rules through aggregation"));
-      mit.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          String value=JOptionPane.showInputDialog("Accuracy threshold from 0 to 1 :",
-              String.format("%.3f",accThreshold));
-          if (value==null)
-            return;
-          try {
-            double d=Double.parseDouble(value);
-            if (d<0 || d>1) {
-              System.out.println("Illegal threshold value!");
-              return;
-            }
-            aggregate(exList,attrMinMax,d);
-          } catch (Exception ex) {
-            System.out.println("Illegal threshold value!");
+    menu.addSeparator();
+    menu.add(mit=new JMenuItem("Otain generalized rules through aggregation"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Accuracy threshold from 0 to 1 :",
+            String.format("%.3f",accThreshold));
+        if (value==null)
+          return;
+        try {
+          double d=Double.parseDouble(value);
+          if (d<0 || d>1) {
+            JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                "Illegal threshold value!",
+                "Error",JOptionPane.ERROR_MESSAGE);
             return;
           }
+          aggregate(exList,attrMinMax,d);
+        } catch (Exception ex) {
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Illegal threshold value!",
+              "Error",JOptionPane.ERROR_MESSAGE);
+          return;
         }
-      });
-    }
+      }
+    });
     
     menu.addSeparator();
     menu.add(mit=new JMenuItem("Quit"));
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        int result = JOptionPane.showConfirmDialog(null,"Sure? Do you want to exit?",
+        int result = JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Sure? Do you want to exit?",
             "Confirm quitting",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);
         if(result == JOptionPane.YES_OPTION) {
           eraseCreatedFiles();
@@ -404,19 +406,24 @@ public class ShowRules {
                                ItemSelectionManager selector){
     TSNE_Runner tsne=new TSNE_Runner();
     tsne.setFileRegister(createdFiles);
-    String value=JOptionPane.showInputDialog("Perplexity (integer; suggested range from 5 to 50) :",
+    String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Perplexity (integer; suggested range from 5 to 50) :",
         tsne.getPerplexity());
     if (value==null)
       return null;
     try {
       int p=Integer.parseInt(value);
       if (p<5 || p>100) {
-        System.out.println("Illegal perplexity: "+p);
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal perplexity: "+p,
+            "Error",JOptionPane.ERROR_MESSAGE);
         return null;
       }
       tsne.setPerplexity(p);
     } catch (Exception ex) {
-      System.out.println(ex);
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Illegal perplexity!"+value,
+          "Error",JOptionPane.ERROR_MESSAGE);
       return null;
     }
     
@@ -456,12 +463,16 @@ public class ShowRules {
       public void actionPerformed(ActionEvent e) {
         double coords[][]= CoordinatesReader.readCoordinatesFromChosenFile();
         if (coords==null) {
-          System.out.println("No coordinates could be read!");
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "No coordinates could be read!",
+              "Error",JOptionPane.ERROR_MESSAGE);
           return;
         }
         if (coords.length!=exList.size()) {
-          System.out.println("The new coordinates are for "+coords.length+
-                                 " points but must be for "+exList.size()+" points!");
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "The new coordinates are for "+coords.length+
+                                 " points but must be for "+exList.size()+" points!",
+              "Error",JOptionPane.ERROR_MESSAGE);
           return;
         }
         System.out.println("Trying to create another plot...");
@@ -509,20 +520,25 @@ public class ShowRules {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        String value=JOptionPane.showInputDialog("Perplexity (integer; suggested range from 5 to 50) :",
+        String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Perplexity (integer; suggested range from 5 to 50) :",
             tsne.getPerplexity());
         if (value==null)
           return;
         try {
           int p=Integer.parseInt(value);
           if (p<5 || p>100) {
-            System.out.println("Illegal perplexity: "+p);
+            JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                "Illegal perplexity: "+p,
+                "Error",JOptionPane.ERROR_MESSAGE);
             return;
           }
           tsne.setPerplexity(p);
           tsne.runAlgorithm();
         } catch (Exception ex) {
-          System.out.println(ex);
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Illegal perplexity: "+value,
+              "Error",JOptionPane.ERROR_MESSAGE);
           return;
         }
       }
@@ -569,6 +585,7 @@ public class ShowRules {
       }
     }
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
+    showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
     showRules.setNonSubsumed(this.nonSubsumed);
     showRules.setAggregated(this.aggregated);
     showRules.setAccThreshold(accThreshold);
@@ -585,16 +602,21 @@ public class ShowRules {
     if (exList==null || exList.size()<2)
       return;
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
-    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList);
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules);
     if (exList2.size()<exList.size()) {
-      System.out.println("Reduced the number of explanations from " +
-                             exList.size() + " to " + exList2.size());
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Reduced the number of explanations from " +
+                                             exList.size() + " to " + exList2.size(),
+          "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
     }
     else {
-      System.out.println("Did not manage to reduce the set of explanations!");
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Did not manage to reduce the set of explanations!",
+          "Fail",JOptionPane.WARNING_MESSAGE);
       return;
     }
     ShowRules showRules=new ShowRules(exList2,attrMinMax);
+    showRules.setOrigRules(origRules);
     showRules.setNonSubsumed(true);
     showRules.setCreatedFileRegister(createdFiles);
     showRules.showRulesInTable();
@@ -607,24 +629,31 @@ public class ShowRules {
       return;
     if (!nonSubsumed) {
       System.out.println("Prior to aggregation, trying to remove less general explanations...");
-      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList);
+      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules);
       if  (exList2!=null && exList2.size()<exList.size()) {
-        System.out.println("Removal of subsumed rules has reduced the number of explanations from " +
-                               exList.size() + " to " + exList2.size());
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Removal of subsumed rules has reduced the number of explanations from " +
+                               exList.size() + " to " + exList2.size(),
+            "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
         exList = exList2;
       }
     }
     System.out.println("Trying to aggregate the rules...");
-    ArrayList<UnitedRule> aggRules=RuleMaster.aggregate(UnitedRule.getRules(exList),exList,minAccuracy);
+    ArrayList<UnitedRule> aggRules=RuleMaster.aggregate(UnitedRule.getRules(exList), origRules,minAccuracy);
     if (aggRules==null || aggRules.size()>=exList.size()) {
-      System.out.println("Failed to aggregate!");
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to aggregate!",
+          "Fail",JOptionPane.WARNING_MESSAGE);
       return;
     }
-    System.out.println("Reduced the number of explanations from " +
-                           exList.size() + " to " + aggRules.size());
+    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Reduced the number of explanations from " +
+                           exList.size() + " to " + aggRules.size(),
+        "Aggregated rule set",JOptionPane.INFORMATION_MESSAGE);
     ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
     aggEx.addAll(aggRules);
     ShowRules showRules=new ShowRules(aggEx,attrMinMax);
+    showRules.setOrigRules(origRules);
     showRules.setNonSubsumed(true);
     showRules.setAggregated(true);
     showRules.setAccThreshold(minAccuracy);

@@ -4,25 +4,12 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
 import TapasDataReader.ExplanationItem;
 import TapasDataReader.Flight;
-import TapasExplTreeViewer.clustering.ReachabilityPlot;
-import TapasExplTreeViewer.ui.ExListTableModel;
-import TapasExplTreeViewer.ui.JLabel_Subinterval;
 import TapasExplTreeViewer.ui.ShowRules;
-import TapasExplTreeViewer.util.MatrixWriter;
-import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
-import TapasExplTreeViewer.vis.TSNE_Runner;
-import TapasUtilities.TableRowsSelectionManager;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
-import TapasUtilities.ItemSelectionManager;
-import TapasUtilities.RenderLabelBarChart;
-import TapasUtilities.SingleHighlightManager;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
-import javax.swing.table.TableCellRenderer;
-import java.awt.*;
-import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 
@@ -112,7 +99,7 @@ public class SeeExList {
   
     //MainBody(attrMinMax,exList);
     ShowRules showRules=new ShowRules(exList,attrMinMax);
-    showRules.setOrigExList(exList);
+    showRules.setOrigRules(exList);
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
@@ -209,7 +196,7 @@ public class SeeExList {
     //MainBody(attrMinMax,exList);
 
     ShowRules showRules=new ShowRules(exList,attrMinMax);
-    showRules.setOrigExList(exList);
+    showRules.setOrigRules(exList);
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");

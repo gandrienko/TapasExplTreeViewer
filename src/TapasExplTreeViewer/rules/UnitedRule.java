@@ -36,6 +36,10 @@ public class UnitedRule extends CommonExplanation {
     rule.eItems=ex.eItems;
     rule.uses=ex.uses;
     rule.nUses=ex.nUses;
+    rule.minQ=ex.minQ;
+    rule.maxQ=ex.maxQ;
+    rule.meanQ=ex.meanQ;
+    rule.sumQ=ex.sumQ;
     return rule;
   }
   
@@ -98,6 +102,12 @@ public class UnitedRule extends CommonExplanation {
         rule.uses.putAll(r2.uses);
     }
     rule.nUses=r1.nUses+r2.nUses;
+    
+    rule.minQ=Math.min(r1.minQ,r2.minQ);
+    rule.maxQ=Math.max(r1.maxQ,r2.maxQ);
+    rule.sumQ=r1.sumQ+r2.sumQ;
+    rule.meanQ=rule.sumQ/rule.nUses;
+    
     rule.fromRules=new ArrayList<UnitedRule>(10);
     rule.fromRules.add(r1);
     rule.fromRules.add(r2);

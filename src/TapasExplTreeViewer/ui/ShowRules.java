@@ -93,6 +93,14 @@ public class ShowRules {
     this(exList,attrMinMax,null);
   }
   
+  public ArrayList<CommonExplanation> getOrigExList() {
+    return origExList;
+  }
+  
+  public void setOrigExList(ArrayList<CommonExplanation> origExList) {
+    this.origExList = origExList;
+  }
+  
   public void setCreatedFileRegister(ArrayList<File> createdFiles) {
     if (createdFiles!=null)
       this.createdFiles=createdFiles;

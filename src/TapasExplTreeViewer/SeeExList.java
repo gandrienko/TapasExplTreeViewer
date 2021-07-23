@@ -112,6 +112,7 @@ public class SeeExList {
   
     //MainBody(attrMinMax,exList);
     ShowRules showRules=new ShowRules(exList,attrMinMax);
+    showRules.setOrigExList(exList);
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
@@ -208,6 +209,7 @@ public class SeeExList {
     //MainBody(attrMinMax,exList);
 
     ShowRules showRules=new ShowRules(exList,attrMinMax);
+    showRules.setOrigExList(exList);
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");

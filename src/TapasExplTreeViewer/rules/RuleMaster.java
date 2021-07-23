@@ -72,6 +72,12 @@ public class RuleMaster {
       rule.nOrigRight+=rule.fromRules.get(i).nOrigRight;
       rule.nOrigWrong+=rule.fromRules.get(i).nOrigWrong;
     }
+  
+    rule.minQ=Math.min(ex1.minQ,ex2.minQ);
+    rule.maxQ=Math.max(ex1.maxQ,ex2.maxQ);
+    rule.sumQ=ex1.sumQ+ex2.sumQ;
+    rule.meanQ=rule.sumQ/rule.nUses;
+
     return rule;
   }
   

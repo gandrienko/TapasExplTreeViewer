@@ -112,7 +112,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     if (col<columnNames.length)
       switch (col) {
         case 0: return new Integer(cEx.action);
-        case 1: return new Float(cEx.Q);
+        case 1: return new Float(cEx.meanQ);
         case 2: return new Integer(cEx.nUses);
         case 3: return new Integer(cEx.uses.size());
         case 4: return (order==null)?new Integer(row):new Integer(order[row]);

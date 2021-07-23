@@ -29,7 +29,11 @@ public class ShowRules {
   
   public static Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
   /**
-   * The original rules or explanations to be visualized
+   * The very original rule set (before any transformations have been applied)
+   */
+  public ArrayList<CommonExplanation> origExList=null;
+  /**
+   * The rules or explanations to be visualized
    */
   public ArrayList<CommonExplanation> exList=null;
   /**

@@ -81,7 +81,7 @@ public class Main {
       System.out.println("Flight plans file name = "+fName);
       Hashtable<String, Vector<Record>> records=TapasDataReader.Readers.readFlightPlans(fName,flights);
       */
-      Hashtable<String,int[]> attrs=new Hashtable<String, int[]>();
+      Hashtable<String,float[]> attrs=new Hashtable<String, float[]>();
       TapasDataReader.Readers.readExplanations(path,steps,flights,attrs);
       /**/
   

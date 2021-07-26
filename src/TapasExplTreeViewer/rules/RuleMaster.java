@@ -2,8 +2,10 @@ package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
+import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Hashtable;
 
 /**
@@ -192,22 +194,25 @@ public class RuleMaster {
     if (group==null || group.size()<2)
       return;
     boolean united;
+    ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(group.size());
     do {
       united=false;
-      double minDistance=Double.NaN;
-      int i1=-1, i2=-1;
+      pairs.clear();
       for (int i=0; i<group.size()-1; i++)
         if (minAccuracy<=0 || getAccuracy(group.get(i),origRules)>=minAccuracy)
           for (int j=i+1; j<group.size(); j++)
             if ((minAccuracy<=0 || getAccuracy(group.get(j),origRules)>=minAccuracy) &&
                 UnitedRule.sameFeatures(group.get(i),group.get(j))) {
               double d=UnitedRule.distance(group.get(i),group.get(j));
-              if (Double.isNaN(minDistance) || minDistance>d) {
-                minDistance=d;
-                i1=i; i2=j;
-              }
+              int pair[]={i,j};
+              ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
+              pairs.add(om);
             }
-      if (i1>=0 && i2>=0)  {
+      Collections.sort(pairs);
+      for (int i=0; i<pairs.size() && !united; i++) {
+        ObjectWithMeasure om=pairs.get(i);
+        int pair[]=(int[])om.obj;
+        int i1=pair[0], i2=pair[1];
         UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2));
         if (union!=null) {
           union.countRightAndWrongCoverages(origRules);
@@ -222,7 +227,7 @@ public class RuleMaster {
           united=true;
         }
       }
-    } while (united);
+    } while (united && group.size()>1);
   }
   
   public static double getAccuracy(UnitedRule rule, ArrayList<CommonExplanation> origRules) {

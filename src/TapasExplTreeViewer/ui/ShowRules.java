@@ -133,7 +133,7 @@ public class ShowRules {
     SingleHighlightManager highlighter=new SingleHighlightManager();
     ItemSelectionManager selector=new ItemSelectionManager();
 
-    ClustererByOPTICS clOptics=(distanceMatrix!=null)?new ClustererByOPTICS():null;
+    ClustererByOPTICS clOptics=(distanceMatrix!=null && distanceMatrix.length>5)?new ClustererByOPTICS():null;
     if (clOptics!=null) {
       clOptics.setDistanceMatrix(distanceMatrix);
       clOptics.setHighlighter(highlighter);
@@ -335,7 +335,7 @@ public class ShowRules {
         super.mousePressed(e);
         if (e.getButton()>MouseEvent.BUTTON1) {
           ArrayList selected=selector.getSelected();
-          mitExtract.setEnabled(selected!=null && selected.size()>5);
+          mitExtract.setEnabled(selected!=null && selected.size()>0);
           menu.show(table,e.getX(),e.getY());
         }
       }
@@ -487,7 +487,7 @@ public class ShowRules {
             super.mousePressed(e);
             if (e.getButton()>MouseEvent.BUTTON1) {
               ArrayList selected=selector.getSelected();
-              mitExtract.setEnabled(selected!=null && selected.size()>5);
+              mitExtract.setEnabled(selected!=null && selected.size()>0);
               menu.show(anotherPlot,e.getX(),e.getY());
             }
           }
@@ -550,7 +550,7 @@ public class ShowRules {
         super.mousePressed(e);
         if (e.getButton()>MouseEvent.BUTTON1) {
           ArrayList selected=selector.getSelected();
-          mitExtract.setEnabled(selected!=null && selected.size()>5);
+          mitExtract.setEnabled(selected!=null && selected.size()>0);
           menu.show(pp,e.getX(),e.getY());
         }
       }
@@ -564,7 +564,7 @@ public class ShowRules {
                               double distanceMatrix[][],
                               Hashtable<String,float[]> attrMinMax) {
     ArrayList selected = selector.getSelected();
-    if (selected.size() < 5)
+    if (selected.size() < 1)
       return;
     ArrayList<CommonExplanation> exSubset = new ArrayList<CommonExplanation>(selected.size());
     int idx[] = new int[selected.size()];

@@ -6,6 +6,7 @@ import java.awt.*;
 
 public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double min=Double.NaN, max=Double.NaN, absMin=Double.NaN, absMax=Double.NaN;
+  public double v[]=null;
   
   public JLabel_Subinterval() {
     setHorizontalAlignment(SwingConstants.RIGHT);
@@ -16,6 +17,8 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
       min=v[0]; max=v[1];
       absMin=v[2]; absMax=v[3];
     }
+    this.v=v;
+    //setText("");
     if (Double.isNaN(min) || Double.isNaN(max))
       setText("");
     else
@@ -33,6 +36,11 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
         x2 = (int) Math.round((max - absMin) * w / (absMax - absMin));
     g.setColor(Color.lightGray);
     g.fillRect(x1, h / 2, x2 - x1, h / 2);
+    g.setColor(Color.gray.darker());
+    for (int i=4; i<v.length; i++) {
+      int x=(int) Math.round((v[i] - absMin) * (w-1) / (absMax - absMin));
+      g.drawLine(x,h/4, x, 3*h/4);
+    }
     super.paint(g);
   }
   public Component getTableCellRendererComponent(JTable table,

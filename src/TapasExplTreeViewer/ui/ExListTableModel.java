@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
+import TapasDataReader.Explanation;
 import TapasExplTreeViewer.clustering.ClustersAssignments;
 import TapasExplTreeViewer.rules.UnitedRule;
 import TapasUtilities.MySammonsProjection;
@@ -148,7 +149,23 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
           values[1]=values[3];
       }
     }
-    return values;
+    double v[]=new double[values.length+cEx.uses.size()];
+    for (int j=0; j<values.length; j++)
+      v[j]=values[j];
+    int j=0;
+    for (String s:cEx.uses.keySet()) {
+      ArrayList<Explanation> aex=cEx.uses.get(s);
+      for (Explanation ex:aex) {
+        int attrIdx=-1;
+        for (int i=0; i<ex.eItems.length && attrIdx==-1; i++)
+          if (attrName.equals(ex.eItems[i].attr))
+            attrIdx=i;
+        if (attrIdx!=-1)
+          v[values.length+j]=ex.eItems[attrIdx].value;
+        j++;
+      }
+    }
+    return v;
   }
   
   public float getColumnMax(int col) {

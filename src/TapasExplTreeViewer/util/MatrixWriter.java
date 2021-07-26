@@ -11,16 +11,24 @@ public class MatrixWriter {
       return false;
     if (scaleTo0_1) {
       double max=Double.NaN;
+      boolean hasNaN=false;
       for (int i=0; i<data.length; i++)
         for (int j=0; j<data[i].length; j++)
           if (!Double.isNaN(data[i][j]) && !Double.isInfinite(data[i][j]))
             if (Double.isNaN(max) || max<Math.abs(data[i][j]))
               max=Math.abs(data[i][j]);
+            else;
+          else
+            hasNaN=true;
+      if (hasNaN && !Double.isNaN(max) && max>0)
+        max*=2;
       if (!Double.isNaN(max) && max>0 && max!=1)
         for (int i=0; i<data.length; i++)
           for (int j=0; j<data[i].length; j++)
             if (!Double.isNaN(data[i][j]) && !Double.isInfinite(data[i][j]))
               data[i][j]/=max;
+            else
+              data[i][j]=1;
     }
     File file=new File(pathName);
     try {

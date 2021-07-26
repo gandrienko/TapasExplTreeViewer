@@ -75,7 +75,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     int idx=getPointIndexAtPosition(me.getX(),me.getY(),dotRadius);
     if (idx<0)
       return null;
-    return explanations.get(idx).toHTML();
+    return explanations.get(idx).toHTML(null);
   }
   
   public static Color getColorForAction(int action) {

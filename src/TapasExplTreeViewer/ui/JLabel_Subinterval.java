@@ -19,10 +19,12 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     }
     this.v=v;
     //setText("");
+
     if (Double.isNaN(min) || Double.isNaN(max))
       setText("");
     else
       setText(Math.round(min)+".."+Math.round(max));
+
   }
   public void paint (Graphics g) {
     if (Double.isNaN(min) || Double.isNaN(max) || Double.isNaN(absMin) || Double.isNaN(absMax)) {

@@ -149,7 +149,12 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
           values[1]=values[3];
       }
     }
-    double v[]=new double[values.length+cEx.uses.size()];
+    int N=0;
+    for (String s:cEx.uses.keySet()) {
+      ArrayList<Explanation> aex = cEx.uses.get(s);
+      N += aex.size();
+    }
+    double v[]=new double[values.length+N];
     for (int j=0; j<values.length; j++)
       v[j]=values[j];
     int j=0;
@@ -160,8 +165,10 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         for (int i=0; i<ex.eItems.length && attrIdx==-1; i++)
           if (attrName.equals(ex.eItems[i].attr))
             attrIdx=i;
-        if (attrIdx!=-1)
-          v[values.length+j]=ex.eItems[attrIdx].value;
+        if (attrIdx!=-1) {
+          float vv=ex.eItems[attrIdx].value;
+          v[values.length+j]=vv;
+        }
         j++;
       }
     }

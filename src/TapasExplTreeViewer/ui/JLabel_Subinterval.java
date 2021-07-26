@@ -7,7 +7,7 @@ import java.util.Arrays;
 
 public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double min=Double.NaN, max=Double.NaN, absMin=Double.NaN, absMax=Double.NaN;
-  public double v[]=null, values[]=null, Q1,Q2,Q3;
+  public double v[]=null, values[]=null, Q1,Q2,Q3,avg;
   
   public JLabel_Subinterval() {
     setHorizontalAlignment(SwingConstants.RIGHT);
@@ -24,17 +24,23 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
       for (int i=4; i<v.length; i++)
         values[i-4]=v[i];
       Arrays.sort(values);
+      avg=0;
+      for (int i=0; i<values.length; i++)
+        avg+=values[i];
+      avg/=values.length;
       Q1=quartile(values,25);
       Q2=quartile(values,50);
       Q3=quartile(values,75);
     }
-    setText("");
-/*
+    else
+      values=null;
+    //setText("");
+
     if (Double.isNaN(min) || Double.isNaN(max))
       setText("");
     else
       setText(Math.round(min)+".."+Math.round(max));
-*/
+
   }
   public void paint (Graphics g) {
     if (Double.isNaN(min) || Double.isNaN(max) || Double.isNaN(absMin) || Double.isNaN(absMax)) {
@@ -63,6 +69,9 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
       g.drawLine(x1,h/2-dy-1, x2, h/2-dy-1);
       int x=(int) Math.round((Q2 - absMin) * (w-1) / (absMax - absMin));
       g.drawLine(x,h/2-dy-3, x, h/2-dy);
+      x=(int) Math.round((avg - absMin) * (w-1) / (absMax - absMin));
+      g.setColor(Color.blue);
+      g.drawLine(x,0, x, h/2-dy);
     }
     super.paint(g);
   }

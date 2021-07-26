@@ -3,10 +3,11 @@ package TapasExplTreeViewer.ui;
 import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.util.Arrays;
 
 public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double min=Double.NaN, max=Double.NaN, absMin=Double.NaN, absMax=Double.NaN;
-  public double v[]=null;
+  public double v[]=null, values[]=null, Q1,Q2,Q3;
   
   public JLabel_Subinterval() {
     setHorizontalAlignment(SwingConstants.RIGHT);
@@ -18,13 +19,22 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
       absMin=v[2]; absMax=v[3];
     }
     this.v=v;
-    //setText("");
-
+    if (v.length>5) {
+      values=new double[v.length-4];
+      for (int i=4; i<v.length; i++)
+        values[i-4]=v[i];
+      Arrays.sort(values);
+      Q1=quartile(values,25);
+      Q2=quartile(values,50);
+      Q3=quartile(values,75);
+    }
+    setText("");
+/*
     if (Double.isNaN(min) || Double.isNaN(max))
       setText("");
     else
       setText(Math.round(min)+".."+Math.round(max));
-
+*/
   }
   public void paint (Graphics g) {
     if (Double.isNaN(min) || Double.isNaN(max) || Double.isNaN(absMin) || Double.isNaN(absMax)) {
@@ -41,7 +51,18 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     g.setColor(Color.gray.darker());
     for (int i=4; i<v.length; i++) {
       int x=(int) Math.round((v[i] - absMin) * (w-1) / (absMax - absMin));
-      g.drawLine(x,h/4, x, 3*h/4);
+      g.drawLine(x,h/2, x, 3*h/4);
+    }
+    int dy=2;
+    if (values!=null) {
+      x1=(int) Math.round((values[0] - absMin) * (w-1) / (absMax - absMin));
+      x2=(int) Math.round((values[values.length-1] - absMin) * (w-1) / (absMax - absMin));
+      g.drawLine(x1,h/2-dy, x2, h/2-dy);
+      x1=(int) Math.round((Q1 - absMin) * (w-1) / (absMax - absMin));
+      x2=(int) Math.round((Q3 - absMin) * (w-1) / (absMax - absMin));
+      g.drawLine(x1,h/2-dy-1, x2, h/2-dy-1);
+      int x=(int) Math.round((Q2 - absMin) * (w-1) / (absMax - absMin));
+      g.drawLine(x,h/2-dy-3, x, h/2-dy);
     }
     super.paint(g);
   }
@@ -56,5 +77,18 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
       setBackground(table.getBackground());
     setValues((double[])value);
     return this;
+  }
+
+  /**
+   * Retrive the quartile value from an array
+   * .
+   * @param sortedValues THe array of data
+   * @param lowerPercent The percent cut off. For the lower quartile use 25,
+   *      for the upper-quartile use 75
+   * @return
+   */
+  public static double quartile(double[] sortedValues, double lowerPercent) {
+    int n = Math.min(sortedValues.length-1, (int) Math.round(sortedValues.length * lowerPercent / 100));
+    return sortedValues[n];
   }
 }

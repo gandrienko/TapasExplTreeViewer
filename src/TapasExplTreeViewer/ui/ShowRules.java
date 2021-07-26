@@ -140,6 +140,24 @@ public class ShowRules {
       clOptics.setSelector(selector);
       clOptics.doClustering();
     }
+    
+    int minAction=Integer.MAX_VALUE, maxAction=Integer.MIN_VALUE;
+    double minQValue=Double.NaN, maxQValue=Double.NaN;
+    for (int i=0; i<rules.size(); i++) {
+      CommonExplanation ex = (CommonExplanation) rules.get(i);
+      if (minAction > ex.action)
+        minAction = ex.action;
+      if (maxAction < ex.action)
+        maxAction = ex.action;
+      if (!Double.isNaN(ex.meanQ)) {
+        if (Double.isNaN(minQValue) || minQValue > ex.meanQ)
+          minQValue = ex.minQ;
+        if (Double.isNaN(maxQValue) || maxQValue < ex.meanQ)
+          maxQValue = ex.meanQ;
+      }
+    }
+    int minA=minAction, maxA=maxAction;
+    double minQ=minQValue, maxQ=maxQValue;
   
     if (createdFiles==null)
       createdFiles=new ArrayList<File>(20);
@@ -176,9 +194,17 @@ public class ShowRules {
         boolean isCluster=colName.equalsIgnoreCase("cluster");
         if (isCluster)
           bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,colIdx));
-        boolean isAction=!isCluster && colName.equalsIgnoreCase("action");
-        if (isAction)
-          bkColor= ExplanationsProjPlot2D.getColorForAction((Integer)eTblModel.getValueAt(rowIdx,colIdx));
+        boolean isAction=false, isQ=false;
+        if (!isCluster && minA<maxA && colName.equalsIgnoreCase("action")) {
+          bkColor = ExplanationsProjPlot2D.getColorForAction((Integer) eTblModel.getValueAt(rowIdx, colIdx),
+              minA, maxA);
+          isAction=true;
+        }
+        if (!isCluster && minQ<maxQ && colName.equalsIgnoreCase("Q")) {
+          bkColor = ExplanationsProjPlot2D.getColorForQ(new Double((Float)eTblModel.getValueAt(rowIdx, colIdx)),
+              minQ, maxQ);
+          isQ=true;
+        }
         c.setBackground(bkColor);
         if (highlighter==null || highlighter.getHighlighted()==null ||
                 ((Integer)highlighter.getHighlighted())!=rowIdx) {
@@ -186,7 +212,7 @@ public class ShowRules {
           return c;
         }
         ((JComponent) c).setBorder(highlightBorder);
-        if (!isCluster && !isAction)
+        if (!isCluster && !isAction && !isQ)
           c.setBackground(ProjectionPlot2D.highlightFillColor);
         return c;
       }

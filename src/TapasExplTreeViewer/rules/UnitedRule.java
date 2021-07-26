@@ -64,9 +64,73 @@ public class UnitedRule extends CommonExplanation {
           ++nOrigWrong;
   }
   
+  public static CommonExplanation adjustToFeatureRanges(CommonExplanation r, Hashtable<String,float[]> attrMinMax) {
+    if (attrMinMax==null || attrMinMax.isEmpty() || r.eItems==null || r.eItems.length<1)
+      return r;
+    ArrayList<ExplanationItem> items=null;
+    for (int i=0; i<r.eItems.length; i++) {
+      boolean lessThanMin=false, moreThanMax=false;
+      float minMax[]=attrMinMax.get(r.eItems[i].attr);
+      if (minMax!=null) {
+        lessThanMin=r.eItems[i].interval[0]<minMax[0];
+        moreThanMax=r.eItems[i].interval[1]>minMax[1];
+      }
+      if (lessThanMin || moreThanMax) {
+        if (items==null) {
+          items = new ArrayList<ExplanationItem>(r.eItems.length);
+          for (int j=0; j<i; j++)
+            items.add(r.eItems[j]);
+        }
+        if (lessThanMin && moreThanMax) //useless condition
+          continue;
+        ExplanationItem e=new ExplanationItem();
+        e.attr=r.eItems[i].attr;
+        double interval[]={(lessThanMin)?Double.NEGATIVE_INFINITY:r.eItems[i].interval[0],
+            (moreThanMax)?Double.POSITIVE_INFINITY:r.eItems[i].interval[1]};
+        e.interval=interval;
+        e.isInteger=r.eItems[i].isInteger;
+        e.sector=r.eItems[i].sector;
+        e.value=r.eItems[i].value;
+        e.attr_core=r.eItems[i].attr_core;
+        e.level=r.eItems[i].level;
+        e.attr_N=r.eItems[i].attr_N;
+        items.add(e);
+      }
+      else
+        if (items!=null)
+          items.add(r.eItems[i]);
+    }
+    if (items==null || items.isEmpty())
+      return r;
+    CommonExplanation rule=(r instanceof UnitedRule)?new UnitedRule():new CommonExplanation();
+    rule.action=r.action;
+    rule.eItems=items.toArray(new ExplanationItem[items.size()]);
+    rule.uses=r.uses;
+    rule.nUses=r.nUses;
+    rule.minQ=r.minQ;
+    rule.maxQ=r.maxQ;
+    rule.meanQ=r.meanQ;
+    rule.sumQ=r.sumQ;
+    if (r instanceof UnitedRule) {
+      UnitedRule r0=(UnitedRule)r, r1=(UnitedRule)rule;
+      r1.fromRules=r0.fromRules;
+      r1.nOrigRight=r0.nOrigRight;
+      r1.nOrigWrong=r0.nOrigWrong;
+    }
+    return rule;
+  }
+  
   public static UnitedRule unite(UnitedRule r1, UnitedRule r2) {
+    return unite(r1,r2,null);
+  }
+  
+  public static UnitedRule unite(UnitedRule r1, UnitedRule r2, Hashtable<String,float[]> attrMinMax) {
     if (r1==null || r2==null)
       return null;
+    if (attrMinMax!=null) {
+      r1=(UnitedRule)adjustToFeatureRanges(r1,attrMinMax);
+      r2=(UnitedRule)adjustToFeatureRanges(r2,attrMinMax);
+    }
     if (!sameFeatures(r1,r2))
       return null;
     ExplanationItem e1[]=r1.eItems, e2[]=r2.eItems, e[]=new ExplanationItem[Math.min(e1.length,e2.length)];
@@ -75,7 +139,7 @@ public class UnitedRule extends CommonExplanation {
       for (int j=0; j<e2.length; j++)
         if (e1[i].attr.equals(e2[j].attr)) {
           double interval[]=uniteIntervals(e1[i].interval,e2[i].interval);
-          if (interval!=null) {
+          if (interval!=null && (!Double.isInfinite(interval[0]) || !Double.isInfinite(interval[1]))) {
             e[k]=new ExplanationItem();
             e[k].attr=e1[i].attr;
             e[k].interval=interval;
@@ -123,24 +187,31 @@ public class UnitedRule extends CommonExplanation {
     return i;
   }
   
-  public static double intervalDistance(double a1, double a2, double b1, double b2) {
-    if (Double.isNaN(a1) || Double.isInfinite(a1)) a1=Integer.MIN_VALUE;
-    if (Double.isNaN(a2) || Double.isInfinite(a2)) a2=Integer.MAX_VALUE;
-    if (Double.isNaN(b1) || Double.isInfinite(b1)) b1=Integer.MIN_VALUE;
-    if (Double.isNaN(b2) || Double.isInfinite(b2)) b2=Integer.MAX_VALUE;
+  public static double intervalDistance(double a1, double a2, double b1, double b2,
+                                        float aMinMax[], float bMinMax[]) {
+    if (Double.isNaN(a1) || Double.isInfinite(a1))
+      a1=(aMinMax==null)?Integer.MIN_VALUE:aMinMax[0];
+    if (Double.isNaN(a2) || Double.isInfinite(a2))
+      a2=(aMinMax==null)?Integer.MAX_VALUE:aMinMax[1];
+    if (Double.isNaN(b1) || Double.isInfinite(b1))
+      b1=(bMinMax==null)?Integer.MIN_VALUE:bMinMax[0];
+    if (Double.isNaN(b2) || Double.isInfinite(b2))
+      b2=(bMinMax==null)?Integer.MAX_VALUE:bMinMax[1];
     double da1b1=Math.abs(a1-b1),
         da2b2=Math.abs(a2-b2),
         da1b2=Math.max(a2,b2)-Math.min(a1,b1);
     return (da1b1+da2b2)/da1b2;
   }
   
-  public static double distance(ExplanationItem e1[], ExplanationItem e2[]) {
+  public static double distance(ExplanationItem e1[], ExplanationItem e2[],
+                                Hashtable<String,float[]> attrMinMax) {
     if (e1==null || e1.length<1)
       if (e2==null) return 0; else return e2.length;
     if (e2==null || e2.length<1)
       return e1.length;
     double d=e1.length+e2.length;
     for (int i=0; i<e1.length; i++) {
+      float aMinMax[]=(attrMinMax==null)?null:attrMinMax.get(e1[i].attr);
       int i2 = -1;
       for (int j = 0; j < e2.length && i2 < 0; j++)
         if (e1[i].attr.equals(e2[j].attr))
@@ -148,17 +219,19 @@ public class UnitedRule extends CommonExplanation {
       if (i2 < 0)
         continue;
       d -= 2; //corresponding items found
+      float bMinMax[]=(attrMinMax==null)?null:attrMinMax.get(e1[i2].attr);
       d+=intervalDistance(e1[i].interval[0],e1[i].interval[1],
-          e2[i2].interval[0],e2[i2].interval[1]);
+          e2[i2].interval[0],e2[i2].interval[1],aMinMax,bMinMax);
     }
     return d;
   }
   
-  public static double distance(UnitedRule r1, UnitedRule r2) {
+  public static double distance(UnitedRule r1, UnitedRule r2,
+                                Hashtable<String,float[]> attrMinMax) {
     if (r1==null)
       return (r2==null)?0:r2.eItems.length;
     if (r2==null)
       return r1.eItems.length;
-    return distance(r1.eItems,r2.eItems);
+    return distance(r1.eItems,r2.eItems,attrMinMax);
   }
 }

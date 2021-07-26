@@ -602,7 +602,7 @@ public class ShowRules {
     if (exList==null || exList.size()<2)
       return;
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
-    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules);
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax);
     if (exList2.size()<exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Reduced the number of explanations from " +
@@ -629,7 +629,7 @@ public class ShowRules {
       return;
     if (!nonSubsumed) {
       System.out.println("Prior to aggregation, trying to remove less general explanations...");
-      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules);
+      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules,attrMinMax);
       if  (exList2!=null && exList2.size()<exList.size()) {
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
             "Removal of subsumed rules has reduced the number of explanations from " +
@@ -639,7 +639,8 @@ public class ShowRules {
       }
     }
     System.out.println("Trying to aggregate the rules...");
-    ArrayList<UnitedRule> aggRules=RuleMaster.aggregate(UnitedRule.getRules(exList), origRules,minAccuracy);
+    ArrayList<UnitedRule> aggRules=
+        RuleMaster.aggregate(UnitedRule.getRules(exList), origRules,minAccuracy,attrMinMax);
     if (aggRules==null || aggRules.size()>=exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to aggregate!",

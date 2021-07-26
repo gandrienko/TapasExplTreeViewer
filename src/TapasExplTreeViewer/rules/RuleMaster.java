@@ -88,15 +88,35 @@ public class RuleMaster {
    * @return reduced set of explanations (rules).
    */
   public static ArrayList<CommonExplanation> removeLessGeneral(ArrayList<CommonExplanation> rules,
-                                                               ArrayList<CommonExplanation> origRules) {
+                                                               ArrayList<CommonExplanation> origRules,
+                                                               Hashtable<String,float[]> attrMinMax) {
     if (rules==null || rules.size()<2)
       return rules;
+    if (attrMinMax!=null) {
+      ArrayList<CommonExplanation> rules2=null;
+      for (int i=0; i<rules.size(); i++) {
+        CommonExplanation ex= rules.get(i), ex2=UnitedRule.adjustToFeatureRanges(ex,attrMinMax);
+        if (!ex2.equals(ex)) {
+          if (rules2==null) {
+            rules2=new ArrayList<CommonExplanation>(rules.size());
+            for (int j=0; j<i; j++)
+              rules2.add(rules.get(j));
+          }
+          rules2.add(ex2);
+        }
+        else
+          if (rules2!=null)
+            rules2.add(ex);
+      }
+      if (rules2!=null)
+        rules=rules2;
+    }
     ArrayList<CommonExplanation> moreGeneral=new ArrayList<CommonExplanation>(rules.size());
     boolean removed[]=new boolean[rules.size()];
     for (int i=0; i<removed.length; i++)
       removed[i]=false;
     for (int i=0; i<rules.size()-1; i++) {
-      CommonExplanation ex=rules.get(i);
+      CommonExplanation ex= rules.get(i);
       for (int j = i + 1; j < rules.size(); j++)
         if (!removed[j]) {
           UnitedRule gEx = selectMoreGeneral(ex, rules.get(j));
@@ -150,7 +170,8 @@ public class RuleMaster {
    */
   public static ArrayList<UnitedRule> aggregate(ArrayList<UnitedRule> rules,
                                                 ArrayList<CommonExplanation> origRules,
-                                                double minAccuracy) {
+                                                double minAccuracy,
+                                                Hashtable<String,float[]> attrMinMax) {
     if (rules==null || rules.size()<2)
       return rules;
     ArrayList<ArrayList<UnitedRule>> ruleGroups=new ArrayList<ArrayList<UnitedRule>>(rules.size()/2);
@@ -179,7 +200,7 @@ public class RuleMaster {
         agRules.add(group.get(0));
         continue;
       }
-      aggregateGroup(group,origRules,minAccuracy);
+      aggregateGroup(group,origRules,minAccuracy,attrMinMax);
       for (int i=0; i<group.size(); i++)
         agRules.add(group.get(i));
     }
@@ -190,7 +211,8 @@ public class RuleMaster {
   
   public static void aggregateGroup(ArrayList<UnitedRule> group,
                                     ArrayList<CommonExplanation> origRules,
-                                    double minAccuracy) {
+                                    double minAccuracy,
+                                    Hashtable<String,float[]> attrMinMax) {
     if (group==null || group.size()<2)
       return;
     boolean united;
@@ -203,7 +225,7 @@ public class RuleMaster {
           for (int j=i+1; j<group.size(); j++)
             if ((minAccuracy<=0 || getAccuracy(group.get(j),origRules)>=minAccuracy) &&
                 UnitedRule.sameFeatures(group.get(i),group.get(j))) {
-              double d=UnitedRule.distance(group.get(i),group.get(j));
+              double d=UnitedRule.distance(group.get(i),group.get(j),attrMinMax);
               int pair[]={i,j};
               ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
               pairs.add(om);

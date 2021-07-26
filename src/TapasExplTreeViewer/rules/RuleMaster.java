@@ -194,6 +194,10 @@ public class RuleMaster {
     }
     if (ruleGroups.size()==rules.size())
       return rules;
+    boolean noActions=ruleGroups.size()<2;
+    //todo: correctly handle the case of no actions
+    //...
+    
     for (int ig=0; ig<ruleGroups.size(); ig++) {
       ArrayList<UnitedRule> group=ruleGroups.get(ig);
       if (group.size()==1) {
@@ -235,7 +239,7 @@ public class RuleMaster {
         ObjectWithMeasure om=pairs.get(i);
         int pair[]=(int[])om.obj;
         int i1=pair[0], i2=pair[1];
-        UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2));
+        UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
         if (union!=null) {
           union.countRightAndWrongCoverages(origRules);
           if (minAccuracy>0 && getAccuracy(union,origRules)<minAccuracy)

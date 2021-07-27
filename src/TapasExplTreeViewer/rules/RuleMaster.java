@@ -53,24 +53,8 @@ public class RuleMaster {
     }
     rule.eItems=CommonExplanation.makeCopy(ex1.eItems);
     rule.fromRules=new ArrayList<UnitedRule>(10);
-    if (ex1 instanceof UnitedRule) {
-      UnitedRule r=(UnitedRule)ex1;
-      if (r.fromRules!=null && !r.fromRules.isEmpty())
-        rule.fromRules.addAll(r.fromRules);
-      else
-        rule.fromRules.add(r);
-    }
-    else
-      rule.fromRules.add(UnitedRule.getRule(ex1));
-    if (ex2 instanceof UnitedRule) {
-      UnitedRule r=(UnitedRule)ex2;
-      if (r.fromRules!=null && !r.fromRules.isEmpty())
-        rule.fromRules.addAll(r.fromRules);
-      else
-        rule.fromRules.add(r);
-    }
-    else
-      rule.fromRules.add(UnitedRule.getRule(ex2));
+    rule.fromRules.add(UnitedRule.getRule(ex1));
+    rule.fromRules.add(UnitedRule.getRule(ex2));
     for (int i=0; i<rule.fromRules.size(); i++) {
       rule.nOrigRight+=rule.fromRules.get(i).nOrigRight;
       rule.nOrigWrong+=rule.fromRules.get(i).nOrigWrong;
@@ -287,8 +271,10 @@ public class RuleMaster {
           group.remove(i2);
           group.remove(i1);
           for (int j=group.size()-1; j>=0; j--)
-            if (union.subsumes(group.get(j)))
+            if (union.subsumes(group.get(j))) {
+              union.fromRules.add(group.get(j));
               group.remove(j);
+            }
           group.add(0,union);
           united=true;
         }
@@ -341,8 +327,10 @@ public class RuleMaster {
           rules.remove(i2);
           rules.remove(i1);
           for (int j=rules.size()-1; j>=0; j--)
-            if (union.subsumes(rules.get(j)))
+            if (union.subsumes(rules.get(j))) {
+              union.fromRules.add(rules.get(j));
               rules.remove(j);
+            }
           rules.add(0,union);
           united=true;
         }

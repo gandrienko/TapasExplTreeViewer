@@ -234,4 +234,46 @@ public class UnitedRule extends CommonExplanation {
       return r1.eItems.length;
     return distance(r1.eItems,r2.eItems,attrMinMax);
   }
+  
+  public int countFromRules() {
+    if (fromRules==null || fromRules.isEmpty())
+      return 0;
+    int n=0;
+    for (int i=0; i<fromRules.size(); i++)
+      n+=1+fromRules.get(i).countFromRules();
+    return n;
+  }
+  
+  public static int countRulesInHierarchy(ArrayList<UnitedRule> rules) {
+    if (rules==null || rules.isEmpty())
+      return 0;
+    int n=0;
+    for (int i=0; i<rules.size(); i++)
+      n+=1+rules.get(i).countFromRules();
+    return n;
+  }
+  
+  public int getHierarchyDepth(){
+    if (fromRules==null || fromRules.isEmpty())
+      return 1;
+    int maxD=1;
+    for (int i=0; i<fromRules.size(); i++) {
+      int d=fromRules.get(i).getHierarchyDepth();
+      if (maxD<d)
+        maxD=d;
+    }
+    return 1+maxD;
+  }
+  
+  public static int getMaxHierarchyDepth(ArrayList<UnitedRule> rules) {
+    if (rules==null || rules.isEmpty())
+      return 0;
+    int maxD=1;
+    for (int i=0; i<rules.size(); i++) {
+      int d=rules.get(i).getHierarchyDepth();
+      if (maxD<d)
+        maxD=d;
+    }
+    return maxD;
+  }
 }

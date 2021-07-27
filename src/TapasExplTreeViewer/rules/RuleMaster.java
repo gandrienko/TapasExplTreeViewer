@@ -2,6 +2,7 @@ package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
+import TapasDataReader.IntervalDistance;
 import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 
 import java.util.ArrayList;
@@ -161,6 +162,43 @@ public class RuleMaster {
     return  moreGeneral;
   }
   
+  public static boolean noActionDifference(ArrayList rules) {
+    if (rules==null || rules.size()<2 || !(rules.get(0) instanceof CommonExplanation))
+      return true;
+    CommonExplanation ex=(CommonExplanation)rules.get(0);
+    for (int i=1; i<rules.size(); i++)
+      if (ex.action!=((CommonExplanation)rules.get(i)).action)
+        return false;
+    return true;
+  }
+  
+  public static double suggestMaxQDiff(ArrayList rules) {
+    if (rules==null || rules.size()<3 || !(rules.get(0) instanceof CommonExplanation))
+      return Double.NaN;
+    ArrayList<Double> qList=new ArrayList<Double>(rules.size());
+    for (int i=0; i<rules.size(); i++) {
+      CommonExplanation ex=(CommonExplanation)rules.get(i);
+      if (!Double.isNaN(ex.meanQ))
+        qList.add(new Double(ex.meanQ));
+    }
+    if (qList.size()<3)
+      return Double.NaN;
+    Collections.sort(qList);
+    ArrayList<Double> qDiffList=new ArrayList<Double>(qList.size()-1);
+    for (int i=0; i<qList.size()-1; i++)
+      qDiffList.add(qList.get(i+1)-qList.get(i));
+    Collections.sort(qDiffList);
+    int idx=Math.round(0.025f*qDiffList.size());
+    if (idx<5)
+      idx=Math.round(0.05f*qDiffList.size());
+    if (idx<5)
+      idx=Math.max(Math.round(0.1f*qDiffList.size()),3);
+    double maxQDiff=qDiffList.get(idx);
+    if (maxQDiff==0)
+      maxQDiff=qDiffList.get(qDiffList.size()-1)/10;
+    return maxQDiff;
+  }
+  
   /**
    * Aggregates rules with coinciding actions and the same features by bottom-up
    * hierarchical uniting of the closest rules. The accuracy of the united rules
@@ -194,20 +232,22 @@ public class RuleMaster {
     }
     if (ruleGroups.size()==rules.size())
       return rules;
-    boolean noActions=ruleGroups.size()<2;
-    //todo: correctly handle the case of no actions
-    //...
     
-    for (int ig=0; ig<ruleGroups.size(); ig++) {
-      ArrayList<UnitedRule> group=ruleGroups.get(ig);
-      if (group.size()==1) {
-        agRules.add(group.get(0));
-        continue;
-      }
-      aggregateGroup(group,origRules,minAccuracy,attrMinMax);
-      for (int i=0; i<group.size(); i++)
-        agRules.add(group.get(i));
+    if (ruleGroups.size()<2) { //handle the case of no actions
+      agRules=ruleGroups.get(0);
+      aggregateByQ(agRules, suggestMaxQDiff(rules),origRules,minAccuracy,attrMinMax);
     }
+    else
+      for (int ig=0; ig<ruleGroups.size(); ig++) {
+        ArrayList<UnitedRule> group=ruleGroups.get(ig);
+        if (group.size()==1) {
+          agRules.add(group.get(0));
+          continue;
+        }
+        aggregateGroup(group,origRules,minAccuracy,attrMinMax);
+        for (int i=0; i<group.size(); i++)
+          agRules.add(group.get(i));
+      }
     if (agRules.size()<rules.size())
       return agRules;
     return rules;
@@ -254,6 +294,71 @@ public class RuleMaster {
         }
       }
     } while (united && group.size()>1);
+  }
+  
+  public static ArrayList<UnitedRule> aggregateByQ(ArrayList<UnitedRule> rules,
+                                            double maxQDiff,
+                                            ArrayList<CommonExplanation> origRules,
+                                            double minAccuracy,
+                                            Hashtable<String,float[]> attrMinMax) {
+    if (rules==null || rules.size()<2)
+      return rules;
+
+    System.out.println("Aggregating rules by Q; max difference = "+maxQDiff);
+
+    ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(rules.size());
+    boolean united;
+    int origNRules=rules.size();
+    do {
+      united=false;
+      pairs.clear();
+      for (int i=0; i<rules.size()-1; i++) {
+        UnitedRule r1=rules.get(i);
+        if (minAccuracy <= 0 || getAccuracy(r1, origRules) >= minAccuracy)
+          for (int j = i + 1; j < rules.size(); j++) {
+            UnitedRule r2=rules.get(j);
+            if (IntervalDistance.distance(r1.minQ,r1.maxQ,r2.minQ,r2.maxQ)>maxQDiff)
+              continue;
+            if ((minAccuracy <= 0 || getAccuracy(r2, origRules) >= minAccuracy) &&
+                    UnitedRule.sameFeatures(r1, r2)) {
+              double d = UnitedRule.distance(r1, r2, attrMinMax);
+              int pair[] = {i, j};
+              ObjectWithMeasure om = new ObjectWithMeasure(pair, d, false);
+              pairs.add(om);
+            }
+          }
+      }
+      Collections.sort(pairs);
+      for (int i=0; i<pairs.size() && !united; i++) {
+        ObjectWithMeasure om=pairs.get(i);
+        int pair[]=(int[])om.obj;
+        int i1=pair[0], i2=pair[1];
+        UnitedRule union=UnitedRule.unite(rules.get(i1),rules.get(i2),attrMinMax);
+        if (union!=null) {
+          union.countRightAndWrongCoverages(origRules);
+          if (minAccuracy>0 && getAccuracy(union,origRules)<minAccuracy)
+            continue;
+          rules.remove(i2);
+          rules.remove(i1);
+          for (int j=rules.size()-1; j>=0; j--)
+            if (union.subsumes(rules.get(j)))
+              rules.remove(j);
+          rules.add(0,union);
+          united=true;
+        }
+      }
+    } while (united && rules.size()>1);
+    if (rules.size()<origNRules) {
+      ArrayList<CommonExplanation> aEx=new ArrayList<CommonExplanation>(rules.size());
+      aEx.addAll(rules);
+      aEx = removeLessGeneral(aEx, origRules, attrMinMax);
+      if (aEx.size()<rules.size()) {
+        rules.clear();
+        for (int i=0; i<aEx.size(); i++)
+          rules.add((UnitedRule)aEx.get(i));
+      }
+    }
+    return rules;
   }
   
   public static double getAccuracy(UnitedRule rule, ArrayList<CommonExplanation> origRules) {

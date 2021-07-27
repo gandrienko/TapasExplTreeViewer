@@ -150,10 +150,10 @@ public class ShowRules {
       if (maxAction < ex.action)
         maxAction = ex.action;
       if (!Double.isNaN(ex.meanQ)) {
-        if (Double.isNaN(minQValue) || minQValue > ex.meanQ)
+        if (Double.isNaN(minQValue) || minQValue > ex.minQ)
           minQValue = ex.minQ;
-        if (Double.isNaN(maxQValue) || maxQValue < ex.meanQ)
-          maxQValue = ex.meanQ;
+        if (Double.isNaN(maxQValue) || maxQValue < ex.maxQ)
+          maxQValue = ex.maxQ;
       }
     }
     int minA=minAction, maxA=maxAction;
@@ -200,7 +200,7 @@ public class ShowRules {
               minA, maxA);
           isAction=true;
         }
-        if (!isCluster && minQ<maxQ && colName.equalsIgnoreCase("Q")) {
+        if (!isCluster && minQ<maxQ && colName.toUpperCase().endsWith(" Q")) {
           bkColor = ExplanationsProjPlot2D.getColorForQ(new Double((Float)eTblModel.getValueAt(rowIdx, colIdx)),
               minQ, maxQ);
           isQ=true;
@@ -326,14 +326,14 @@ public class ShowRules {
           double d=Double.parseDouble(value);
           if (d<0 || d>1) {
             JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                "Illegal threshold value!",
+                "Illegal threshold value for the accuracy; must be from 0 to 1!",
                 "Error",JOptionPane.ERROR_MESSAGE);
             return;
           }
           aggregate(exList,attrMinMax,d);
         } catch (Exception ex) {
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-              "Illegal threshold value!",
+              "Illegal threshold value for the accuracy!",
               "Error",JOptionPane.ERROR_MESSAGE);
           return;
         }
@@ -664,8 +664,32 @@ public class ShowRules {
         exList = exList2;
       }
     }
+    boolean noActions=RuleMaster.noActionDifference(exList);
+    double maxQDiff=Double.NaN;
+    if (noActions) {
+      String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "The rules do not differ in actions (decisions) and can be aggregated by closeness of " +
+              "the Q values. Enter a threshold for the difference in Q :",
+          String.format("%.5f",RuleMaster.suggestMaxQDiff(exList)));
+      if (value==null)
+        return;
+      try {
+        maxQDiff=Double.parseDouble(value);
+        if (maxQDiff<0) {
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Illegal threshold value for the Q difference; must be >=0!",
+              "Error",JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+      } catch (Exception ex) {
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal threshold value for the Q difference!",
+            "Error",JOptionPane.ERROR_MESSAGE);
+      }
+    }
     System.out.println("Trying to aggregate the rules...");
-    ArrayList<UnitedRule> aggRules=
+    ArrayList<UnitedRule> aggRules=(noActions)?RuleMaster.aggregateByQ(UnitedRule.getRules(exList),maxQDiff,
+        origRules,minAccuracy,attrMinMax):
         RuleMaster.aggregate(UnitedRule.getRules(exList), origRules,minAccuracy,attrMinMax);
     if (aggRules==null || aggRules.size()>=exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),

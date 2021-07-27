@@ -21,7 +21,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Action", "Q", "N uses", "N data items", "Order", "Cluster", "N conditions"};
+  public String columnNames[] = {"Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items", "Order", "Cluster", "N conditions"};
   
   public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this.exList=exList;
@@ -114,14 +114,16 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       switch (col) {
         case 0: return new Integer(cEx.action);
         case 1: return new Float(cEx.meanQ);
-        case 2: return new Integer(cEx.nUses);
-        case 3: return new Integer(cEx.uses.size());
-        case 4: return (order==null)?new Integer(row):new Integer(order[row]);
-        case 5: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
-        case 6: return new Integer(cEx.eItems.length);
-        case 7: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigRight:1;
-        case 8: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigWrong:0;
-        case 9:
+        case 2: return new Float(cEx.minQ);
+        case 3: return new Float(cEx.maxQ);
+        case 4: return new Integer(cEx.nUses);
+        case 5: return new Integer(cEx.uses.size());
+        case 6: return (order==null)?new Integer(row):new Integer(order[row]);
+        case 7: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
+        case 8: return new Integer(cEx.eItems.length);
+        case 9: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigRight:1;
+        case 10: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigWrong:0;
+        case 11:
           if (cEx instanceof UnitedRule) {
             UnitedRule r=(UnitedRule)cEx;
             return 100f*r.nOrigRight/(r.nOrigRight+r.nOrigWrong);

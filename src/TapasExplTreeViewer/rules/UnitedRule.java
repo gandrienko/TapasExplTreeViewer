@@ -200,6 +200,8 @@ public class UnitedRule extends CommonExplanation {
         rule.uses.putAll(r1.uses);
       if (n2>0)
         rule.uses.putAll(r2.uses);
+      if (rule.uses.size()<n1+n2)  //there are common uses of the original rules
+        rule.nUses-=n1+n2-rule.uses.size();
     }
     rule.nUses=r1.nUses+r2.nUses;
     

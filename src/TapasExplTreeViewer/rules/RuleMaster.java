@@ -50,6 +50,8 @@ public class RuleMaster {
         rule.uses.putAll(ex1.uses);
       if (n2>0)
         rule.uses.putAll(ex2.uses);
+      if (rule.uses.size()<n1+n2)  //there are common uses of the original rules
+        rule.nUses-=n1+n2-rule.uses.size();
     }
     rule.eItems=CommonExplanation.makeCopy(ex1.eItems);
     rule.fromRules=new ArrayList<UnitedRule>(10);

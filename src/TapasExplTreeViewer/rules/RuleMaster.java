@@ -96,6 +96,7 @@ public class RuleMaster {
       if (rules2!=null)
         rules=rules2;
     }
+    
     ArrayList<CommonExplanation> moreGeneral=new ArrayList<CommonExplanation>(rules.size());
     boolean removed[]=new boolean[rules.size()];
     for (int i=0; i<removed.length; i++)
@@ -141,8 +142,13 @@ public class RuleMaster {
     for (int i=0; i<rules.size(); i++)
       if (!removed[i])
         moreGeneral.add(UnitedRule.getRule(rules.get(i)));
+  
+    boolean noActions=noActionDifference(rules);
     for (int i=0; i<moreGeneral.size(); i++)
-      ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoverages((origRules!=null)?origRules:rules);
+      if (noActions)
+        ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoveragesByQ((origRules!=null)?origRules:rules);
+      else
+        ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoverages((origRules!=null)?origRules:rules);
     return  moreGeneral;
   }
   
@@ -217,10 +223,8 @@ public class RuleMaster {
     if (ruleGroups.size()==rules.size())
       return rules;
     
-    if (ruleGroups.size()<2) { //handle the case of no actions
-      agRules=ruleGroups.get(0);
-      aggregateByQ(agRules, suggestMaxQDiff(rules),origRules,minAccuracy,attrMinMax);
-    }
+    if (ruleGroups.size()<2)  //handle the case of no actions
+      agRules=aggregateByQ(ruleGroups.get(0), suggestMaxQDiff(rules),origRules,minAccuracy,attrMinMax);
     else
       for (int ig=0; ig<ruleGroups.size(); ig++) {
         ArrayList<UnitedRule> group=ruleGroups.get(ig);
@@ -249,9 +253,9 @@ public class RuleMaster {
       united=false;
       pairs.clear();
       for (int i=0; i<group.size()-1; i++)
-        if (minAccuracy<=0 || getAccuracy(group.get(i),origRules)>=minAccuracy)
+        if (minAccuracy<=0 || getAccuracy(group.get(i),origRules,false)>=minAccuracy)
           for (int j=i+1; j<group.size(); j++)
-            if ((minAccuracy<=0 || getAccuracy(group.get(j),origRules)>=minAccuracy) &&
+            if ((minAccuracy<=0 || getAccuracy(group.get(j),origRules,false)>=minAccuracy) &&
                 UnitedRule.sameFeatures(group.get(i),group.get(j))) {
               double d=UnitedRule.distance(group.get(i),group.get(j),attrMinMax);
               int pair[]={i,j};
@@ -266,13 +270,13 @@ public class RuleMaster {
         UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
         if (union!=null) {
           union.countRightAndWrongCoverages(origRules);
-          if (minAccuracy>0 && getAccuracy(union,origRules)<minAccuracy)
+          if (minAccuracy>0 && getAccuracy(union,origRules,false)<minAccuracy)
             continue;
           group.remove(i2);
           group.remove(i1);
           for (int j=group.size()-1; j>=0; j--)
             if (union.subsumes(group.get(j))) {
-              union.fromRules.add(group.get(j));
+              union.attachAsFromRule(group.get(j));
               group.remove(j);
             }
           group.add(0,union);
@@ -291,21 +295,23 @@ public class RuleMaster {
       return rules;
 
     System.out.println("Aggregating rules by Q; max difference = "+maxQDiff);
+    
+    ArrayList<UnitedRule> result=new ArrayList<UnitedRule>(rules.size());
+    result.addAll(rules);
 
-    ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(rules.size());
+    ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(result.size());
     boolean united;
-    int origNRules=rules.size();
     do {
       united=false;
       pairs.clear();
-      for (int i=0; i<rules.size()-1; i++) {
-        UnitedRule r1=rules.get(i);
-        if (minAccuracy <= 0 || getAccuracy(r1, origRules) >= minAccuracy)
-          for (int j = i + 1; j < rules.size(); j++) {
-            UnitedRule r2=rules.get(j);
+      for (int i=0; i<result.size()-1; i++) {
+        UnitedRule r1=result.get(i);
+        if (minAccuracy <= 0 || getAccuracy(r1, origRules,true) >= minAccuracy)
+          for (int j = i + 1; j < result.size(); j++) {
+            UnitedRule r2=result.get(j);
             if (IntervalDistance.distance(r1.minQ,r1.maxQ,r2.minQ,r2.maxQ)>maxQDiff)
               continue;
-            if ((minAccuracy <= 0 || getAccuracy(r2, origRules) >= minAccuracy) &&
+            if ((minAccuracy <= 0 || getAccuracy(r2, origRules,true) >= minAccuracy) &&
                     UnitedRule.sameFeatures(r1, r2)) {
               double d = UnitedRule.distance(r1, r2, attrMinMax);
               int pair[] = {i, j};
@@ -319,41 +325,44 @@ public class RuleMaster {
         ObjectWithMeasure om=pairs.get(i);
         int pair[]=(int[])om.obj;
         int i1=pair[0], i2=pair[1];
-        UnitedRule union=UnitedRule.unite(rules.get(i1),rules.get(i2),attrMinMax);
+        UnitedRule union=UnitedRule.unite(result.get(i1),result.get(i2),attrMinMax);
         if (union!=null) {
-          union.countRightAndWrongCoverages(origRules);
-          if (minAccuracy>0 && getAccuracy(union,origRules)<minAccuracy)
+          union.countRightAndWrongCoveragesByQ(origRules);
+          if (minAccuracy>0 && getAccuracy(union,origRules,true)<minAccuracy)
             continue;
-          rules.remove(i2);
-          rules.remove(i1);
-          for (int j=rules.size()-1; j>=0; j--)
-            if (union.subsumes(rules.get(j))) {
-              union.fromRules.add(rules.get(j));
-              rules.remove(j);
+          result.remove(i2);
+          result.remove(i1);
+          for (int j=result.size()-1; j>=0; j--)
+            if (union.subsumes(result.get(j))) {
+              union.attachAsFromRule(result.get(j));
+              result.remove(j);
             }
-          rules.add(0,union);
+          result.add(0,union);
           united=true;
         }
       }
-    } while (united && rules.size()>1);
-    if (rules.size()<origNRules) {
-      ArrayList<CommonExplanation> aEx=new ArrayList<CommonExplanation>(rules.size());
-      aEx.addAll(rules);
-      aEx = removeLessGeneral(aEx, origRules, attrMinMax);
-      if (aEx.size()<rules.size()) {
-        rules.clear();
-        for (int i=0; i<aEx.size(); i++)
-          rules.add((UnitedRule)aEx.get(i));
-      }
+    } while (united && result.size()>1);
+    if (result.size()>=rules.size()) //no aggregation was done
+      return rules;
+    ArrayList<CommonExplanation> aEx=new ArrayList<CommonExplanation>(result.size());
+    aEx.addAll(result);
+    aEx = removeLessGeneral(aEx, origRules, attrMinMax);
+    if (aEx.size()<result.size()) {
+      result.clear();
+      for (int i=0; i<aEx.size(); i++)
+        result.add((UnitedRule)aEx.get(i));
     }
-    return rules;
+    return result;
   }
   
-  public static double getAccuracy(UnitedRule rule, ArrayList<CommonExplanation> origRules) {
+  public static double getAccuracy(UnitedRule rule, ArrayList<CommonExplanation> origRules, boolean byQ) {
     if (rule==null || origRules==null)
       return Double.NaN;
     if (rule.nOrigRight<1)
-      rule.countRightAndWrongCoverages(origRules);
+      if (byQ)
+        rule.countRightAndWrongCoveragesByQ(origRules);
+      else
+        rule.countRightAndWrongCoverages(origRules);
     if (rule.nOrigRight<1)
       return Double.NaN; //must not happen; it means that this rule does not cover any of origRules!
     return 1.0*rule.nOrigRight/(rule.nOrigRight+rule.nOrigWrong);

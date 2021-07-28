@@ -26,6 +26,27 @@ public class UnitedRule extends CommonExplanation {
    */
   public int nOrigWrong=0;
   
+  public void attachAsFromRule(CommonExplanation ex) {
+    if (ex==null)
+      return;
+    if (fromRules==null)
+      fromRules=new ArrayList<UnitedRule>(10);
+    UnitedRule rule=getRule(ex);
+    fromRules.add(rule);
+    if (rule.uses!=null && !rule.uses.isEmpty()) {
+      if (uses==null)
+        uses = new Hashtable<String, ArrayList<Explanation>>(rule.uses.size()+10);
+      uses.putAll(rule.uses);
+    }
+    nUses+=rule.nUses;
+    nOrigRight+=rule.nOrigRight;
+    nOrigWrong+=rule.nOrigWrong;
+    minQ=Math.min(minQ,rule.minQ);
+    maxQ=Math.max(maxQ,rule.maxQ);
+    sumQ+=rule.sumQ;
+    meanQ=sumQ/nUses;
+  }
+  
   public static UnitedRule getRule(CommonExplanation ex) {
     if (ex==null)
       return null;
@@ -63,6 +84,21 @@ public class UnitedRule extends CommonExplanation {
         else
           ++nOrigWrong;
   }
+  
+  public void countRightAndWrongCoveragesByQ(ArrayList<CommonExplanation> exList) {
+    nOrigRight=nOrigWrong=0;
+    if (exList==null)
+      return;
+    for (int i=0; i<exList.size(); i++)
+      if (subsumes(exList.get(i),false)) {
+        CommonExplanation ex=exList.get(i);
+        if (ex.minQ>=minQ && ex.maxQ<=maxQ)
+          ++nOrigRight;
+        else
+          ++nOrigWrong;
+      }
+  }
+  
   
   public static CommonExplanation adjustToFeatureRanges(CommonExplanation r, Hashtable<String,float[]> attrMinMax) {
     if (attrMinMax==null || attrMinMax.isEmpty() || r.eItems==null || r.eItems.length<1)

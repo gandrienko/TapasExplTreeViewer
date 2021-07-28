@@ -50,6 +50,10 @@ public class ShowRules {
    */
   public double accThreshold=1;
   /**
+   * The threshold for the differences in Q used for the aggregation
+   */
+  public double maxQDiff=0;
+  /**
    * The ranges of feature values
    */
   public Hashtable<String,float[]> attrMinMax=null;
@@ -120,6 +124,14 @@ public class ShowRules {
   
   public void setAccThreshold(double accThreshold) {
     this.accThreshold = accThreshold;
+  }
+  
+  public double getMaxQDiff() {
+    return maxQDiff;
+  }
+  
+  public void setMaxQDiff(double maxQDiff) {
+    this.maxQDiff = maxQDiff;
   }
   
   public JFrame showRulesInTable() {
@@ -368,13 +380,17 @@ public class ShowRules {
     });
 
     JScrollPane scrollPane = new JScrollPane(table);
+    
+    String title=((aggregated)?"Aggregated rules":
+                      (nonSubsumed)?"Extracted non-subsumed rules":
+                          "Original distinct rules or explanations")+
+                     " (" + rules.size() + ")"+
+                     ((aggregated)?"; obtained with accuracy threshold "+
+                                       String.format("%.3f",accThreshold):"");
+    if (maxQDiff>0)
+      title+=" and max Q difference "+String.format("%.5f",maxQDiff);
   
-    JFrame fr = new JFrame(((aggregated)?"Aggregated rules":
-                                (nonSubsumed)?"Extracted non-subsumed rules":
-                                    "Original distinct rules or explanations")+
-                               " (" + rules.size() + ")"+
-                               ((aggregated)?"; obtained with accuracy threshold "+
-                                                 String.format("%.3f",accThreshold):""));
+    JFrame fr = new JFrame(title);
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
     //Display the window.
@@ -615,6 +631,7 @@ public class ShowRules {
     showRules.setNonSubsumed(this.nonSubsumed);
     showRules.setAggregated(this.aggregated);
     showRules.setAccThreshold(accThreshold);
+    showRules.setMaxQDiff(maxQDiff);
     showRules.setCreatedFileRegister(createdFiles);
     showRules.showRulesInTable();
   }
@@ -708,6 +725,8 @@ public class ShowRules {
     showRules.setNonSubsumed(true);
     showRules.setAggregated(true);
     showRules.setAccThreshold(minAccuracy);
+    if (!Double.isNaN(maxQDiff))
+      showRules.setMaxQDiff(maxQDiff);
     showRules.setCreatedFileRegister(createdFiles);
     showRules.showRulesInTable();
   }

@@ -1,7 +1,9 @@
 package TapasExplTreeViewer.MST;
 
 /**
+ * A minimum spanning tree (MST) is a weighted, undirected, connected graph whose total edge weight has been minimized by removing heavier edges
  * https://www.baeldung.com/java-prim-algorithm
+ * https://github.com/eugenp/tutorials/tree/master/algorithms-miscellaneous-5
  */
 
 import javafx.util.Pair;
@@ -9,8 +11,6 @@ import javafx.util.Pair;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-//import org.apache.commons.math3.util.Pair;
 
 public class Prim {
 

@@ -5,8 +5,6 @@ import java.util.Iterator;
 import java.util.Map;
 import javafx.util.Pair;
 
-//import org.apache.commons.math3.util.Pair;
-
 public class Vertex {
 
   private String label = null;

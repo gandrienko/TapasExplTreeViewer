@@ -1,6 +1,9 @@
 package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
+import TapasExplTreeViewer.MST.Edge;
+import TapasExplTreeViewer.MST.Prim;
+import TapasExplTreeViewer.MST.Vertex;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
 import TapasExplTreeViewer.rules.RuleMaster;
@@ -23,6 +26,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 
 public class ShowRules {
@@ -305,6 +309,17 @@ public class ShowRules {
         showProjection(rules,distanceMatrix,highlighter,selector);
       }
     });
+    
+    if (aggregated) {
+      mit=new JMenuItem("Show the links between the original rules in a t-SNE projection");
+      menu.add(mit);
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+         showAggregationInProjection();
+        }
+      });
+    }
     
     JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
     menu.add(mitExtract);
@@ -600,7 +615,6 @@ public class ShowRules {
    return plotFrame;
   }
   
-  
   public void extractSubset(ItemSelectionManager selector,
                               ArrayList<CommonExplanation> exList,
                               double distanceMatrix[][],
@@ -729,5 +743,99 @@ public class ShowRules {
       showRules.setMaxQDiff(maxQDiff);
     showRules.setCreatedFileRegister(createdFiles);
     showRules.showRulesInTable();
+  }
+  
+  public void showAggregationInProjection() {
+    if (exList==null || exList.isEmpty() || !(exList.get(0) instanceof UnitedRule))
+      return;
+    ArrayList<CommonExplanation> origList=new ArrayList<CommonExplanation>(exList.size());
+    HashSet<ArrayList<Vertex>> graphs=null;
+    for (int i=0; i<exList.size(); i++) {
+      UnitedRule rule=(UnitedRule)exList.get(i);
+      if (rule.fromRules==null || rule.fromRules.isEmpty()) {
+        origList.add(rule);
+        continue;
+      }
+      //create a graph
+      ArrayList<UnitedRule> ruleGroup=addOrigRules(rule,null);
+      if (ruleGroup.size()>1) { //create a graph
+        ArrayList<Vertex> graph=new ArrayList<Vertex>(ruleGroup.size());
+        for (int j=0; j<ruleGroup.size(); j++)
+          graph.add(new Vertex(Integer.toString(j+origList.size())));
+        for (int j1=0; j1<ruleGroup.size()-1; j1++) {
+          Vertex v=graph.get(j1);
+          for (int j2 = j1 + 1; j2 < ruleGroup.size(); j2++) {
+            double d = UnitedRule.distance(ruleGroup.get(j1), ruleGroup.get(j2), attrMinMax);
+            Edge e=new Edge((float)d);
+            Vertex v2=graph.get(j2);
+            v.addEdge(v2,e);
+            v2.addEdge(v,e);
+          }
+        }
+        Prim prim=new Prim(graph);
+        prim.run();
+        if (graphs==null)
+          graphs=new HashSet<ArrayList<Vertex>>(exList.size());
+        graphs.add(graph);
+      }
+      for (int j=0; j<ruleGroup.size(); j++)
+        origList.add(ruleGroup.get(j));
+    }
+    
+    TSNE_Runner tsne=new TSNE_Runner();
+    tsne.setFileRegister(createdFiles);
+    String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Perplexity (integer; suggested range from 5 to 50) :",
+        tsne.getPerplexity());
+    if (value==null)
+      return;
+    try {
+      int p=Integer.parseInt(value);
+      if (p<5 || p>100) {
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal perplexity: "+p,
+            "Error",JOptionPane.ERROR_MESSAGE);
+        return;
+      }
+      tsne.setPerplexity(p);
+    } catch (Exception ex) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Illegal perplexity!"+value,
+          "Error",JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    
+    double d[][]=CommonExplanation.computeDistances(origList,attrMinMax);
+  
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
+    pp.setExplanations(origList);
+    pp.setDistanceMatrix(d);
+    pp.setGraphs(graphs);
+    pp.setProjectionProvider(tsne);
+    pp.setPreferredSize(new Dimension(800,800));
+  
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    JFrame plotFrame=new JFrame(pp.getProjectionProvider().getProjectionTitle());
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add(pp);
+    plotFrame.pack();
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
+    plotFrame.setVisible(true);
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
+    frames.add(plotFrame);
+  }
+  
+  protected static ArrayList<UnitedRule> addOrigRules(UnitedRule rule, ArrayList<UnitedRule> origList) {
+    if (rule==null)
+      return origList;
+    if (origList==null)
+      origList=new ArrayList<UnitedRule>(20);
+    if (rule.fromRules==null || rule.fromRules.isEmpty())
+      origList.add(rule);
+    else
+      for (UnitedRule r:rule.fromRules)
+        addOrigRules(r,origList);
+    return origList;
   }
 }

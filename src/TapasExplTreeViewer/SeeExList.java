@@ -205,7 +205,7 @@ public class SeeExList {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);
     }
-    givenAGraph_whenPrimRuns_thenPrintMST();
+    //givenAGraph_whenPrimRuns_thenPrintMST();
   }
 
   public static List<Vertex> createGraph() {

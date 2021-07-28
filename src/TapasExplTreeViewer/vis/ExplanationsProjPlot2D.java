@@ -1,11 +1,16 @@
 package TapasExplTreeViewer.vis;
 
 import TapasDataReader.CommonExplanation;
+import TapasExplTreeViewer.MST.Edge;
+import TapasExplTreeViewer.MST.Vertex;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 
 public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public static int minDotRadius=4, maxDotRadius=20;
@@ -13,6 +18,12 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public static float hsbBlue[]=Color.RGBtoHSB(0,0,255,null);
   
   public ArrayList<CommonExplanation> explanations = null;
+  /**
+   * The graphs represent connections between rules when they are aggregated.
+   * The labels of the vertices are string representations of the rule indexes in the list.
+   */
+  public HashSet<ArrayList<Vertex>> graphs=null;
+  
   public int maxNUses = 0;
   public int minAction=Integer.MAX_VALUE, maxAction=Integer.MIN_VALUE;
   public boolean sameAction=true;
@@ -57,6 +68,14 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
       repaint();
   }
   
+  public HashSet<ArrayList<Vertex>> getGraphs() {
+    return graphs;
+  }
+  
+  public void setGraphs(HashSet<ArrayList<Vertex>> graphs) {
+    this.graphs = graphs;
+  }
+  
   public void drawPoint(Graphics2D g, int pIdx, int x, int y, boolean highlighted, boolean selected) {
     if (explanations == null || explanations.isEmpty() || pIdx < 0 || pIdx >= explanations.size()) {
       super.drawPoint(g, pIdx, x, y, highlighted, selected);
@@ -83,6 +102,51 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     g.drawOval(x-dotRadius,y-dotRadius,dotDiameter,dotDiameter);
     if (origStr!=null)
       g.setStroke(origStr);
+  }
+  
+  public void paintComponent(Graphics gr) {
+    super.paintComponent(gr);
+    drawLinks(gr);
+  }
+  
+  public void drawLinks(Graphics gr) {
+    if (graphs==null || graphs.isEmpty())
+      return;
+    if (px==null || py==null)
+      return;
+    gr.setColor(new Color(0,0,0,96));
+    for (ArrayList<Vertex> graph:graphs)
+      drawLinks(gr,graph);
+  }
+  
+  public void drawLinks(Graphics gr, ArrayList<Vertex> graph) {
+    if (graph==null || graph.isEmpty())
+      return;
+    for (Vertex v:graph) {
+      int idx0=-1;
+      try {
+        idx0=Integer.parseInt(v.getLabel());
+      } catch (Exception ex) {}
+      if (idx0<0 || idx0>=px.length)
+        continue;
+      Iterator<Map.Entry<Vertex,Edge>> it = v.getEdges().entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<Vertex, Edge> pair = it.next();
+        if (pair.getValue().isIncluded()) {
+          Vertex v2=pair.getKey();
+          int idx2=-1;
+          try {
+            idx2=Integer.parseInt(v2.getLabel());
+          } catch (Exception ex) {}
+          if (idx2>=0 && idx2<px.length)
+            drawLinkBetweenPoints(gr,idx0,idx2);
+        }
+      }
+    }
+  }
+  
+  public void drawLinkBetweenPoints(Graphics gr, int idx1, int idx2) {
+    gr.drawLine(px[idx1],py[idx1],px[idx2],py[idx2]);
   }
  
   public String getToolTipText(MouseEvent me) {

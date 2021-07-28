@@ -249,21 +249,28 @@ public class RuleMaster {
                                     Hashtable<String,float[]> attrMinMax) {
     if (group==null || group.size()<2)
       return;
+    ArrayList<UnitedRule> notAccurate=(minAccuracy>0)?new ArrayList<UnitedRule>(group.size()):null;
+    if (minAccuracy>0)
+      for (int i=group.size()-1; i>=0; i--) {
+        UnitedRule r=group.get(i);
+        if (getAccuracy(r,origRules,false)<minAccuracy) {
+          group.remove(i);
+          notAccurate.add(r);
+        }
+      }
     boolean united;
     ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(group.size());
     do {
       united=false;
       pairs.clear();
       for (int i=0; i<group.size()-1; i++)
-        if (minAccuracy<=0 || getAccuracy(group.get(i),origRules,false)>=minAccuracy)
-          for (int j=i+1; j<group.size(); j++)
-            if ((minAccuracy<=0 || getAccuracy(group.get(j),origRules,false)>=minAccuracy) &&
-                UnitedRule.sameFeatures(group.get(i),group.get(j))) {
-              double d=UnitedRule.distance(group.get(i),group.get(j),attrMinMax);
-              int pair[]={i,j};
-              ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
-              pairs.add(om);
-            }
+        for (int j=i+1; j<group.size(); j++)
+          if (UnitedRule.sameFeatures(group.get(i),group.get(j))) {
+            double d=UnitedRule.distance(group.get(i),group.get(j),attrMinMax);
+            int pair[]={i,j};
+            ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
+            pairs.add(om);
+          }
       Collections.sort(pairs);
       for (int i=0; i<pairs.size() && !united; i++) {
         ObjectWithMeasure om=pairs.get(i);
@@ -286,6 +293,9 @@ public class RuleMaster {
         }
       }
     } while (united && group.size()>1);
+    if (notAccurate!=null && !notAccurate.isEmpty())
+      for (int i=0; i<notAccurate.size(); i++)
+        group.add(notAccurate.get(i));
   }
   
   public static ArrayList<UnitedRule> aggregateByQ(ArrayList<UnitedRule> rules,
@@ -300,6 +310,15 @@ public class RuleMaster {
     
     ArrayList<UnitedRule> result=new ArrayList<UnitedRule>(rules.size());
     result.addAll(rules);
+    ArrayList<UnitedRule> notAccurate=(minAccuracy>0)?new ArrayList<UnitedRule>(result.size()):null;
+    if (minAccuracy>0)
+      for (int i=result.size()-1; i>=0; i--) {
+        UnitedRule r=result.get(i);
+        if (getAccuracy(r,origRules,true)<minAccuracy) {
+          result.remove(i);
+          notAccurate.add(r);
+        }
+      }
 
     ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(result.size());
     boolean united;
@@ -308,19 +327,17 @@ public class RuleMaster {
       pairs.clear();
       for (int i=0; i<result.size()-1; i++) {
         UnitedRule r1=result.get(i);
-        if (minAccuracy <= 0 || getAccuracy(r1, origRules,true) >= minAccuracy)
-          for (int j = i + 1; j < result.size(); j++) {
-            UnitedRule r2=result.get(j);
-            if (IntervalDistance.distance(r1.minQ,r1.maxQ,r2.minQ,r2.maxQ)>maxQDiff)
-              continue;
-            if ((minAccuracy <= 0 || getAccuracy(r2, origRules,true) >= minAccuracy) &&
-                    UnitedRule.sameFeatures(r1, r2)) {
-              double d = UnitedRule.distance(r1, r2, attrMinMax);
-              int pair[] = {i, j};
-              ObjectWithMeasure om = new ObjectWithMeasure(pair, d, false);
-              pairs.add(om);
-            }
+        for (int j = i + 1; j < result.size(); j++) {
+          UnitedRule r2=result.get(j);
+          if (IntervalDistance.distance(r1.minQ,r1.maxQ,r2.minQ,r2.maxQ)>maxQDiff)
+            continue;
+          if (UnitedRule.sameFeatures(r1, r2)) {
+            double d = UnitedRule.distance(r1, r2, attrMinMax);
+            int pair[] = {i, j};
+            ObjectWithMeasure om = new ObjectWithMeasure(pair, d, false);
+            pairs.add(om);
           }
+        }
       }
       Collections.sort(pairs);
       for (int i=0; i<pairs.size() && !united; i++) {
@@ -344,7 +361,12 @@ public class RuleMaster {
         }
       }
     } while (united && result.size()>1);
-    if (result.size()>=rules.size()) //no aggregation was done
+    
+    int nResult=result.size();
+    if (notAccurate!=null)
+      nResult+=notAccurate.size();
+    
+    if (nResult>=rules.size()) //no aggregation was done
       return rules;
     ArrayList<CommonExplanation> aEx=new ArrayList<CommonExplanation>(result.size());
     aEx.addAll(result);
@@ -354,6 +376,9 @@ public class RuleMaster {
       for (int i=0; i<aEx.size(); i++)
         result.add((UnitedRule)aEx.get(i));
     }
+    if (notAccurate!=null && !notAccurate.isEmpty())
+      for (int i=0; i<notAccurate.size(); i++)
+        result.add(notAccurate.get(i));
     return result;
   }
   

@@ -261,7 +261,7 @@ public class ShowRules {
       if ((eTblModel.getColumnClass(i).equals(Integer.class) || eTblModel.getColumnClass(i).equals(Float.class) || eTblModel.getColumnClass(i).equals(Double.class)) &&
               !eTblModel.getColumnName(i).equalsIgnoreCase("cluster"))
         table.getColumnModel().getColumn(i).setCellRenderer(
-            new RenderLabelBarChart(0,eTblModel.getColumnMax(i)));
+            new RenderLabelBarChart(eTblModel.getColumnMin(i),eTblModel.getColumnMax(i)));
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
   

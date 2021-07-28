@@ -211,7 +211,42 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   }
     return max;
   }
-  
+
+  public float getColumnMin(int col) {
+    float min=Float.NaN;
+    for (int i=0; i<getRowCount(); i++) {
+      Object v=getValueAt(i,col);
+      if (v==null)
+        continue;
+      if (v instanceof Integer) {
+        Integer iv=(Integer)v;
+        if (Double.isNaN(min) || min>iv)
+          min=iv;
+      }
+      else
+      if (v instanceof Float) {
+        Float fv=(Float)v;
+        if (Double.isNaN(min) || min>fv)
+          min=fv;
+      }
+      else
+      if (v instanceof Double) {
+        Double dv=(Double)v;
+        if (Double.isNaN(min) || min>dv)
+          min=dv.floatValue();
+      }
+      else
+      if (v instanceof double[]) {
+        double d[]=(double[])v, dv=d[d.length-1];
+        if (Double.isNaN(min) || min>dv)
+          min=(float)dv;
+      }
+      else
+        return Float.NaN;
+    }
+    return min;
+  }
+
   public void stateChanged(ChangeEvent e) {
     if (e.getSource() instanceof MySammonsProjection) {
       MySammonsProjection sam=(MySammonsProjection)e.getSource();

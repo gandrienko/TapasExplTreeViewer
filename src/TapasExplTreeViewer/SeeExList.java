@@ -4,6 +4,9 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
 import TapasDataReader.ExplanationItem;
 import TapasDataReader.Flight;
+import TapasExplTreeViewer.MST.Edge;
+import TapasExplTreeViewer.MST.Prim;
+import TapasExplTreeViewer.MST.Vertex;
 import TapasExplTreeViewer.ui.ShowRules;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 
@@ -202,6 +205,49 @@ public class SeeExList {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);
     }
+    givenAGraph_whenPrimRuns_thenPrintMST();
   }
-  
+
+  public static List<Vertex> createGraph() {
+    List<Vertex> graph = new ArrayList<>();
+    Vertex a = new Vertex("A");
+    Vertex b = new Vertex("B");
+    Vertex c = new Vertex("C");
+    Vertex d = new Vertex("D");
+    Vertex e = new Vertex("E");
+    Edge ab = new Edge(2d);
+    a.addEdge(b, ab);
+    b.addEdge(a, ab);
+    Edge ac = new Edge(3d);
+    a.addEdge(c, ac);
+    c.addEdge(a, ac);
+    Edge bc = new Edge(2d);
+    b.addEdge(c, bc);
+    c.addEdge(b, bc);
+    Edge be = new Edge(5d);
+    b.addEdge(e, be);
+    e.addEdge(b, be);
+    Edge cd = new Edge(1d);
+    c.addEdge(d, cd);
+    d.addEdge(c, cd);
+    Edge ce = new Edge(1d);
+    c.addEdge(e, ce);
+    e.addEdge(c, ce);
+    graph.add(a);
+    graph.add(b);
+    graph.add(c);
+    graph.add(d);
+    graph.add(e);
+    return graph;
+  }
+  public static void givenAGraph_whenPrimRuns_thenPrintMST() {
+    Prim prim = new Prim(createGraph());
+    System.out.println(prim.originalGraphToString());
+    System.out.println("----------------");
+    prim.run();
+    System.out.println();
+    prim.resetPrintHistory();
+    System.out.println(prim.minimumSpanningTreeToString());
+  }
+
 }

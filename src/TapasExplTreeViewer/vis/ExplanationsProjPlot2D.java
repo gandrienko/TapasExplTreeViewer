@@ -16,6 +16,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public static int minDotRadius=4, maxDotRadius=20;
   public static float hsbRed[]=Color.RGBtoHSB(255,0,0,null);
   public static float hsbBlue[]=Color.RGBtoHSB(0,0,255,null);
+  public static Color linkColor=new Color(0,0,0,80);
   
   public ArrayList<CommonExplanation> explanations = null;
   /**
@@ -104,22 +105,22 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
       g.setStroke(origStr);
   }
   
-  public void paintComponent(Graphics gr) {
-    super.paintComponent(gr);
-    drawLinks(gr);
+  public void drawPoints(Graphics2D g) {
+    super.drawPoints(g);
+    drawLinks(g);
   }
   
-  public void drawLinks(Graphics gr) {
+  public void drawLinks(Graphics2D gr) {
     if (graphs==null || graphs.isEmpty())
       return;
     if (px==null || py==null)
       return;
-    gr.setColor(new Color(0,0,0,96));
+    gr.setColor(linkColor);
     for (ArrayList<Vertex> graph:graphs)
       drawLinks(gr,graph);
   }
   
-  public void drawLinks(Graphics gr, ArrayList<Vertex> graph) {
+  public void drawLinks(Graphics2D gr, ArrayList<Vertex> graph) {
     if (graph==null || graph.isEmpty())
       return;
     for (Vertex v:graph) {

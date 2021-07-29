@@ -314,6 +314,15 @@ public class ProjectionPlot2D extends JPanel
         RenderingHints.VALUE_ANTIALIAS_ON);
     g.setRenderingHints(rh);
     
+    drawPoints(g);
+    
+    gr.drawImage(off_Image,0,0,null);
+    off_Valid=true;
+    drawSelected(gr);
+    drawHighlighted(gr);
+  }
+  
+  public void drawPoints(Graphics2D g) {
     g.setColor(dotColor);
     if (px==null || px.length!=proj.length)
       px=new int[proj.length];
@@ -324,10 +333,6 @@ public class ProjectionPlot2D extends JPanel
       py[i]=yMarg+(int)Math.round((proj[i][1]-yMin)*scale);
       drawPoint(g,i,px[i],py[i],false,false);
     }
-    gr.drawImage(off_Image,0,0,null);
-    off_Valid=true;
-    drawSelected(gr);
-    drawHighlighted(gr);
   }
   
   public void redraw(){

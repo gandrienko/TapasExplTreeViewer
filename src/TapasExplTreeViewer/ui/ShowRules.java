@@ -37,6 +37,12 @@ public class ShowRules {
    */
   public ArrayList<CommonExplanation> origRules =null;
   /**
+   * The highlighter and selector for the original rule set
+   */
+  public SingleHighlightManager origHighlighter=null;
+  public ItemSelectionManager origSelector=null;
+  
+  /**
    * The rules or explanations to be visualized
    */
   public ArrayList<CommonExplanation> exList=null;
@@ -109,6 +115,14 @@ public class ShowRules {
     this.origRules = origRules;
   }
   
+  public void setOrigHighlighter(SingleHighlightManager origHighlighter) {
+    this.origHighlighter = origHighlighter;
+  }
+  
+  public void setOrigSelector(ItemSelectionManager origSelector) {
+    this.origSelector = origSelector;
+  }
+  
   public void setCreatedFileRegister(ArrayList<File> createdFiles) {
     if (createdFiles!=null)
       this.createdFiles=createdFiles;
@@ -145,10 +159,15 @@ public class ShowRules {
   public JFrame showRulesInTable(ArrayList rules,
                                  double distanceMatrix[][],
                                  Hashtable<String,float[]> attrMinMax) {
-  
-    SingleHighlightManager highlighter=new SingleHighlightManager();
-    ItemSelectionManager selector=new ItemSelectionManager();
-
+    boolean showOriginalRules=rules.equals(origRules);
+    if (showOriginalRules && origHighlighter==null) {
+      origHighlighter=new SingleHighlightManager();
+      origSelector=new ItemSelectionManager();
+    }
+    
+    SingleHighlightManager highlighter=(showOriginalRules)?origHighlighter:new SingleHighlightManager();
+    ItemSelectionManager selector=(showOriginalRules)?origSelector:new ItemSelectionManager();
+    
     ClustererByOPTICS clOptics=(distanceMatrix!=null && distanceMatrix.length>5)?new ClustererByOPTICS():null;
     if (clOptics!=null) {
       clOptics.setDistanceMatrix(distanceMatrix);
@@ -659,6 +678,10 @@ public class ShowRules {
     }
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
     showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
+    if (showRules.getOrigRules().equals(origRules)) {
+      showRules.setOrigHighlighter(origHighlighter);
+      showRules.setOrigSelector(origSelector);
+    }
     showRules.setNonSubsumed(this.nonSubsumed);
     showRules.setAggregated(this.aggregated);
     showRules.setAccThreshold(accThreshold);
@@ -691,6 +714,8 @@ public class ShowRules {
     }
     ShowRules showRules=new ShowRules(exList2,attrMinMax);
     showRules.setOrigRules(origRules);
+    showRules.setOrigHighlighter(origHighlighter);
+    showRules.setOrigSelector(origSelector);
     showRules.setNonSubsumed(true);
     showRules.setCreatedFileRegister(createdFiles);
     showRules.showRulesInTable();
@@ -753,6 +778,8 @@ public class ShowRules {
     aggEx.addAll(aggRules);
     ShowRules showRules=new ShowRules(aggEx,attrMinMax);
     showRules.setOrigRules(origRules);
+    showRules.setOrigHighlighter(origHighlighter);
+    showRules.setOrigSelector(origSelector);
     showRules.setNonSubsumed(true);
     showRules.setAggregated(true);
     showRules.setAccThreshold(minAccuracy);

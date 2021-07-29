@@ -22,6 +22,11 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
   public String columnNames[] = {"Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items", "Order", "Cluster", "N conditions", "Rule"};
+
+  boolean drawValuesOrStatsForIntervals=false;
+  public void setDrawValuesOrStatsForIntervals (boolean drawValuesOrStatsForIntervals) {
+    this.drawValuesOrStatsForIntervals=drawValuesOrStatsForIntervals;
+  }
   
   public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this.exList=exList;
@@ -153,6 +158,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
           values[1]=values[3];
       }
     }
+    if (!drawValuesOrStatsForIntervals)
+      return values;
     int N=0;
     for (String s:cEx.uses.keySet()) {
       ArrayList<Explanation> aex = cEx.uses.get(s);

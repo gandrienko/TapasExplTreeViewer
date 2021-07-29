@@ -338,6 +338,36 @@ public class ShowRules {
         eTblModel.fireTableDataChanged();
       }
     });
+    JCheckBoxMenuItem cbmit1=new JCheckBoxMenuItem("Show values",false);
+    JCheckBoxMenuItem cbmit2=new JCheckBoxMenuItem("Show statistics",false);
+    menu.add(cbmit1);
+    cbmit1.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
+          TableCellRenderer tcr=table.getColumnModel().getColumn(i).getCellRenderer();
+          if (tcr instanceof JLabel_Subinterval) {
+            ((JLabel_Subinterval)tcr).setDrawValues(cbmit1.getState());
+          }
+        }
+        eTblModel.setDrawValuesOrStatsForIntervals(cbmit1.getState() || cbmit2.getState());
+        eTblModel.fireTableDataChanged();
+      }
+    });
+    menu.add(cbmit2);
+    cbmit2.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
+          TableCellRenderer tcr=table.getColumnModel().getColumn(i).getCellRenderer();
+          if (tcr instanceof JLabel_Subinterval) {
+            ((JLabel_Subinterval)tcr).setDrawStats(cbmit2.getState());
+          }
+        }
+        eTblModel.setDrawValuesOrStatsForIntervals(cbmit1.getState() || cbmit2.getState());
+        eTblModel.fireTableDataChanged();
+      }
+    });
     menu.addSeparator();
 
     JMenuItem mit=new JMenuItem("Show the OPTICS reachability plot");

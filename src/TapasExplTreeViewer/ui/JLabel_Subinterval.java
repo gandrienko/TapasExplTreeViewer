@@ -8,7 +8,7 @@ import java.util.Arrays;
 public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double min=Double.NaN, max=Double.NaN, absMin=Double.NaN, absMax=Double.NaN;
   public double v[]=null, values[]=null, Q1,Q2,Q3,avg;
-  public boolean drawTexts=false;
+  public boolean drawTexts=false, drawValues=false, drawStats=false;
   
   public JLabel_Subinterval() {
     setHorizontalAlignment(SwingConstants.RIGHT);
@@ -17,13 +17,19 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public void setDrawTexts (boolean drawTexts) {
     this.drawTexts=drawTexts;
   }
+  public void setDrawValues (boolean drawValues) {
+    this.drawValues=drawValues;
+  }
+  public void setDrawStats (boolean drawStats) {
+    this.drawStats=drawStats;
+  }
   public void setValues (double v[]) {
     if (v!=null && v.length>=4) {
       min=v[0]; max=v[1];
       absMin=v[2]; absMax=v[3];
     }
     this.v=v;
-    if (v.length>5) {
+    if (v.length>5 && drawStats) {
       values=new double[v.length-4];
       for (int i=4; i<v.length; i++)
         values[i-4]=v[i];
@@ -60,12 +66,13 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     g.setColor(Color.lightGray);
     g.fillRect(x1, h / 2, x2 - x1, h / 2);
     g.setColor(Color.gray.darker());
-    for (int i=4; i<v.length; i++) {
-      int x=(int) Math.round((v[i] - absMin) * (w-1) / (absMax - absMin));
-      g.drawLine(x,h/2, x, 3*h/4);
-    }
-    int dy=2;
-    if (values!=null) {
+    if (drawValues)
+      for (int i=4; i<v.length; i++) {
+        int x=(int) Math.round((v[i] - absMin) * (w-1) / (absMax - absMin));
+        g.drawLine(x,h/2, x, 3*h/4);
+      }
+    if (drawStats && values!=null) {
+      int dy=2;
       x1=(int) Math.round((values[0] - absMin) * (w-1) / (absMax - absMin));
       x2=(int) Math.round((values[values.length-1] - absMin) * (w-1) / (absMax - absMin));
       g.drawLine(x1,h/2-dy, x2, h/2-dy);

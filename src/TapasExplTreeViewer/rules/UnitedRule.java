@@ -44,7 +44,7 @@ public class UnitedRule extends CommonExplanation {
     minQ=Math.min(minQ,rule.minQ);
     maxQ=Math.max(maxQ,rule.maxQ);
     sumQ+=rule.sumQ;
-    meanQ=sumQ/nUses;
+    meanQ=(float)sumQ/nUses;
   }
   
   public static UnitedRule getRule(CommonExplanation ex) {
@@ -208,7 +208,7 @@ public class UnitedRule extends CommonExplanation {
     rule.minQ=Math.min(r1.minQ,r2.minQ);
     rule.maxQ=Math.max(r1.maxQ,r2.maxQ);
     rule.sumQ=r1.sumQ+r2.sumQ;
-    rule.meanQ=rule.sumQ/rule.nUses;
+    rule.meanQ=(float)rule.sumQ/rule.nUses;
     
     rule.fromRules=new ArrayList<UnitedRule>(10);
     rule.fromRules.add(r1);

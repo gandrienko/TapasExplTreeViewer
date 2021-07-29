@@ -13,10 +13,7 @@ import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasExplTreeViewer.vis.TSNE_Runner;
-import TapasUtilities.ItemSelectionManager;
-import TapasUtilities.RenderLabelBarChart;
-import TapasUtilities.SingleHighlightManager;
-import TapasUtilities.TableRowsSelectionManager;
+import TapasUtilities.*;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -902,6 +899,23 @@ public class ShowRules {
     pp.setProjectionProvider(tsne);
     pp.setPreferredSize(new Dimension(800,800));
   
+    Translator translator=(origRules!=null && (origHighlighter!=null || origSelector!=null))?
+                              createTranslator(origList,origRules):null;
+    if (translator!=null) {
+      if (origHighlighter!=null) {
+        HighlightTranslator hTrans=new HighlightTranslator();
+        hTrans.setTranslator(translator);
+        hTrans.setOtherHighlighter(origHighlighter);
+        pp.setHighlighter(hTrans);
+      }
+      if (origSelector!=null) {
+        SelectTranslator sTrans=new SelectTranslator();
+        sTrans.setTranslator(translator);
+        sTrans.setOtherSelector(origSelector);
+        pp.setSelector(sTrans);
+      }
+    }
+  
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     JFrame plotFrame=new JFrame(pp.getProjectionProvider().getProjectionTitle());
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -925,5 +939,27 @@ public class ShowRules {
       for (UnitedRule r:rule.fromRules)
         addOrigRules(r,origList);
     return origList;
+  }
+  
+  /**
+   * For two lists consisting (at least partly) of same objects finds correspondences between
+   * the indexes of the common objects and creates a translator that will keep the correspondences.
+   */
+  public static Translator createTranslator(ArrayList list1, ArrayList list2) {
+    if (list1==null || list2==null || list1.isEmpty() || list2.isEmpty())
+      return null;
+    ArrayList<Object[]> pairs=new ArrayList<Object[]>(Math.min(list1.size(),list2.size()));
+    for (int i=0; i<list1.size(); i++) {
+      int idx=list2.indexOf(list1.get(i));
+      if (idx>=0) {
+        Object pair[]={new Integer(i),new Integer(idx)};
+        pairs.add(pair);
+      }
+    }
+    if (pairs.isEmpty())
+      return null;
+    Translator trans=new Translator();
+    trans.setPairs(pairs);
+    return trans;
   }
 }

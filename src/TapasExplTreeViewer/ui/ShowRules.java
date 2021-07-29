@@ -290,6 +290,23 @@ public class ShowRules {
     /**/
     
     JPopupMenu menu=new JPopupMenu();
+
+    JCheckBoxMenuItem cbmit=new JCheckBoxMenuItem("Show texts for intervals",false);
+    menu.add(cbmit);
+    cbmit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
+          TableCellRenderer tcr=table.getColumnModel().getColumn(i).getCellRenderer();
+          if (tcr instanceof JLabel_Subinterval) {
+            ((JLabel_Subinterval)tcr).setDrawTexts(cbmit.getState());
+          }
+        }
+        eTblModel.fireTableDataChanged();
+      }
+    });
+    menu.addSeparator();
+
     JMenuItem mit=new JMenuItem("Show the OPTICS reachability plot");
     menu.add(mit);
     mit.addActionListener(new ActionListener() {

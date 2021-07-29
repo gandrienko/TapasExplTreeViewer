@@ -8,10 +8,14 @@ import java.util.Arrays;
 public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double min=Double.NaN, max=Double.NaN, absMin=Double.NaN, absMax=Double.NaN;
   public double v[]=null, values[]=null, Q1,Q2,Q3,avg;
+  public boolean drawTexts=false;
   
   public JLabel_Subinterval() {
     setHorizontalAlignment(SwingConstants.RIGHT);
     setOpaque(false);
+  }
+  public void setDrawTexts (boolean drawTexts) {
+    this.drawTexts=drawTexts;
   }
   public void setValues (double v[]) {
     if (v!=null && v.length>=4) {
@@ -34,13 +38,14 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     }
     else
       values=null;
-    //setText("");
-
-    if (Double.isNaN(min) || Double.isNaN(max))
-      setText("");
+    if (drawTexts) {
+      if (Double.isNaN(min) || Double.isNaN(max))
+        setText("");
+      else
+        setText(Math.round(min)+".."+Math.round(max));
+    }
     else
-      setText(Math.round(min)+".."+Math.round(max));
-
+      setText("");
   }
   public void paint (Graphics g) {
     if (Double.isNaN(min) || Double.isNaN(max) || Double.isNaN(absMin) || Double.isNaN(absMax)) {

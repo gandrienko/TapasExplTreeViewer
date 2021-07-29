@@ -331,6 +331,8 @@ public class RuleMaster {
           UnitedRule r2=result.get(j);
           if (IntervalDistance.distance(r1.minQ,r1.maxQ,r2.minQ,r2.maxQ)>maxQDiff)
             continue;
+          if (Math.max(r1.maxQ,r2.maxQ)-Math.min(r1.minQ,r2.minQ)>maxQDiff)
+            continue;
           if (UnitedRule.sameFeatures(r1, r2)) {
             double d = UnitedRule.distance(r1, r2, attrMinMax);
             int pair[] = {i, j};

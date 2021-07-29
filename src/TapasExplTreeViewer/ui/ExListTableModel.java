@@ -21,7 +21,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items", "Order", "Cluster", "N conditions"};
+  public String columnNames[] = {"Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items", "Order", "Cluster", "N conditions", "Rule"};
   
   public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this.exList=exList;
@@ -57,12 +57,13 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     }
     if (hasUnitedRules) {
       String moreColNames[]=new String[columnNames.length+3];
-      for (int i=0; i<columnNames.length; i++)
+      for (int i=0; i<columnNames.length-1; i++)
         moreColNames[i]=columnNames[i];
-      int i=columnNames.length;
+      int i=columnNames.length-1;
       moreColNames[i++]="N same action";
       moreColNames[i++]="N other actions";
       moreColNames[i++]="Accuracy";
+      moreColNames[i]=columnNames[columnNames.length-1];
       columnNames=moreColNames;
     }
   }
@@ -121,7 +122,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         case 6: return (order==null)?new Integer(row):new Integer(order[row]);
         case 7: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
         case 8: return new Integer(cEx.eItems.length);
-        case 9: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigRight:1;
+        case 12: return cEx;
+        case 9: return (columnNames.length==10)?cEx:(cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigRight:1;
         case 10: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigWrong:0;
         case 11:
           if (cEx instanceof UnitedRule) {

@@ -28,6 +28,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Vector;
 
 public class ShowRules {
   
@@ -292,11 +293,24 @@ public class ShowRules {
     table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
     table.setRowSelectionAllowed(true);
     table.setColumnSelectionAllowed(false);
-    for (int i=0; i<eTblModel.columnNames.length; i++)
+
+    for (int i=0; i<eTblModel.columnNames.length-1; i++)
       if ((eTblModel.getColumnClass(i).equals(Integer.class) || eTblModel.getColumnClass(i).equals(Float.class) || eTblModel.getColumnClass(i).equals(Double.class)) &&
               !eTblModel.getColumnName(i).equalsIgnoreCase("cluster"))
         table.getColumnModel().getColumn(i).setCellRenderer(
             new RenderLabelBarChart(eTblModel.getColumnMin(i),eTblModel.getColumnMax(i)));
+
+    JLabel_Rule ruleRenderer=new JLabel_Rule();
+    Vector<String> attrs=new Vector(eTblModel.getColumnCount()-eTblModel.columnNames.length);
+    Vector<float[]> minmax=new Vector<>(eTblModel.getColumnCount()-eTblModel.columnNames.length);
+    for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
+      String s=eTblModel.getColumnName(i);
+      attrs.add(s);
+      minmax.add(attrMinMax.get(s));
+    }
+    ruleRenderer.setAttrs(attrs,minmax);
+    table.getColumnModel().getColumn(eTblModel.columnNames.length-1).setCellRenderer(ruleRenderer);
+
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
   

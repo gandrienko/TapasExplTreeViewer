@@ -226,15 +226,15 @@ public class UnitedRule extends CommonExplanation {
   }
   
   public static double intervalDistance(double a1, double a2, double b1, double b2,
-                                        float aMinMax[], float bMinMax[]) {
+                                        float minMax[]) {
     if (Double.isNaN(a1) || Double.isInfinite(a1))
-      a1=(aMinMax==null)?Integer.MIN_VALUE:aMinMax[0];
+      a1=(minMax==null)?Integer.MIN_VALUE:minMax[0];
     if (Double.isNaN(a2) || Double.isInfinite(a2))
-      a2=(aMinMax==null)?Integer.MAX_VALUE:aMinMax[1];
+      a2=(minMax==null)?Integer.MAX_VALUE:minMax[1];
     if (Double.isNaN(b1) || Double.isInfinite(b1))
-      b1=(bMinMax==null)?Integer.MIN_VALUE:bMinMax[0];
+      b1=(minMax==null)?Integer.MIN_VALUE:minMax[0];
     if (Double.isNaN(b2) || Double.isInfinite(b2))
-      b2=(bMinMax==null)?Integer.MAX_VALUE:bMinMax[1];
+      b2=(minMax==null)?Integer.MAX_VALUE:minMax[1];
     double da1b1=Math.abs(a1-b1),
         da2b2=Math.abs(a2-b2),
         da1b2=Math.max(a2,b2)-Math.min(a1,b1);
@@ -257,9 +257,8 @@ public class UnitedRule extends CommonExplanation {
       if (i2 < 0)
         continue;
       d -= 2; //corresponding items found
-      float bMinMax[]=(attrMinMax==null)?null:attrMinMax.get(e1[i2].attr);
       d+=intervalDistance(e1[i].interval[0],e1[i].interval[1],
-          e2[i2].interval[0],e2[i2].interval[1],aMinMax,bMinMax);
+          e2[i2].interval[0],e2[i2].interval[1],aMinMax);
     }
     return d;
   }

@@ -338,7 +338,7 @@ public class ShowRules {
         eTblModel.fireTableDataChanged();
       }
     });
-    JCheckBoxMenuItem cbmit1=new JCheckBoxMenuItem("Show values",false);
+    JCheckBoxMenuItem cbmit1=new JCheckBoxMenuItem("Mark values",false);
     JCheckBoxMenuItem cbmit2=new JCheckBoxMenuItem("Show statistics",false);
     menu.add(cbmit1);
     cbmit1.addActionListener(new ActionListener() {

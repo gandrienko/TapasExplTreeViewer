@@ -212,7 +212,9 @@ public class ShowRules {
             int realColIndex=convertColumnIndexToModel(colIndex);
             s=eTblModel.getColumnName(realColIndex);
           }
-          return ((CommonExplanation)rules.get(realRowIndex)).toHTML(attrMinMax,s);
+          String out=((CommonExplanation)rules.get(realRowIndex)).toHTML(attrMinMax,s,"img.png");
+          //System.out.println(out);
+          return out;
         }
         highlighter.clearHighlighting();
         return "";

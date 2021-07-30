@@ -24,6 +24,11 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
    * The labels of the vertices are string representations of the rule indexes in the list.
    */
   public HashSet<ArrayList<Vertex>> graphs=null;
+  /**
+   * If the explanations (rules) are members of unions (which may be represented by the graphs),
+   * this array specifies the integer identifiers (indexes) of the unions.
+   */
+  public int unionIds[]=null;
   
   public int maxNUses = 0;
   public int minAction=Integer.MAX_VALUE, maxAction=Integer.MIN_VALUE;
@@ -75,6 +80,14 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   
   public void setGraphs(HashSet<ArrayList<Vertex>> graphs) {
     this.graphs = graphs;
+  }
+  
+  public int[] getUnionIds() {
+    return unionIds;
+  }
+  
+  public void setUnionIds(int[] unionIds) {
+    this.unionIds = unionIds;
   }
   
   public void drawPoint(Graphics2D g, int pIdx, int x, int y, boolean highlighted, boolean selected) {
@@ -175,5 +188,39 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     float ratio=(float)((maxQ-q)/(maxQ-minQ));
     Color color = Color.getHSBColor(ratio * (hsbBlue[0] - hsbRed[0]),1,1);
     return new Color(color.getRed(),color.getGreen(),color.getBlue(),100);
+  }
+  
+  public void selectLinkedToSelected() {
+    if (unionIds==null || selector==null)
+      return;
+    ArrayList selected=selector.getSelected();
+    if (selected==null || selected.isEmpty())
+      return;
+    ArrayList toAdd=new ArrayList(selected.size()*10);
+    for (Object s:selected) {
+      int idx=(Integer)s, unionIdx=unionIds[idx];
+      for (int j=0; j<unionIds.length; j++)
+        if (j!=idx && unionIdx==unionIds[j] && !selected.contains(j) && !toAdd.contains(j))
+          toAdd.add(j);
+    }
+    if (!toAdd.isEmpty())
+      selector.select(toAdd);
+  }
+  
+  public ArrayList<Integer> getUnionIdsOfSelected() {
+    if (unionIds==null || selector==null)
+      return null;
+    ArrayList selected=selector.getSelected();
+    if (selected==null || selected.isEmpty())
+      return null;
+    ArrayList uIds=new ArrayList(selected.size()*10);
+    for (Object s:selected) {
+      int idx=(Integer)s;
+      if (!uIds.contains(unionIds[idx]))
+        uIds.add(unionIds[idx]);
+    }
+    if (uIds.isEmpty())
+      return null;
+    return uIds;
   }
 }

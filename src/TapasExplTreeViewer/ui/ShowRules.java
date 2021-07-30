@@ -395,7 +395,7 @@ public class ShowRules {
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-         showAggregationInProjection();
+         showAggregationInProjection(selector);
         }
       });
     }
@@ -773,10 +773,12 @@ public class ShowRules {
       System.out.println("Prior to aggregation, trying to remove less general explanations...");
       ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules,attrMinMax);
       if  (exList2!=null && exList2.size()<exList.size()) {
+        /*
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
             "Removal of subsumed rules has reduced the number of explanations from " +
                                exList.size() + " to " + exList2.size(),
             "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
+        */
         exList = exList2;
       }
     }
@@ -813,10 +815,12 @@ public class ShowRules {
           "Fail",JOptionPane.WARNING_MESSAGE);
       return;
     }
+    /*
     JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
         "Reduced the number of explanations from " +
                            exList.size() + " to " + aggRules.size(),
         "Aggregated rule set",JOptionPane.INFORMATION_MESSAGE);
+    */
     ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
     aggEx.addAll(aggRules);
     ShowRules showRules=new ShowRules(aggEx,attrMinMax);
@@ -832,15 +836,17 @@ public class ShowRules {
     showRules.showRulesInTable();
   }
   
-  public void showAggregationInProjection() {
+  public void showAggregationInProjection(ItemSelectionManager selector) {
     if (exList==null || exList.isEmpty() || !(exList.get(0) instanceof UnitedRule))
       return;
     ArrayList<CommonExplanation> origList=new ArrayList<CommonExplanation>(exList.size());
     HashSet<ArrayList<Vertex>> graphs=null;
+    ArrayList<Integer> unionIds=new ArrayList<Integer>(exList.size()*5);
     for (int i=0; i<exList.size(); i++) {
       UnitedRule rule=(UnitedRule)exList.get(i);
       if (rule.fromRules==null || rule.fromRules.isEmpty()) {
         origList.add(rule);
+        unionIds.add(i);
         continue;
       }
       //create a graph
@@ -865,8 +871,10 @@ public class ShowRules {
           graphs=new HashSet<ArrayList<Vertex>>(exList.size());
         graphs.add(graph);
       }
-      for (int j=0; j<ruleGroup.size(); j++)
+      for (int j=0; j<ruleGroup.size(); j++) {
         origList.add(ruleGroup.get(j));
+        unionIds.add(i);
+      }
     }
     
     TSNE_Runner tsne=new TSNE_Runner();
@@ -898,6 +906,10 @@ public class ShowRules {
     pp.setExplanations(origList);
     pp.setDistanceMatrix(d);
     pp.setGraphs(graphs);
+    int uIds[]=new int[unionIds.size()];
+    for (int j=0; j<unionIds.size(); j++)
+      uIds[j]=unionIds.get(j);
+    pp.setUnionIds(uIds);
     pp.setProjectionProvider(tsne);
     pp.setPreferredSize(new Dimension(800,800));
   
@@ -928,6 +940,81 @@ public class ShowRules {
     if (frames==null)
       frames=new ArrayList<JFrame>(20);
     frames.add(plotFrame);
+  
+    JPopupMenu menu=new JPopupMenu();
+    
+    JMenuItem mitSelectLinked=new JMenuItem("Select linked items");
+    menu.add(mitSelectLinked);
+    mitSelectLinked.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        pp.selectLinkedToSelected();
+      }
+    });
+  
+    JMenuItem mitSelectUnions=new JMenuItem("Select the union(s) of the linked items");
+    menu.add(mitSelectUnions);
+    mitSelectUnions.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        ArrayList<Integer> uIds=pp.getUnionIdsOfSelected();
+        if (uIds!=null)
+          selector.select(uIds);
+      }
+    });
+    
+    JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
+    menu.add(mitExtract);
+    mitExtract.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        extractSubset(pp.getSelector(),origList,d,attrMinMax);
+      }
+    });
+  
+    JMenuItem mit=new JMenuItem("Re-run t-SNE with another perplexity setting");
+    menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Perplexity (integer; suggested range from 5 to 50) :",
+            tsne.getPerplexity());
+        if (value==null)
+          return;
+        try {
+          int p=Integer.parseInt(value);
+          if (p<5 || p>100) {
+            JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                "Illegal perplexity: "+p,
+                "Error",JOptionPane.ERROR_MESSAGE);
+            return;
+          }
+          tsne.setPerplexity(p);
+          tsne.runAlgorithm();
+        } catch (Exception ex) {
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Illegal perplexity: "+value,
+              "Error",JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+      }
+    });
+  
+    pp.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mousePressed(MouseEvent e) {
+        super.mousePressed(e);
+        if (e.getButton()>MouseEvent.BUTTON1) {
+          ArrayList selected=pp.getSelector().getSelected();
+          boolean someSelected=selected!=null && selected.size()>0;
+          mitExtract.setEnabled(someSelected);
+          mitSelectLinked.setEnabled(someSelected);
+          mitSelectUnions.setEnabled(someSelected);
+          menu.show(pp,e.getX(),e.getY());
+        }
+      }
+    });
   }
   
   protected static ArrayList<UnitedRule> addOrigRules(UnitedRule rule, ArrayList<UnitedRule> origList) {

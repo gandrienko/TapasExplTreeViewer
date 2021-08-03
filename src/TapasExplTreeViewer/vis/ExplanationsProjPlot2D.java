@@ -3,10 +3,15 @@ package TapasExplTreeViewer.vis;
 import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.MST.Edge;
 import TapasExplTreeViewer.MST.Vertex;
+import TapasExplTreeViewer.ui.ShowSingleRule;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class ExplanationsProjPlot2D extends ProjectionPlot2D {
@@ -17,6 +22,9 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   
   public ArrayList<CommonExplanation> explanations = null;
   public Hashtable<String,float[]> attrMinMax=null;
+  Vector<String> attrs=null;
+  Vector<float[]> minmax=null;
+
   /**
    * The graphs represent connections between rules when they are aggregated.
    * The labels of the vertices are string representations of the rule indexes in the list.
@@ -33,16 +41,18 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public boolean sameAction=true;
   public double minQ=Double.NaN, maxQ=Double.NaN;
   public int maxRadius=maxDotRadius;
+
+
   
-  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax){
-    this.attrMinMax=attrMinMax;
+  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax, Vector<String> attrs, Vector<float[]> minmax){
+    this.attrMinMax=attrMinMax; this.attrs=attrs; this.minmax=minmax;
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   }
   
-  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax, ArrayList<CommonExplanation> explanations, double coords[][]) {
+  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax, Vector<String> attrs, Vector<float[]> minmax, ArrayList<CommonExplanation> explanations, double coords[][]) {
     super(coords);
-    this.attrMinMax=attrMinMax;
+    this.attrMinMax=attrMinMax; this.attrs=attrs; this.minmax=minmax;
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
     setExplanations(explanations);
@@ -171,6 +181,13 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     int idx=getPointIndexAtPosition(me.getX(),me.getY(),dotRadius);
     if (idx<0)
       return null;
+    CommonExplanation ce=explanations.get(idx);
+    try {
+      BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, attrs, minmax);
+      File outputfile = new File("img.png");
+      ImageIO.write(bi, "png", outputfile);
+      //System.out.println("img.png");
+    } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
     return explanations.get(idx).toHTML(attrMinMax,"","img.png");
   }
   

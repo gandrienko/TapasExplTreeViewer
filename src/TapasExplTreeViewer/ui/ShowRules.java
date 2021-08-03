@@ -223,12 +223,14 @@ public class ShowRules {
             int realColIndex=convertColumnIndexToModel(colIndex);
             s=eTblModel.getColumnName(realColIndex);
           }
+          CommonExplanation ce=(CommonExplanation)rules.get(realRowIndex);
           try {
-            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, (CommonExplanation)rules.get(realRowIndex), attrs, minmax);
+            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, attrs, minmax);
             File outputfile = new File("img.png");
             ImageIO.write(bi, "png", outputfile);
-          } catch (IOException ex) {}
-          String out=((CommonExplanation)rules.get(realRowIndex)).toHTML(attrMinMax,s,"img.png");
+            //System.out.println("img"+ce.numId+".png");
+          } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
+          String out=ce.toHTML(attrMinMax,s,"img.png");
           //System.out.println(out);
           return out;
         }
@@ -581,7 +583,7 @@ public class ShowRules {
       return null;
     }
     
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax);
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
     pp.setExplanations(exList);
     pp.setDistanceMatrix(distanceMatrix);
     pp.setProjectionProvider(tsne);
@@ -630,7 +632,7 @@ public class ShowRules {
           return;
         }
         System.out.println("Trying to create another plot...");
-        ExplanationsProjPlot2D anotherPlot=new ExplanationsProjPlot2D(attrMinMax,exList,coords);
+        ExplanationsProjPlot2D anotherPlot=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax,exList,coords);
         anotherPlot.setPreferredSize(new Dimension(800,800));
         anotherPlot.setSelector(selector);
         anotherPlot.setHighlighter(highlighter);
@@ -920,7 +922,7 @@ public class ShowRules {
     
     double d[][]=CommonExplanation.computeDistances(origList,attrMinMax);
   
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax);
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
     pp.setExplanations(origList);
     pp.setDistanceMatrix(d);
     pp.setGraphs(graphs);

@@ -15,13 +15,16 @@ import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasExplTreeViewer.vis.TSNE_Runner;
 import TapasUtilities.*;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -84,7 +87,12 @@ public class ShowRules {
    * Whether this instance of ShowRules has already created its top frame
    */
   protected boolean topFrameCreated=false;
-  
+
+  /**
+   * used for rendering rules in tooltips
+   */
+  Vector<String> attrs=null;
+  Vector<float[]> minmax=null;
   
   public ShowRules(ArrayList<CommonExplanation> exList,
                    Hashtable<String,float[]> attrMinMax,
@@ -212,6 +220,11 @@ public class ShowRules {
             int realColIndex=convertColumnIndexToModel(colIndex);
             s=eTblModel.getColumnName(realColIndex);
           }
+          try {
+            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, (CommonExplanation)rules.get(realRowIndex), attrs, minmax);
+            File outputfile = new File("img.png");
+            ImageIO.write(bi, "png", outputfile);
+          } catch (IOException ex) {}
           String out=((CommonExplanation)rules.get(realRowIndex)).toHTML(attrMinMax,s,"img.png");
           //System.out.println(out);
           return out;
@@ -302,8 +315,8 @@ public class ShowRules {
             new RenderLabelBarChart(eTblModel.getColumnMin(i),eTblModel.getColumnMax(i)));
 
     JLabel_Rule ruleRenderer=new JLabel_Rule();
-    Vector<String> attrs=new Vector(eTblModel.getColumnCount()-eTblModel.columnNames.length);
-    Vector<float[]> minmax=new Vector<>(eTblModel.getColumnCount()-eTblModel.columnNames.length);
+    attrs=new Vector(eTblModel.getColumnCount()-eTblModel.columnNames.length);
+    minmax=new Vector<>(eTblModel.getColumnCount()-eTblModel.columnNames.length);
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
       String s=eTblModel.getColumnName(i);
       attrs.add(s);

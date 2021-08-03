@@ -122,7 +122,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         return cEx;
       switch (col) {
         case 0:
-          return new Integer(row);
+          return cEx.numId;
         case 1:
           return new Integer(cEx.action);
         case 2:

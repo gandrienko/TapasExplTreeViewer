@@ -65,7 +65,7 @@ public class RuleMaster {
     rule.minQ=Math.min(ex1.minQ,ex2.minQ);
     rule.maxQ=Math.max(ex1.maxQ,ex2.maxQ);
     rule.sumQ=ex1.sumQ+ex2.sumQ;
-    rule.meanQ=rule.sumQ/rule.nUses;
+    rule.meanQ=(float)(rule.sumQ/rule.nUses);
 
     return rule;
   }

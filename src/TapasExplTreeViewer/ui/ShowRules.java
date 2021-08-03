@@ -99,6 +99,9 @@ public class ShowRules {
                    double distances[][]) {
     this.exList=exList; this.attrMinMax=attrMinMax;
     this.distanceMatrix=distances;
+    if (exList!=null && !exList.isEmpty() && exList.get(0).numId<0)
+      for (int i=0; i<exList.size(); i++)
+        exList.get(i).numId=i+1;
     if (distanceMatrix==null) {
       System.out.println("Computing distance matrix...");
       distanceMatrix = CommonExplanation.computeDistances(exList, attrMinMax);

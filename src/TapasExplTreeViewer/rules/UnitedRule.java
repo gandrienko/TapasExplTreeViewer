@@ -53,6 +53,7 @@ public class UnitedRule extends CommonExplanation {
     if (ex instanceof UnitedRule)
       return (UnitedRule)ex;
     UnitedRule rule=new UnitedRule();
+    rule.numId=ex.numId;
     rule.action=ex.action;
     rule.eItems=ex.eItems;
     rule.uses=ex.uses;
@@ -139,6 +140,7 @@ public class UnitedRule extends CommonExplanation {
     if (items==null || items.isEmpty())
       return r;
     CommonExplanation rule=(r instanceof UnitedRule)?new UnitedRule():new CommonExplanation();
+    rule.numId=r.numId;
     rule.action=r.action;
     rule.eItems=items.toArray(new ExplanationItem[items.size()]);
     rule.uses=r.uses;

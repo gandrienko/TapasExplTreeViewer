@@ -42,8 +42,6 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public double minQ=Double.NaN, maxQ=Double.NaN;
   public int maxRadius=maxDotRadius;
 
-
-  
   public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax, Vector<String> attrs, Vector<float[]> minmax){
     this.attrMinMax=attrMinMax; this.attrs=attrs; this.minmax=minmax;
     ToolTipManager.sharedInstance().registerComponent(this);
@@ -182,8 +180,14 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     if (idx<0)
       return null;
     CommonExplanation ce=explanations.get(idx);
+    Vector<CommonExplanation> vce=null;
+    if (selected!=null && selected.size()>0) {
+      vce=new Vector<>(selected.size());
+      for (int i = 0; i < selected.size(); i++)
+        vce.add(explanations.get(selected.get(i)));
+    }
     try {
-      BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, attrs, minmax);
+      BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, vce, attrs, minmax);
       File outputfile = new File("img.png");
       ImageIO.write(bi, "png", outputfile);
       //System.out.println("img.png");

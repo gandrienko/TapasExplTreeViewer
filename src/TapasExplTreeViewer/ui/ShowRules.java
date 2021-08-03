@@ -224,8 +224,15 @@ public class ShowRules {
             s=eTblModel.getColumnName(realColIndex);
           }
           CommonExplanation ce=(CommonExplanation)rules.get(realRowIndex);
+          Vector<CommonExplanation> vce=null;
+          ArrayList selected=selector.getSelected();
+          if (selected!=null && selected.size()>0) {
+            vce=new Vector<>(selected.size());
+            for (int i = 0; i < selected.size(); i++)
+              vce.add(exList.get((Integer)selected.get(i)));
+          }
           try {
-            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, attrs, minmax);
+            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, vce, attrs, minmax);
             File outputfile = new File("img.png");
             ImageIO.write(bi, "png", outputfile);
             //System.out.println("img"+ce.numId+".png");

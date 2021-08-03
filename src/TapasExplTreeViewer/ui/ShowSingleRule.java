@@ -8,7 +8,7 @@ import java.util.Vector;
 
 public class ShowSingleRule {
 
-  public static BufferedImage getImageForRule (int w, int h, CommonExplanation ex, Vector<String> attrs, Vector<float[]> minmax) {
+  public static BufferedImage getImageForRule (int w, int h, CommonExplanation ex, Vector<CommonExplanation> vex, Vector<String> attrs, Vector<float[]> minmax) {
     BufferedImage image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
     int offsetX=3, offsetY=2;
     int dx=(w-2*offsetX) / attrs.size(),
@@ -34,6 +34,27 @@ public class ShowSingleRule {
           }
           g.drawRect(x-2,offsetY+y[0],4,y[1]-y[0]);
           found=true;
+        }
+      Color cblue=new Color(0,127,127, 63);
+      if (vex!=null)
+        for (int idx=0; idx<vex.size(); idx++) {
+          found=false;
+          for (int j=0; j<vex.elementAt(idx).eItems.length && !found; j++)
+            if (attrs.elementAt(i).equals(vex.elementAt(idx).eItems[j].attr)) {
+              g.setColor(cblue);
+              int y[]=new int[2];
+              for (int k=0; k<y.length; k++) {
+                double v=vex.elementAt(idx).eItems[j].interval[k];
+                if (v==Double.NEGATIVE_INFINITY)
+                  v=minmax.elementAt(i)[0];
+                if (v==Double.POSITIVE_INFINITY)
+                  v=minmax.elementAt(i)[1];
+                y[k]=(int)Math.round(dy*(v-minmax.elementAt(i)[0])/(minmax.elementAt(i)[1]-minmax.elementAt(i)[0]));
+              }
+              g.fillRect(x+2,offsetY+y[0],5,y[1]-y[0]);
+              found=true;
+            }
+
         }
     }
     return image;

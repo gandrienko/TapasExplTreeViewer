@@ -22,7 +22,7 @@ public class JLabel_Rule extends JLabel implements TableCellRenderer {
 
   public void paint (Graphics g) {
     //if (image==null || image.getWidth()!=getWidth() || image.getHeight()!=getHeight())
-    BufferedImage image=ShowSingleRule.getImageForRule(getWidth(), getHeight(), ex, attrs, minmax);
+    BufferedImage image=ShowSingleRule.getImageForRule(getWidth(), getHeight(), ex, null, attrs, minmax);
     g.drawImage(image,0,0,null);
   }
 

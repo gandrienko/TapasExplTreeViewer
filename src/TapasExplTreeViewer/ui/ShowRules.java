@@ -524,7 +524,7 @@ public class ShowRules {
         }
       }
     });
-  
+    
     table.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
@@ -534,6 +534,84 @@ public class ShowRules {
           mitExtract.setEnabled(selected!=null && selected.size()>0);
           menu.show(table,e.getX(),e.getY());
         }
+      }
+      @Override
+      public void mouseClicked(MouseEvent e) {
+        super.mouseClicked(e);
+        if (e.getClickCount()>1)
+          selector.deselectAll();
+        else
+          if (expanded) {
+            int rowIndex=table.rowAtPoint(e.getPoint());
+            if (rowIndex<0)
+              return;
+            int realRowIndex = table.convertRowIndexToModel(rowIndex);
+            UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
+            JPopupMenu selMenu=null;
+            if (rule.upperId>=0) {
+              selMenu=new JPopupMenu();
+              JMenuItem selItem = new JMenuItem("Select rules including rule "+rule.numId);
+              selMenu.add(selItem);
+              selItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                  ArrayList<Integer> toSelect=new ArrayList<Integer>(10);
+                  UnitedRule r=rule;
+                  do {
+                    int idx=RuleMaster.findRuleInList(exList,r.upperId);
+                    if (idx>=0) {
+                      toSelect.add(new Integer(idx));
+                      r=(UnitedRule)exList.get(idx);
+                    }
+                    else
+                      r=null;
+                  } while (r!=null && r.upperId>=0);
+                  if (!toSelect.isEmpty())
+                    selector.select(toSelect);
+                }
+              });
+            }
+            
+            if (rule.fromRules!=null && !rule.fromRules.isEmpty()) {
+              if (selMenu==null)
+                selMenu=new JPopupMenu();
+              JMenuItem selItem = new JMenuItem("Select rules directly included in "+rule.numId);
+              selMenu.add(selItem);
+              selItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                  ArrayList<Integer> toSelect=new ArrayList<Integer>(10);
+                  for (int i=0; i<rule.fromRules.size(); i++) {
+                    int idx=RuleMaster.findRuleInList(exList,rule.fromRules.get(i).numId);
+                    if (idx>=0)
+                      toSelect.add(idx);
+                  }
+                  if (!toSelect.isEmpty())
+                    selector.select(toSelect);
+                }
+              });
+              selMenu.add(selItem = new JMenuItem("Select all rules included in "+rule.numId));
+              selItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                  ArrayList<UnitedRule> included=rule.putHierarchyInList(null);
+                  ArrayList<Integer> toSelect=new ArrayList<Integer>(10);
+                  for (int i=0; i<included.size(); i++) {
+                    int idx=RuleMaster.findRuleInList(exList,included.get(i).numId);
+                    if (idx>=0)
+                      toSelect.add(idx);
+                  }
+                  if (!toSelect.isEmpty())
+                    selector.select(toSelect);
+                }
+              });
+            }
+            if (selMenu==null)
+              return;
+            
+            selMenu.add(new JMenuItem("Cancel"));
+            selMenu.show(table,e.getX(),e.getY());
+          }
       }
     });
 

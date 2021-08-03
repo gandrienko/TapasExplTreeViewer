@@ -438,4 +438,15 @@ public class RuleMaster {
         expandOneRuleHierarchy(rule.fromRules.get(i),result);
       }
   }
+  
+  public static int findRuleInList(ArrayList rules, int ruleId){
+    if (rules==null || rules.isEmpty())
+      return -1;
+    if (!(rules.get(0) instanceof CommonExplanation))
+      return -1;
+    for (int i=0; i<rules.size(); i++)
+      if (((CommonExplanation)rules.get(i)).numId==ruleId)
+        return i;
+    return -1;
+  }
 }

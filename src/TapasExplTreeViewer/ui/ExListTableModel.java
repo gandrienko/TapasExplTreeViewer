@@ -21,7 +21,9 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items", "Order", "Cluster", "N conditions", "Rule"};
+  public String columnNames[] = {"N","Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items",
+      "Order", "Cluster", "N conditions", "Rule"};
+  public String columnNamesUnited[]={"N right covers","N wrong covers","Accuracy"};
 
   boolean drawValuesOrStatsForIntervals=false;
   public void setDrawValuesOrStatsForIntervals (boolean drawValuesOrStatsForIntervals) {
@@ -61,13 +63,12 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       }
     }
     if (hasUnitedRules) {
-      String moreColNames[]=new String[columnNames.length+3];
+      String moreColNames[]=new String[columnNames.length+columnNamesUnited.length];
       for (int i=0; i<columnNames.length-1; i++)
         moreColNames[i]=columnNames[i];
       int i=columnNames.length-1;
-      moreColNames[i++]="N same action";
-      moreColNames[i++]="N other actions";
-      moreColNames[i++]="Accuracy";
+      for (int j=0; j<columnNamesUnited.length; j++)
+        moreColNames[i++]=columnNamesUnited[j];
       moreColNames[i]=columnNames[columnNames.length-1];
       columnNames=moreColNames;
     }
@@ -116,28 +117,44 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   
   public Object getValueAt(int row, int col) {
     CommonExplanation cEx=exList.get(row);
-    if (col<columnNames.length)
+    if (col<columnNames.length) {
+      if (col==columnNames.length-1)
+        return cEx;
       switch (col) {
-        case 0: return new Integer(cEx.action);
-        case 1: return new Float(cEx.meanQ);
-        case 2: return new Float(cEx.minQ);
-        case 3: return new Float(cEx.maxQ);
-        case 4: return new Integer(cEx.nUses);
-        case 5: return new Integer(cEx.uses.size());
-        case 6: return (order==null)?new Integer(row):new Integer(order[row]);
-        case 7: return (clusters==null)?new Integer(-1):new Integer(clusters[row]);
-        case 8: return new Integer(cEx.eItems.length);
-        case 12: return cEx;
-        case 9: return (columnNames.length==10)?cEx:(cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigRight:1;
-        case 10: return (cEx instanceof UnitedRule)?((UnitedRule)cEx).nOrigWrong:0;
-        case 11:
-          if (cEx instanceof UnitedRule) {
-            UnitedRule r=(UnitedRule)cEx;
-            return 100f*r.nOrigRight/(r.nOrigRight+r.nOrigWrong);
-          }
-          else
-            return 100f;
+        case 0:
+          return new Integer(row);
+        case 1:
+          return new Integer(cEx.action);
+        case 2:
+          return new Float(cEx.meanQ);
+        case 3:
+          return new Float(cEx.minQ);
+        case 4:
+          return new Float(cEx.maxQ);
+        case 5:
+          return new Integer(cEx.nUses);
+        case 6:
+          return new Integer(cEx.uses.size());
+        case 7:
+          return (order == null) ? new Integer(row) : new Integer(order[row]);
+        case 8:
+          return (clusters == null) ? new Integer(-1) : new Integer(clusters[row]);
+        case 9:
+          return new Integer(cEx.eItems.length);
       }
+      String cName=columnNames[col];
+      if (cName.equals(columnNamesUnited[0]))
+        return (cEx instanceof UnitedRule) ? ((UnitedRule) cEx).nOrigRight : 1;
+      if (cName.equals(columnNamesUnited[1]))
+        return (cEx instanceof UnitedRule) ? ((UnitedRule) cEx).nOrigWrong : 0;
+      if (cName.equals(columnNamesUnited[2]))
+        if (cEx instanceof UnitedRule) {
+          UnitedRule r = (UnitedRule) cEx;
+          return 100f * r.nOrigRight / (r.nOrigRight + r.nOrigWrong);
+        }
+        else
+          return 100f;
+    }
     String attrName=listOfFeatures.get(col-columnNames.length);
     double values[]={Double.NaN,Double.NaN,Double.NaN,Double.NaN};
     for (int i=0; i<cEx.eItems.length; i++)

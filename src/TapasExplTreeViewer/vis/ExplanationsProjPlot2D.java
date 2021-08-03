@@ -149,8 +149,18 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
       try {
         idx0=Integer.parseInt(v.getLabel());
       } catch (Exception ex) {}
-      if (idx0<0 || idx0>=px.length)
+      if (idx0<0)
         continue;
+      if (unionIds==null) {
+        boolean found=false;
+        for (int j = 0; j < explanations.size() && !found; j++)
+          if (idx0==explanations.get(j).numId) {
+            idx0=j;
+            found=true;
+          }
+        if (!found)
+          continue;
+      }
       Iterator<Map.Entry<Vertex,Edge>> it = v.getEdges().entrySet().iterator();
       while (it.hasNext()) {
         Map.Entry<Vertex, Edge> pair = it.next();
@@ -160,8 +170,19 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
           try {
             idx2=Integer.parseInt(v2.getLabel());
           } catch (Exception ex) {}
-          if (idx2>=0 && idx2<px.length)
-            drawLinkBetweenPoints(gr,idx0,idx2);
+          if (idx2>=0) {
+            if (unionIds==null) {
+              boolean found=false;
+              for (int j = 0; j < explanations.size() && !found; j++)
+                if (idx2==explanations.get(j).numId) {
+                  idx2=j;
+                  found=true;
+                }
+              if (!found)
+                continue;
+            }
+            drawLinkBetweenPoints(gr, idx0, idx2);
+          }
         }
       }
     }

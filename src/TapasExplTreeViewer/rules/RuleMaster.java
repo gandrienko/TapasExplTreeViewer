@@ -396,4 +396,46 @@ public class RuleMaster {
       return Double.NaN; //must not happen; it means that this rule does not cover any of origRules!
     return 1.0*rule.nOrigRight/(rule.nOrigRight+rule.nOrigWrong);
   }
+  
+  public static boolean hasRuleHierarchies(ArrayList<UnitedRule> rules) {
+    if (rules==null || rules.isEmpty())
+      return false;
+    for (int i=0; i<rules.size(); i++) {
+      ArrayList<UnitedRule> from=rules.get(i).fromRules;
+      if (from!=null && !from.isEmpty())
+        return true;
+    }
+    return false;
+  }
+  
+  public static ArrayList<UnitedRule> expandRuleHierarchies(ArrayList<CommonExplanation> rules) {
+    if (rules==null || rules.isEmpty() || !(rules.get(0) instanceof UnitedRule))
+      return null;
+    int lastUpId=rules.get(0).upperId;
+    boolean wasExpanded=false;
+    for (int i=1; i<rules.size() && !wasExpanded; i++)
+      wasExpanded=lastUpId!=rules.get(i).upperId;
+    if (wasExpanded) {
+      ArrayList<CommonExplanation> rCopy = new ArrayList<CommonExplanation>(rules.size());
+      for (int i=0; i<rules.size(); i++)
+        rCopy.add(((UnitedRule)rules.get(i)).makeRuleCopy(false,false));
+    }
+    
+    ArrayList<UnitedRule> result=new ArrayList<UnitedRule>(rules.size()*5);
+    for (int i=0; i<rules.size(); i++)
+      expandOneRuleHierarchy((UnitedRule)rules.get(i),result);
+    return result;
+  }
+  
+  public static void expandOneRuleHierarchy(UnitedRule rule, ArrayList<UnitedRule> result) {
+    if (rule==null || result==null)
+      return;
+    rule.numId=result.size();
+    result.add(rule);
+    if (rule.fromRules!=null)
+      for (int i=0; i<rule.fromRules.size(); i++) {
+        rule.fromRules.get(i).upperId=rule.numId;
+        expandOneRuleHierarchy(rule.fromRules.get(i),result);
+      }
+  }
 }

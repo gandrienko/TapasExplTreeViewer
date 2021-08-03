@@ -26,6 +26,28 @@ public class UnitedRule extends CommonExplanation {
    */
   public int nOrigWrong=0;
   
+  public UnitedRule makeRuleCopy(boolean copyThisId, boolean copyUpperId) {
+    UnitedRule rule=new UnitedRule();
+    if (copyThisId)
+      rule.numId=this.numId;
+    if (copyUpperId)
+      rule.upperId=this.upperId;
+    rule.action=this.action;
+    rule.eItems=this.eItems;
+    rule.uses=this.uses;
+    rule.nUses=this.nUses;
+    rule.minQ=this.minQ;
+    rule.maxQ=this.maxQ;
+    rule.meanQ=this.meanQ;
+    rule.sumQ=this.sumQ;
+    if (fromRules!=null && !fromRules.isEmpty()) {
+      rule.fromRules=new ArrayList<UnitedRule>(fromRules.size());
+      for (int i=0; i<fromRules.size(); i++)
+        rule.fromRules.add(fromRules.get(i).makeRuleCopy(copyThisId,copyUpperId));
+    }
+    return rule;
+  }
+  
   public void attachAsFromRule(CommonExplanation ex) {
     if (ex==null)
       return;
@@ -47,6 +69,16 @@ public class UnitedRule extends CommonExplanation {
     meanQ=(float)sumQ/nUses;
   }
   
+  public ArrayList<UnitedRule> putHierarchyInList(ArrayList<UnitedRule> hList) {
+    if (hList==null)
+      hList=new ArrayList<UnitedRule>((fromRules==null || fromRules.isEmpty())?1:20);
+    hList.add(this);
+    if (fromRules!=null)
+      for (int i=0; i<fromRules.size(); i++)
+        fromRules.get(i).putHierarchyInList(hList);
+    return hList;
+  }
+  
   public static UnitedRule getRule(CommonExplanation ex) {
     if (ex==null)
       return null;
@@ -54,6 +86,7 @@ public class UnitedRule extends CommonExplanation {
       return (UnitedRule)ex;
     UnitedRule rule=new UnitedRule();
     rule.numId=ex.numId;
+    rule.upperId=ex.upperId;
     rule.action=ex.action;
     rule.eItems=ex.eItems;
     rule.uses=ex.uses;

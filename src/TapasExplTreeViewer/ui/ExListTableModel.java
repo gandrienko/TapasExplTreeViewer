@@ -21,9 +21,11 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"N","Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items",
+  public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items",
       "Order", "Cluster", "N conditions", "Rule"};
-  public String columnNamesUnited[]={"N right covers","N wrong covers","Accuracy"};
+  public String columnNamesUnited[]={"N right covers","N wrong covers","Accuracy",
+      "N united rules","Depth of hierarchy"};
+  public boolean toShowUpperId=false;
 
   boolean drawValuesOrStatsForIntervals=false;
   public void setDrawValuesOrStatsForIntervals (boolean drawValuesOrStatsForIntervals) {
@@ -46,6 +48,12 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
           attrUses.put(cEx.eItems[j].attr,count+1);
       }
     }
+    if (hasUnitedRules) {
+      int lastUpperN=exList.get(0).upperId;
+      for (int i=1; i<exList.size() && !toShowUpperId; i++)
+        toShowUpperId=lastUpperN!=exList.get(i).upperId;
+    }
+    
     listOfFeatures=new ArrayList<String>(attrUses.size());
     for (Map.Entry<String,Integer> entry:attrUses.entrySet()) {
       String aName=entry.getKey();
@@ -63,10 +71,20 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       }
     }
     if (hasUnitedRules) {
-      String moreColNames[]=new String[columnNames.length+columnNamesUnited.length];
-      for (int i=0; i<columnNames.length-1; i++)
-        moreColNames[i]=columnNames[i];
-      int i=columnNames.length-1;
+      int nCols=columnNames.length+columnNamesUnited.length;
+      if (toShowUpperId)
+        ++nCols;
+      String moreColNames[]=new String[nCols];
+      if (toShowUpperId) {
+        moreColNames[0]=columnNames[0];
+        moreColNames[1]="Upper Id";
+        for (int i=1; i<columnNames.length-1; i++)
+          moreColNames[i+1]=columnNames[i];
+      }
+      else
+        for (int i=0; i<columnNames.length-1; i++)
+          moreColNames[i]=columnNames[i];
+      int i=(toShowUpperId)?columnNames.length:columnNames.length-1;
       for (int j=0; j<columnNamesUnited.length; j++)
         moreColNames[i++]=columnNamesUnited[j];
       moreColNames[i]=columnNames[columnNames.length-1];
@@ -120,7 +138,14 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     if (col<columnNames.length) {
       if (col==columnNames.length-1)
         return cEx;
-      switch (col) {
+      int cN=col;
+      if (toShowUpperId) {
+        if (col==1)
+          return cEx.upperId;
+        if (col>0)
+          --cN;
+      }
+      switch (cN) {
         case 0:
           return cEx.numId;
         case 1:
@@ -154,6 +179,10 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         }
         else
           return 100f;
+      if (cName.equals(columnNamesUnited[3]))
+        return (cEx instanceof UnitedRule) ? ((UnitedRule) cEx).countFromRules() : 0;
+      if (cName.equals(columnNamesUnited[4]))
+        return (cEx instanceof UnitedRule) ? ((UnitedRule) cEx).getHierarchyDepth() : 0;
     }
     String attrName=listOfFeatures.get(col-columnNames.length);
     double values[]={Double.NaN,Double.NaN,Double.NaN,Double.NaN};

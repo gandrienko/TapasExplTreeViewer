@@ -57,6 +57,10 @@ public class ShowRules {
    */
   public boolean aggregated=false;
   /**
+   * Whether the rule set consists of expanded rule hierarchies
+   */
+  public boolean expanded=false;
+  /**
    * The accuracy threshold used in aggregation
    */
   public double accThreshold=1;
@@ -110,6 +114,7 @@ public class ShowRules {
       else
         System.out.println("Distance matrix ready!");
     }
+    ToolTipManager.sharedInstance().setDismissDelay(30000);
   }
   
   public ShowRules(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
@@ -159,6 +164,14 @@ public class ShowRules {
   
   public void setMaxQDiff(double maxQDiff) {
     this.maxQDiff = maxQDiff;
+  }
+  
+  public boolean isExpanded() {
+    return expanded;
+  }
+  
+  public void setExpanded(boolean expanded) {
+    this.expanded = expanded;
   }
   
   public JFrame showRulesInTable() {
@@ -416,9 +429,31 @@ public class ShowRules {
       }
     });
     
-    if (aggregated) {
-      mit=new JMenuItem("Show the links between the original rules in a t-SNE projection");
-      menu.add(mit);
+    if (aggregated && !expanded) {
+      menu.add(mit=new JMenuItem("Expand rule hierarchies"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          ArrayList<UnitedRule> expanded=RuleMaster.expandRuleHierarchies(exList);
+          if (expanded!=null) {
+            ArrayList<CommonExplanation> ex=new ArrayList<CommonExplanation>(expanded.size());
+            ex.addAll(expanded);
+            ShowRules showRules=new ShowRules(ex,attrMinMax);
+            showRules.setOrigRules(origRules);
+            showRules.setOrigHighlighter(origHighlighter);
+            showRules.setOrigSelector(origSelector);
+            showRules.setNonSubsumed(true);
+            showRules.setAggregated(true);
+            showRules.setExpanded(true);
+            showRules.setAccThreshold(getAccThreshold());
+            if (!Double.isNaN(maxQDiff))
+              showRules.setMaxQDiff(maxQDiff);
+            showRules.setCreatedFileRegister(createdFiles);
+            showRules.showRulesInTable();
+          }
+        }
+      });
+      menu.add(mit=new JMenuItem("Show the links between the original rules in a t-SNE projection"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -436,42 +471,44 @@ public class ShowRules {
       }
     });
     
-    menu.addSeparator();
-    menu.add(mit=new JMenuItem("Extract the non-subsumed rules to a separate view"));
-    mit.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        getNonSubsumed(exList,attrMinMax);
-      }
-    });
+    if (!expanded) {
+      menu.addSeparator();
+      menu.add(mit = new JMenuItem("Extract the non-subsumed rules to a separate view"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          getNonSubsumed(exList, attrMinMax);
+        }
+      });
   
-    menu.addSeparator();
-    menu.add(mit=new JMenuItem("Otain generalized rules through aggregation"));
-    mit.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "Accuracy threshold from 0 to 1 :",
-            String.format("%.3f",accThreshold));
-        if (value==null)
-          return;
-        try {
-          double d=Double.parseDouble(value);
-          if (d<0 || d>1) {
+      menu.addSeparator();
+      menu.add(mit = new JMenuItem("Otain generalized rules through aggregation"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          String value = JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Accuracy threshold from 0 to 1 :",
+              String.format("%.3f", accThreshold));
+          if (value == null)
+            return;
+          try {
+            double d = Double.parseDouble(value);
+            if (d < 0 || d > 1) {
+              JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                  "Illegal threshold value for the accuracy; must be from 0 to 1!",
+                  "Error", JOptionPane.ERROR_MESSAGE);
+              return;
+            }
+            aggregate(exList, attrMinMax, d);
+          } catch (Exception ex) {
             JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                "Illegal threshold value for the accuracy; must be from 0 to 1!",
-                "Error",JOptionPane.ERROR_MESSAGE);
+                "Illegal threshold value for the accuracy!",
+                "Error", JOptionPane.ERROR_MESSAGE);
             return;
           }
-          aggregate(exList,attrMinMax,d);
-        } catch (Exception ex) {
-          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-              "Illegal threshold value for the accuracy!",
-              "Error",JOptionPane.ERROR_MESSAGE);
-          return;
         }
-      }
-    });
+      });
+    }
     
     menu.addSeparator();
     menu.add(mit=new JMenuItem("Quit"));
@@ -502,7 +539,7 @@ public class ShowRules {
 
     JScrollPane scrollPane = new JScrollPane(table);
     
-    String title=((aggregated)?"Aggregated rules":
+    String title=((expanded)?"Expanded aggregated rules ":(aggregated)?"Aggregated rules":
                       (nonSubsumed)?"Extracted non-subsumed rules":
                           "Original distinct rules or explanations")+
                      " (" + rules.size() + ")"+
@@ -597,6 +634,41 @@ public class ShowRules {
     pp.setHighlighter(highlighter);
     pp.setSelector(selector);
     pp.setPreferredSize(new Dimension(800,800));
+    
+    if (expanded && (exList.get(0) instanceof UnitedRule)){
+      HashSet<ArrayList<Vertex>> graphs=null;
+      for (int i=0; i<exList.size(); i++) {
+        UnitedRule rule=(UnitedRule)exList.get(i);
+        if (rule.upperId>=0 || rule.fromRules==null || rule.fromRules.isEmpty())
+          continue;
+        ArrayList<UnitedRule> hList=rule.putHierarchyInList(null);
+        if (hList==null || hList.size()<2)
+          continue;
+        ArrayList<Vertex> graph=new ArrayList<Vertex>(hList.size());
+        Hashtable<String,Integer> vertIndexes=new Hashtable<String,Integer>(hList.size());
+        for (int j=0; j<hList.size(); j++) {
+          UnitedRule r=hList.get(j);
+          String label=Integer.toString(r.numId);
+          vertIndexes.put(label,j);
+          graph.add(new Vertex(label));
+        }
+        for (int j=0; j<hList.size(); j++) {
+          UnitedRule r=hList.get(j);
+          if (r.upperId<0)
+            continue;
+          Edge e=new Edge(1);
+          e.setIncluded(true);
+          Vertex v1=graph.get(j), v2=graph.get(vertIndexes.get(Integer.toString(r.upperId)));
+          v1.addEdge(v2,e);
+          v2.addEdge(v1,e);
+        }
+        if (graphs==null)
+          graphs=new HashSet<ArrayList<Vertex>>(exList.size()/10);
+        graphs.add(graph);
+      }
+      if (graphs!=null)
+        pp.setGraphs(graphs);
+    }
   
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     JFrame plotFrame=new JFrame(pp.getProjectionProvider().getProjectionTitle());
@@ -756,6 +828,7 @@ public class ShowRules {
     showRules.setAggregated(this.aggregated);
     showRules.setAccThreshold(accThreshold);
     showRules.setMaxQDiff(maxQDiff);
+    showRules.setExpanded(expanded);
     showRules.setCreatedFileRegister(createdFiles);
     showRules.showRulesInTable();
   }

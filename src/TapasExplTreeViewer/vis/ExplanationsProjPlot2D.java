@@ -7,10 +7,7 @@ import TapasExplTreeViewer.MST.Vertex;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public static int minDotRadius=4, maxDotRadius=20;
@@ -19,6 +16,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public static Color linkColor=new Color(0,0,0,80);
   
   public ArrayList<CommonExplanation> explanations = null;
+  public Hashtable<String,float[]> attrMinMax=null;
   /**
    * The graphs represent connections between rules when they are aggregated.
    * The labels of the vertices are string representations of the rule indexes in the list.
@@ -36,13 +34,15 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public double minQ=Double.NaN, maxQ=Double.NaN;
   public int maxRadius=maxDotRadius;
   
-  public ExplanationsProjPlot2D(){
+  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax){
+    this.attrMinMax=attrMinMax;
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   }
   
-  public ExplanationsProjPlot2D(ArrayList<CommonExplanation> explanations, double coords[][]) {
+  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax, ArrayList<CommonExplanation> explanations, double coords[][]) {
     super(coords);
+    this.attrMinMax=attrMinMax;
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
     setExplanations(explanations);
@@ -171,7 +171,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     int idx=getPointIndexAtPosition(me.getX(),me.getY(),dotRadius);
     if (idx<0)
       return null;
-    return explanations.get(idx).toHTML(null);
+    return explanations.get(idx).toHTML(attrMinMax,"","img.png");
   }
   
   public static Color getColorForAction(int action, int minAction, int maxAction) {

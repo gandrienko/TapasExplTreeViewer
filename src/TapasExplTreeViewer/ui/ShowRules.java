@@ -581,7 +581,7 @@ public class ShowRules {
       return null;
     }
     
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax);
     pp.setExplanations(exList);
     pp.setDistanceMatrix(distanceMatrix);
     pp.setProjectionProvider(tsne);
@@ -630,7 +630,7 @@ public class ShowRules {
           return;
         }
         System.out.println("Trying to create another plot...");
-        ExplanationsProjPlot2D anotherPlot=new ExplanationsProjPlot2D(exList,coords);
+        ExplanationsProjPlot2D anotherPlot=new ExplanationsProjPlot2D(attrMinMax,exList,coords);
         anotherPlot.setPreferredSize(new Dimension(800,800));
         anotherPlot.setSelector(selector);
         anotherPlot.setHighlighter(highlighter);
@@ -920,7 +920,7 @@ public class ShowRules {
     
     double d[][]=CommonExplanation.computeDistances(origList,attrMinMax);
   
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D();
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax);
     pp.setExplanations(origList);
     pp.setDistanceMatrix(d);
     pp.setGraphs(graphs);

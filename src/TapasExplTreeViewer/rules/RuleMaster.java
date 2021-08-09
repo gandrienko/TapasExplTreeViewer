@@ -238,8 +238,11 @@ public class RuleMaster {
         for (int i=0; i<group.size(); i++)
           agRules.add(group.get(i));
       }
-    if (agRules.size()<rules.size())
+    if (agRules.size()<rules.size()) {
+      for (UnitedRule r:agRules)
+        r.countRightAndWrongCoverages(origRules);
       return agRules;
+    }
     return rules;
   }
   

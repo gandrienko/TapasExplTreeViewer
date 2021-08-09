@@ -314,6 +314,7 @@ public class RuleMaster {
     if (minAccuracy>0)
       for (int i=result.size()-1; i>=0; i--) {
         UnitedRule r=result.get(i);
+        r.countRightAndWrongCoverages(origRules);
         if (getAccuracy(r,origRules,true)<minAccuracy) {
           result.remove(i);
           notAccurate.add(r);
@@ -329,8 +330,6 @@ public class RuleMaster {
         UnitedRule r1=result.get(i);
         for (int j = i + 1; j < result.size(); j++) {
           UnitedRule r2=result.get(j);
-          if (IntervalDistance.distance(r1.minQ,r1.maxQ,r2.minQ,r2.maxQ)>maxQDiff)
-            continue;
           if (Math.max(r1.maxQ,r2.maxQ)-Math.min(r1.minQ,r2.minQ)>maxQDiff)
             continue;
           if (UnitedRule.sameFeatures(r1, r2)) {
@@ -355,8 +354,12 @@ public class RuleMaster {
           result.remove(i1);
           for (int j=result.size()-1; j>=0; j--)
             if (union.subsumes(result.get(j))) {
-              union.attachAsFromRule(result.get(j));
-              result.remove(j);
+              UnitedRule r2=result.get(j);
+              if (r2.minQ>=union.minQ && r2.maxQ<=union.minQ) {
+                union.attachAsFromRule(result.get(j));
+                result.remove(j);
+                union.countRightAndWrongCoveragesByQ(origRules);
+              }
             }
           result.add(0,union);
           united=true;

@@ -434,7 +434,14 @@ public class ShowRules {
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          ArrayList<UnitedRule> expanded=RuleMaster.expandRuleHierarchies(exList);
+          boolean applyToSelection=
+              selector.hasSelection() &&
+                  JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                      "Apply the operation to the selected subset?",
+                      "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
+                      ==JOptionPane.YES_OPTION;
+          ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+          ArrayList<UnitedRule> expanded=RuleMaster.expandRuleHierarchies(rules);
           if (expanded!=null) {
             ArrayList<CommonExplanation> ex=new ArrayList<CommonExplanation>(expanded.size());
             ex.addAll(expanded);
@@ -482,7 +489,7 @@ public class ShowRules {
       });
   
       menu.addSeparator();
-      menu.add(mit = new JMenuItem("Otain generalized rules through aggregation"));
+      menu.add(mit = new JMenuItem("Obtain generalized rules through aggregation"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -541,70 +548,117 @@ public class ShowRules {
         if (e.getClickCount()>1)
           selector.deselectAll();
         else
-          if (expanded) {
+          if (expanded || aggregated) {
             int rowIndex=table.rowAtPoint(e.getPoint());
             if (rowIndex<0)
               return;
             int realRowIndex = table.convertRowIndexToModel(rowIndex);
             UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
             JPopupMenu selMenu=null;
-            if (rule.upperId>=0) {
-              selMenu=new JPopupMenu();
-              JMenuItem selItem = new JMenuItem("Select rules including rule "+rule.numId);
+            if (origRules!=null) {
+              selMenu = new JPopupMenu();
+              JMenuItem selItem = new JMenuItem("Extract invalid coverages of rule " + rule.numId);
               selMenu.add(selItem);
               selItem.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                  ArrayList<Integer> toSelect=new ArrayList<Integer>(10);
-                  UnitedRule r=rule;
-                  do {
-                    int idx=RuleMaster.findRuleInList(exList,r.upperId);
-                    if (idx>=0) {
-                      toSelect.add(new Integer(idx));
-                      r=(UnitedRule)exList.get(idx);
-                    }
-                    else
-                      r=null;
-                  } while (r!=null && r.upperId>=0);
-                  if (!toSelect.isEmpty())
-                    selector.select(toSelect);
+                  ArrayList<CommonExplanation> wrong=rule.extractWrongCoverages(origRules,
+                      RuleMaster.noActionDifference(origRules));
+                  if (wrong==null || wrong.isEmpty()) {
+                    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                        "No invalid coverages found!",
+                        "No exceptions", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                  }
+                  ShowRules showRules=new ShowRules(wrong,attrMinMax,null);
+                  showRules.setOrigRules(origRules);
+                  showRules.setOrigHighlighter(origHighlighter);
+                  showRules.setOrigSelector(origSelector);
+                  showRules.setCreatedFileRegister(createdFiles);
+                  showRules.showRulesInTable();
+                }
+              });
+              selMenu.add(selItem = new JMenuItem("Extract valid coverages of rule " + rule.numId));
+              selItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                  ArrayList<CommonExplanation> valid=rule.extractValidCoverages(origRules,
+                      RuleMaster.noActionDifference(origRules));
+                  if (valid==null || valid.isEmpty()) {
+                    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                        "No valid coverages found!",
+                        "Very strange!", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                  }
+                  ShowRules showRules=new ShowRules(valid,attrMinMax,null);
+                  showRules.setOrigRules(origRules);
+                  showRules.setOrigHighlighter(origHighlighter);
+                  showRules.setOrigSelector(origSelector);
+                  showRules.setCreatedFileRegister(createdFiles);
+                  showRules.showRulesInTable();
                 }
               });
             }
-            
-            if (rule.fromRules!=null && !rule.fromRules.isEmpty()) {
-              if (selMenu==null)
-                selMenu=new JPopupMenu();
-              JMenuItem selItem = new JMenuItem("Select rules directly included in "+rule.numId);
-              selMenu.add(selItem);
-              selItem.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                  ArrayList<Integer> toSelect=new ArrayList<Integer>(10);
-                  for (int i=0; i<rule.fromRules.size(); i++) {
-                    int idx=RuleMaster.findRuleInList(exList,rule.fromRules.get(i).numId);
-                    if (idx>=0)
-                      toSelect.add(idx);
+            if (expanded) {
+              if (rule.upperId >= 0) {
+                if (selMenu == null)
+                  selMenu = new JPopupMenu();
+                JMenuItem selItem = new JMenuItem("Select rules that include rule " + rule.numId);
+                selMenu.add(selItem);
+                selItem.addActionListener(new ActionListener() {
+                  @Override
+                  public void actionPerformed(ActionEvent e) {
+                    ArrayList<Integer> toSelect = new ArrayList<Integer>(10);
+                    UnitedRule r = rule;
+                    do {
+                      int idx = RuleMaster.findRuleInList(exList, r.upperId);
+                      if (idx >= 0) {
+                        toSelect.add(new Integer(idx));
+                        r = (UnitedRule) exList.get(idx);
+                      }
+                      else
+                        r = null;
+                    } while (r != null && r.upperId >= 0);
+                    if (!toSelect.isEmpty())
+                      selector.select(toSelect);
                   }
-                  if (!toSelect.isEmpty())
-                    selector.select(toSelect);
-                }
-              });
-              selMenu.add(selItem = new JMenuItem("Select all rules included in "+rule.numId));
-              selItem.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                  ArrayList<UnitedRule> included=rule.putHierarchyInList(null);
-                  ArrayList<Integer> toSelect=new ArrayList<Integer>(10);
-                  for (int i=0; i<included.size(); i++) {
-                    int idx=RuleMaster.findRuleInList(exList,included.get(i).numId);
-                    if (idx>=0)
-                      toSelect.add(idx);
+                });
+              }
+  
+              if (rule.fromRules != null && !rule.fromRules.isEmpty()) {
+                if (selMenu == null)
+                  selMenu = new JPopupMenu();
+                JMenuItem selItem = new JMenuItem("Select rules directly included in " + rule.numId);
+                selMenu.add(selItem);
+                selItem.addActionListener(new ActionListener() {
+                  @Override
+                  public void actionPerformed(ActionEvent e) {
+                    ArrayList<Integer> toSelect = new ArrayList<Integer>(10);
+                    for (int i = 0; i < rule.fromRules.size(); i++) {
+                      int idx = RuleMaster.findRuleInList(exList, rule.fromRules.get(i).numId);
+                      if (idx >= 0)
+                        toSelect.add(idx);
+                    }
+                    if (!toSelect.isEmpty())
+                      selector.select(toSelect);
                   }
-                  if (!toSelect.isEmpty())
-                    selector.select(toSelect);
-                }
-              });
+                });
+                selMenu.add(selItem = new JMenuItem("Select all rules included in " + rule.numId));
+                selItem.addActionListener(new ActionListener() {
+                  @Override
+                  public void actionPerformed(ActionEvent e) {
+                    ArrayList<UnitedRule> included = rule.putHierarchyInList(null);
+                    ArrayList<Integer> toSelect = new ArrayList<Integer>(10);
+                    for (int i = 0; i < included.size(); i++) {
+                      int idx = RuleMaster.findRuleInList(exList, included.get(i).numId);
+                      if (idx >= 0)
+                        toSelect.add(idx);
+                    }
+                    if (!toSelect.isEmpty())
+                      selector.select(toSelect);
+                  }
+                });
+              }
             }
             if (selMenu==null)
               return;
@@ -669,6 +723,22 @@ public class ShowRules {
       }
     });
     return fr;
+  }
+  
+  public ArrayList getSelectedRules(ArrayList allRules, ItemSelectionManager selector) {
+    if (allRules==null || allRules.isEmpty() || selector==null || !selector.hasSelection())
+      return null;
+    ArrayList selected=selector.getSelected();
+    if (selected==null || selected.isEmpty())
+      return null;
+    ArrayList result=new ArrayList(selected.size());
+    for (int i=0; i<selected.size(); i++) {
+      int idx=(Integer)selected.get(i);
+      result.add(allRules.get(idx));
+    }
+    if (result.isEmpty())
+      return null;
+    return result;
   }
   
   public void eraseCreatedFiles () {
@@ -1017,11 +1087,18 @@ public class ShowRules {
   public void showAggregationInProjection(ItemSelectionManager selector) {
     if (exList==null || exList.isEmpty() || !(exList.get(0) instanceof UnitedRule))
       return;
-    ArrayList<CommonExplanation> origList=new ArrayList<CommonExplanation>(exList.size());
+    boolean applyToSelection=
+        selector.hasSelection() &&
+            JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                "Apply the operation to the selected subset?",
+                "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
+                ==JOptionPane.YES_OPTION;
+    ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+    ArrayList<CommonExplanation> origList=new ArrayList<CommonExplanation>(rules.size());
     HashSet<ArrayList<Vertex>> graphs=null;
-    ArrayList<Integer> unionIds=new ArrayList<Integer>(exList.size()*5);
-    for (int i=0; i<exList.size(); i++) {
-      UnitedRule rule=(UnitedRule)exList.get(i);
+    ArrayList<Integer> unionIds=new ArrayList<Integer>(rules.size()*5);
+    for (int i=0; i<rules.size(); i++) {
+      UnitedRule rule=(UnitedRule)rules.get(i);
       if (rule.fromRules==null || rule.fromRules.isEmpty()) {
         origList.add(rule);
         unionIds.add(i);
@@ -1046,7 +1123,7 @@ public class ShowRules {
         Prim prim=new Prim(graph);
         prim.run();
         if (graphs==null)
-          graphs=new HashSet<ArrayList<Vertex>>(exList.size());
+          graphs=new HashSet<ArrayList<Vertex>>(rules.size());
         graphs.add(graph);
       }
       for (int j=0; j<ruleGroup.size(); j++) {

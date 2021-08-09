@@ -133,6 +133,46 @@ public class UnitedRule extends CommonExplanation {
       }
   }
   
+  public ArrayList<CommonExplanation> extractValidCoverages(ArrayList<CommonExplanation> exList, boolean byQ) {
+    if (exList==null || exList.isEmpty())
+      return null;
+    ArrayList<CommonExplanation> result=new ArrayList<CommonExplanation>(10);
+    for (int i=0; i<exList.size(); i++)
+      if (subsumes(exList.get(i),false)) {
+        CommonExplanation ex=exList.get(i);
+        if (byQ) {
+          if (ex.minQ>=minQ && ex.maxQ<=maxQ)
+            result.add(ex);
+        }
+        else
+          if (ex.action==this.action)
+            result.add(ex);
+      }
+    if (result.isEmpty())
+      return null;
+    return result;
+  }
+  
+  public ArrayList<CommonExplanation> extractWrongCoverages(ArrayList<CommonExplanation> exList, boolean byQ) {
+    if (exList==null || exList.isEmpty())
+      return null;
+    ArrayList<CommonExplanation> result=new ArrayList<CommonExplanation>(10);
+    for (int i=0; i<exList.size(); i++)
+      if (subsumes(exList.get(i),false)) {
+        CommonExplanation ex=exList.get(i);
+        if (byQ) {
+          if (ex.minQ < minQ || ex.maxQ > maxQ)
+            result.add(ex);
+        }
+        else
+          if (ex.action!=this.action)
+            result.add(ex);
+      }
+    if (result.isEmpty())
+      return null;
+    return result;
+  }
+  
   
   public static CommonExplanation adjustToFeatureRanges(CommonExplanation r, Hashtable<String,float[]> attrMinMax) {
     if (attrMinMax==null || attrMinMax.isEmpty() || r.eItems==null || r.eItems.length<1)

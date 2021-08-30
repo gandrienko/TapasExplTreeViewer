@@ -77,6 +77,8 @@ public class ShowRules {
    */
   protected double distanceMatrix[][]=null;
   
+  public String title=null;
+  
   protected ArrayList<JFrame> frames=null;
   protected ArrayList<File> createdFiles=null;
   /**
@@ -172,6 +174,10 @@ public class ShowRules {
   
   public void setExpanded(boolean expanded) {
     this.expanded = expanded;
+  }
+  
+  public void setTitle(String title) {
+    this.title = title;
   }
   
   public JFrame showRulesInTable() {
@@ -445,16 +451,10 @@ public class ShowRules {
           if (expanded!=null) {
             ArrayList<CommonExplanation> ex=new ArrayList<CommonExplanation>(expanded.size());
             ex.addAll(expanded);
-            ShowRules showRules=new ShowRules(ex,attrMinMax);
-            showRules.setOrigRules(origRules);
-            showRules.setOrigHighlighter(origHighlighter);
-            showRules.setOrigSelector(origSelector);
+            ShowRules showRules=createShowRulesInstance(ex);
             showRules.setNonSubsumed(true);
             showRules.setAggregated(true);
             showRules.setExpanded(true);
-            showRules.setAccThreshold(getAccThreshold());
-            if (!Double.isNaN(maxQDiff))
-              showRules.setMaxQDiff(maxQDiff);
             showRules.setCreatedFileRegister(createdFiles);
             showRules.showRulesInTable();
           }
@@ -557,8 +557,36 @@ public class ShowRules {
             JPopupMenu selMenu=null;
             if (origRules!=null) {
               selMenu = new JPopupMenu();
-              JMenuItem selItem = new JMenuItem("Extract invalid coverages of rule " + rule.numId);
+              JMenuItem selItem = new JMenuItem("Extract all coverages of rule " + rule.numId);
               selMenu.add(selItem);
+              selItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                  ArrayList<CommonExplanation> valid=rule.extractValidCoverages(origRules,
+                      RuleMaster.noActionDifference(origRules));
+                  ArrayList<CommonExplanation> wrong=rule.extractWrongCoverages(origRules,
+                      RuleMaster.noActionDifference(origRules));
+                  if ((valid==null || valid.isEmpty()) && (wrong==null || wrong.isEmpty())) {
+                    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                        "Neither valid nor invalid coverages found!",
+                        "Very strange!", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                  }
+                  int n=1;
+                  if (valid!=null) n+=valid.size();
+                  if (wrong!=null) n+=wrong.size();
+                  ArrayList<CommonExplanation> all=new ArrayList<CommonExplanation>(n);
+                  if (valid!=null)
+                    all.addAll(valid);
+                  if (wrong!=null)
+                    all.addAll(wrong);
+                  all.add(0,rule);
+                  ShowRules showRules=createShowRulesInstance(all);
+                  showRules.setTitle("All coverages of rule # "+rule.numId);
+                  showRules.showRulesInTable();
+                }
+              });
+              selMenu.add(selItem = new JMenuItem("Extract invalid coverages of rule " + rule.numId));
               selItem.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -570,11 +598,9 @@ public class ShowRules {
                         "No exceptions", JOptionPane.INFORMATION_MESSAGE);
                     return;
                   }
-                  ShowRules showRules=new ShowRules(wrong,attrMinMax,null);
-                  showRules.setOrigRules(origRules);
-                  showRules.setOrigHighlighter(origHighlighter);
-                  showRules.setOrigSelector(origSelector);
-                  showRules.setCreatedFileRegister(createdFiles);
+                  wrong.add(0,rule);
+                  ShowRules showRules=createShowRulesInstance(wrong);
+                  showRules.setTitle("Invalid coverages of rule # "+rule.numId);
                   showRules.showRulesInTable();
                 }
               });
@@ -590,11 +616,9 @@ public class ShowRules {
                         "Very strange!", JOptionPane.INFORMATION_MESSAGE);
                     return;
                   }
-                  ShowRules showRules=new ShowRules(valid,attrMinMax,null);
-                  showRules.setOrigRules(origRules);
-                  showRules.setOrigHighlighter(origHighlighter);
-                  showRules.setOrigSelector(origSelector);
-                  showRules.setCreatedFileRegister(createdFiles);
+                  valid.add(0,rule);
+                  ShowRules showRules=createShowRulesInstance(valid);
+                  showRules.setTitle("Valid coverages of rule # "+rule.numId);
                   showRules.showRulesInTable();
                 }
               });
@@ -671,14 +695,17 @@ public class ShowRules {
 
     JScrollPane scrollPane = new JScrollPane(table);
     
-    String title=((expanded)?"Expanded aggregated rules ":(aggregated)?"Aggregated rules":
-                      (nonSubsumed)?"Extracted non-subsumed rules":
-                          "Original distinct rules or explanations")+
-                     " (" + rules.size() + ")"+
-                     ((aggregated)?"; obtained with accuracy threshold "+
-                                       String.format("%.3f",accThreshold):"");
-    if (maxQDiff>0)
-      title+=" and max Q difference "+String.format("%.5f",maxQDiff);
+    if (title==null) {
+      title = ((expanded) ? "Expanded aggregated rules " :
+                   (aggregated) ? "Aggregated rules" :
+                       (nonSubsumed) ? "Extracted non-subsumed rules" :
+                           "Original distinct rules or explanations") +
+                  " (" + rules.size() + ")" +
+                  ((aggregated) ? "; obtained with accuracy threshold " +
+                                      String.format("%.3f", accThreshold) : "");
+      if (maxQDiff > 0)
+        title += " and max Q difference " + String.format("%.5f", maxQDiff);
+    }
   
     JFrame fr = new JFrame(title);
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -723,6 +750,18 @@ public class ShowRules {
       }
     });
     return fr;
+  }
+  
+  protected ShowRules createShowRulesInstance(ArrayList rules) {
+    ShowRules showRules=new ShowRules(rules,attrMinMax,null);
+    showRules.setOrigRules(origRules);
+    showRules.setOrigHighlighter(origHighlighter);
+    showRules.setOrigSelector(origSelector);
+    showRules.setCreatedFileRegister(createdFiles);
+    showRules.setAccThreshold(getAccThreshold());
+    if (!Double.isNaN(maxQDiff))
+      showRules.setMaxQDiff(maxQDiff);
+    return showRules;
   }
   
   public ArrayList getSelectedRules(ArrayList allRules, ItemSelectionManager selector) {
@@ -989,47 +1028,6 @@ public class ShowRules {
                              Hashtable<String,float[]> attrMinMax) {
     if (exList==null || exList.size()<2)
       return;
-    System.out.println("Trying to reduce the explanation set by removing less general explanations...");
-    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax);
-    if (exList2.size()<exList.size()) {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Reduced the number of explanations from " +
-                                             exList.size() + " to " + exList2.size(),
-          "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
-    }
-    else {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Did not manage to reduce the set of explanations!",
-          "Fail",JOptionPane.WARNING_MESSAGE);
-      return;
-    }
-    ShowRules showRules=new ShowRules(exList2,attrMinMax);
-    showRules.setOrigRules(origRules);
-    showRules.setOrigHighlighter(origHighlighter);
-    showRules.setOrigSelector(origSelector);
-    showRules.setNonSubsumed(true);
-    showRules.setCreatedFileRegister(createdFiles);
-    showRules.showRulesInTable();
-  }
-  
-  public void aggregate(ArrayList<CommonExplanation> exList,
-                        Hashtable<String,float[]> attrMinMax,
-                        double minAccuracy) {
-    if (exList==null || exList.size()<2)
-      return;
-    if (!nonSubsumed) {
-      System.out.println("Prior to aggregation, trying to remove less general explanations...");
-      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules,attrMinMax);
-      if  (exList2!=null && exList2.size()<exList.size()) {
-        /*
-        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "Removal of subsumed rules has reduced the number of explanations from " +
-                               exList.size() + " to " + exList2.size(),
-            "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
-        */
-        exList = exList2;
-      }
-    }
     boolean noActions=RuleMaster.noActionDifference(exList);
     double maxQDiff=Double.NaN;
     if (noActions) {
@@ -1053,6 +1051,66 @@ public class ShowRules {
             "Error",JOptionPane.ERROR_MESSAGE);
       }
     }
+    System.out.println("Trying to reduce the explanation set by removing less general explanations...");
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,noActions,maxQDiff);
+    if (exList2.size()<exList.size()) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Reduced the number of explanations from " +
+                                             exList.size() + " to " + exList2.size(),
+          "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
+    }
+    else {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Did not manage to reduce the set of explanations!",
+          "Fail",JOptionPane.WARNING_MESSAGE);
+      return;
+    }
+    ShowRules showRules=createShowRulesInstance(exList2);
+    showRules.setNonSubsumed(true);
+    showRules.showRulesInTable();
+  }
+  
+  public void aggregate(ArrayList<CommonExplanation> exList,
+                        Hashtable<String,float[]> attrMinMax,
+                        double minAccuracy) {
+    if (exList==null || exList.size()<2)
+      return;
+    boolean noActions=RuleMaster.noActionDifference(exList);
+    double maxQDiff=Double.NaN;
+    if (noActions) {
+      String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "The rules do not differ in actions (decisions) and can be aggregated by closeness of " +
+              "the Q values. Enter a threshold for the difference in Q :",
+          String.format("%.5f",RuleMaster.suggestMaxQDiff(exList)));
+      if (value==null)
+        return;
+      try {
+        maxQDiff=Double.parseDouble(value);
+        if (maxQDiff<0) {
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Illegal threshold value for the Q difference; must be >=0!",
+              "Error",JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+      } catch (Exception ex) {
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal threshold value for the Q difference!",
+            "Error",JOptionPane.ERROR_MESSAGE);
+      }
+    }
+    if (!nonSubsumed) {
+      System.out.println("Prior to aggregation, trying to remove less general explanations...");
+      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules,attrMinMax,noActions,maxQDiff);
+      if  (exList2!=null && exList2.size()<exList.size()) {
+        /*
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Removal of subsumed rules has reduced the number of explanations from " +
+                               exList.size() + " to " + exList2.size(),
+            "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
+        */
+        exList = exList2;
+      }
+    }
     System.out.println("Trying to aggregate the rules...");
     ArrayList<UnitedRule> aggRules=(noActions)?RuleMaster.aggregateByQ(UnitedRule.getRules(exList),maxQDiff,
         origRules,minAccuracy,attrMinMax):
@@ -1071,16 +1129,9 @@ public class ShowRules {
     */
     ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
     aggEx.addAll(aggRules);
-    ShowRules showRules=new ShowRules(aggEx,attrMinMax);
-    showRules.setOrigRules(origRules);
-    showRules.setOrigHighlighter(origHighlighter);
-    showRules.setOrigSelector(origSelector);
+    ShowRules showRules=createShowRulesInstance(aggEx);
     showRules.setNonSubsumed(true);
     showRules.setAggregated(true);
-    showRules.setAccThreshold(minAccuracy);
-    if (!Double.isNaN(maxQDiff))
-      showRules.setMaxQDiff(maxQDiff);
-    showRules.setCreatedFileRegister(createdFiles);
     showRules.showRulesInTable();
   }
   

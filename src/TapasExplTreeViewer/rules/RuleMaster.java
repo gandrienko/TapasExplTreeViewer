@@ -71,12 +71,14 @@ public class RuleMaster {
   }
   
   /**
-   * Removes explanations (or rules) covered by other rules with the same actions whose conditians are more general.
+   * Removes explanations (or rules) covered by other rules with the same actions
+   * whose conditions are more general.
    * @return reduced set of explanations (rules).
    */
   public static ArrayList<CommonExplanation> removeLessGeneral(ArrayList<CommonExplanation> rules,
                                                                ArrayList<CommonExplanation> origRules,
-                                                               Hashtable<String,float[]> attrMinMax) {
+                                                               Hashtable<String,float[]> attrMinMax,
+                                                               boolean useQ, double maxQDiff) {
     if (rules==null || rules.size()<2)
       return rules;
     if (attrMinMax!=null) {
@@ -109,16 +111,22 @@ public class RuleMaster {
         if (!removed[j]) {
           UnitedRule gEx = selectMoreGeneral(ex, rules.get(j));
           if (gEx != null) {
-            removed[i]=removed[j]=true;
-            ex=gEx;
+            if (useQ && gEx.maxQ-gEx.minQ>maxQDiff);
+            else {
+              removed[i] = removed[j] = true;
+              ex = gEx;
+            }
           }
         }
       if (removed[i]) {
         for (int j=moreGeneral.size()-1; j>=0; j--) {
           UnitedRule gEx = selectMoreGeneral(ex, moreGeneral.get(j));
           if (gEx!=null) {
-            moreGeneral.remove(j);
-            ex=gEx;
+            if (useQ && gEx.maxQ-gEx.minQ>maxQDiff);
+            else {
+              moreGeneral.remove(j);
+              ex = gEx;
+            }
           }
         }
         moreGeneral.add(UnitedRule.getRule(ex));
@@ -134,10 +142,13 @@ public class RuleMaster {
           if (!removed[j]){
             UnitedRule gEx=selectMoreGeneral(moreGeneral.get(i),rules.get(j));
             if (gEx!=null) {
-              moreGeneral.add(i,gEx);
-              moreGeneral.remove(i+1);
-              removed[j]=true;
-              changed=true;
+              if (useQ && gEx.maxQ-gEx.minQ>maxQDiff);
+              else {
+                moreGeneral.add(i, gEx);
+                moreGeneral.remove(i + 1);
+                removed[j] = true;
+                changed = true;
+              }
             }
           }
     } while (changed);
@@ -350,20 +361,22 @@ public class RuleMaster {
         int i1=pair[0], i2=pair[1];
         UnitedRule union=UnitedRule.unite(result.get(i1),result.get(i2),attrMinMax);
         if (union!=null) {
+          if (union.maxQ-union.minQ>maxQDiff)
+            continue;
           union.countRightAndWrongCoveragesByQ(origRules);
           if (minAccuracy>0 && getAccuracy(union,origRules,true)<minAccuracy)
             continue;
           result.remove(i2);
           result.remove(i1);
-          for (int j=result.size()-1; j>=0; j--)
-            if (union.subsumes(result.get(j))) {
-              UnitedRule r2=result.get(j);
-              if (r2.minQ>=union.minQ && r2.maxQ<=union.minQ) {
-                union.attachAsFromRule(result.get(j));
-                result.remove(j);
-                union.countRightAndWrongCoveragesByQ(origRules);
-              }
+          for (int j=result.size()-1; j>=0; j--) {
+            UnitedRule r2 = result.get(j);
+            if (r2.minQ >= union.minQ && r2.maxQ <= union.maxQ &&
+                    union.subsumes(r2)) {
+              union.attachAsFromRule(r2);
+              result.remove(j);
+              union.countRightAndWrongCoveragesByQ(origRules);
             }
+          }
           result.add(0,union);
           united=true;
         }
@@ -378,7 +391,7 @@ public class RuleMaster {
       return rules;
     ArrayList<CommonExplanation> aEx=new ArrayList<CommonExplanation>(result.size());
     aEx.addAll(result);
-    aEx = removeLessGeneral(aEx, origRules, attrMinMax);
+    aEx = removeLessGeneral(aEx, origRules, attrMinMax, true, maxQDiff);
     if (aEx.size()<result.size()) {
       result.clear();
       for (int i=0; i<aEx.size(); i++)

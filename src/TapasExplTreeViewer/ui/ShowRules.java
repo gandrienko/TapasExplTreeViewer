@@ -449,6 +449,7 @@ public class ShowRules {
           ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
           ArrayList<UnitedRule> expanded=RuleMaster.expandRuleHierarchies(rules);
           if (expanded!=null) {
+            /*
             if (origRules!=null) {
               boolean noActions=RuleMaster.noActionDifference(origRules);
               for (UnitedRule r : expanded)
@@ -457,6 +458,7 @@ public class ShowRules {
                 else
                   r.countRightAndWrongCoverages(origRules);
             }
+            */
             ArrayList<CommonExplanation> ex=new ArrayList<CommonExplanation>(expanded.size());
             ex.addAll(expanded);
             ShowRules showRules=createShowRulesInstance(ex);
@@ -1106,19 +1108,20 @@ public class ShowRules {
             "Error",JOptionPane.ERROR_MESSAGE);
       }
     }
-    if (!nonSubsumed) {
-      System.out.println("Prior to aggregation, trying to remove less general explanations...");
-      ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules,attrMinMax,noActions,maxQDiff);
-      if  (exList2!=null && exList2.size()<exList.size()) {
+    
+    //if (!nonSubsumed) {
+      //System.out.println("Prior to aggregation, trying to remove less general explanations...");
+      //ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules,attrMinMax,noActions,maxQDiff);
+      //if  (exList2!=null && exList2.size()<exList.size()) {
         /*
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
             "Removal of subsumed rules has reduced the number of explanations from " +
                                exList.size() + " to " + exList2.size(),
             "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
         */
-        exList = exList2;
-      }
-    }
+      //  exList = exList2;
+      //}
+    //}
     System.out.println("Trying to aggregate the rules...");
     ArrayList<UnitedRule> aggRules=(noActions)?RuleMaster.aggregateByQ(UnitedRule.getRules(exList),maxQDiff,
         origRules,minAccuracy,attrMinMax):

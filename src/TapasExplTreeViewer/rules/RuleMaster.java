@@ -49,8 +49,8 @@ public class RuleMaster {
         rule.uses.putAll(ex1.uses);
       if (n2>0)
         rule.uses.putAll(ex2.uses);
-      if (rule.uses.size()<n1+n2)  //there are common uses of the original rules
-        rule.nUses-=n1+n2-rule.uses.size();
+      //if (rule.uses.size()<n1+n2)  //there are common uses of the original rules
+        //rule.nUses-=n1+n2-rule.uses.size();
     }
     rule.eItems=CommonExplanation.makeCopy(ex1.eItems);
     rule.fromRules=new ArrayList<UnitedRule>(10);
@@ -98,6 +98,18 @@ public class RuleMaster {
       }
       if (rules2!=null)
         rules=rules2;
+    }
+    for (int i=0; i<rules.size(); i++) {
+      CommonExplanation ex= rules.get(i);
+      UnitedRule r=UnitedRule.getRule(ex);
+      if (useQ)
+        r.countRightAndWrongCoveragesByQ(origRules);
+      else
+        r.countRightAndWrongCoverages(origRules);
+      if (!(ex instanceof UnitedRule)) {
+        rules.remove(i);
+        rules.add(i,r);
+      }
     }
     
     ArrayList<CommonExplanation> moreGeneral=new ArrayList<CommonExplanation>(rules.size());
@@ -218,10 +230,7 @@ public class RuleMaster {
     ArrayList<UnitedRule> agRules=new ArrayList<UnitedRule>(ruleGroups.size()*2);
     for (int i=0; i<rules.size(); i++) {
       UnitedRule rule=rules.get(i);
-      if (rule.nOrigRight<1)
-        rule.countRightAndWrongCoverages(origRules);
-      if (rule.nOrigRight<1)
-        System.out.println("Zero coverage!");
+      rule.countRightAndWrongCoverages(origRules);
       boolean added=false;
       for (int j=0; j<ruleGroups.size() && !added; j++) {
         UnitedRule rule2=ruleGroups.get(j).get(0);
@@ -303,10 +312,15 @@ public class RuleMaster {
           group.remove(i1);
           for (int j=group.size()-1; j>=0; j--)
             if (union.subsumes(group.get(j),true)) {
+              UnitedRule u=union.makeRuleCopy(true,true);
               union.attachAsFromRule(group.get(j));
+              union.countRightAndWrongCoverages(origRules);
               if (union.nOrigRight<1)
                 System.out.println("Zero coverage!");
-              group.remove(j);
+              if (minAccuracy>0 && getAccuracy(union,origRules,false)>=minAccuracy)
+                group.remove(j);
+              else
+                union=u;
             }
           group.add(0,union);
           united=true;
@@ -419,8 +433,10 @@ public class RuleMaster {
         rule.countRightAndWrongCoveragesByQ(origRules);
       else
         rule.countRightAndWrongCoverages(origRules);
-    if (rule.nOrigRight<1)
+    if (rule.nOrigRight<1) {
+      System.out.println("Zero coverage!");
       return Double.NaN; //must not happen; it means that this rule does not cover any of origRules!
+    }
     return 1.0*rule.nOrigRight/(rule.nOrigRight+rule.nOrigWrong);
   }
   
@@ -459,6 +475,8 @@ public class RuleMaster {
       return;
     rule.numId=result.size();
     result.add(rule);
+    if (rule.nOrigRight<1)
+      System.out.println("Zero coverage!");
     if (rule.fromRules!=null)
       for (int i=0; i<rule.fromRules.size(); i++) {
         rule.fromRules.get(i).upperId=rule.numId;

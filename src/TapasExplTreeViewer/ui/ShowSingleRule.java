@@ -32,7 +32,7 @@ public class ShowSingleRule {
               v=minmax.elementAt(i)[1];
             y[k]=(int)Math.round(dy*(v-minmax.elementAt(i)[0])/(minmax.elementAt(i)[1]-minmax.elementAt(i)[0]));
           }
-          g.drawRect(x-2,offsetY+y[0],4,y[1]-y[0]);
+          g.drawRect(x-2,offsetY+dy-y[1],4,y[1]-y[0]);
           found=true;
         }
       Color cblue=new Color(0,127,127, 63);
@@ -51,7 +51,7 @@ public class ShowSingleRule {
                   v=minmax.elementAt(i)[1];
                 y[k]=(int)Math.round(dy*(v-minmax.elementAt(i)[0])/(minmax.elementAt(i)[1]-minmax.elementAt(i)[0]));
               }
-              g.fillRect(x+2,offsetY+y[0],5,y[1]-y[0]);
+              g.fillRect(x+2,offsetY+dy-y[1],5,y[1]-y[0]);
               found=true;
             }
 

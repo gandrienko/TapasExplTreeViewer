@@ -2,7 +2,6 @@ package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
-import TapasDataReader.IntervalDistance;
 import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 
 import java.util.ArrayList;
@@ -219,6 +218,10 @@ public class RuleMaster {
     ArrayList<UnitedRule> agRules=new ArrayList<UnitedRule>(ruleGroups.size()*2);
     for (int i=0; i<rules.size(); i++) {
       UnitedRule rule=rules.get(i);
+      if (rule.nOrigRight<1)
+        rule.countRightAndWrongCoverages(origRules);
+      if (rule.nOrigRight<1)
+        System.out.println("Zero coverage!");
       boolean added=false;
       for (int j=0; j<ruleGroups.size() && !added; j++) {
         UnitedRule rule2=ruleGroups.get(j).get(0);
@@ -246,8 +249,7 @@ public class RuleMaster {
           continue;
         }
         aggregateGroup(group,origRules,minAccuracy,attrMinMax);
-        for (int i=0; i<group.size(); i++)
-          agRules.add(group.get(i));
+        agRules.addAll(group);
       }
     if (agRules.size()<rules.size()) {
       for (UnitedRule r:agRules)
@@ -293,13 +295,17 @@ public class RuleMaster {
         UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
         if (union!=null) {
           union.countRightAndWrongCoverages(origRules);
+          if (union.nOrigRight<1)
+            System.out.println("Zero coverage!");
           if (minAccuracy>0 && getAccuracy(union,origRules,false)<minAccuracy)
             continue;
           group.remove(i2);
           group.remove(i1);
           for (int j=group.size()-1; j>=0; j--)
-            if (union.subsumes(group.get(j))) {
+            if (union.subsumes(group.get(j),true)) {
               union.attachAsFromRule(group.get(j));
+              if (union.nOrigRight<1)
+                System.out.println("Zero coverage!");
               group.remove(j);
             }
           group.add(0,union);
@@ -308,8 +314,7 @@ public class RuleMaster {
       }
     } while (united && group.size()>1);
     if (notAccurate!=null && !notAccurate.isEmpty())
-      for (int i=0; i<notAccurate.size(); i++)
-        group.add(notAccurate.get(i));
+      group.addAll(notAccurate);
   }
   
   public static ArrayList<UnitedRule> aggregateByQ(ArrayList<UnitedRule> rules,
@@ -328,7 +333,6 @@ public class RuleMaster {
     if (minAccuracy>0)
       for (int i=result.size()-1; i>=0; i--) {
         UnitedRule r=result.get(i);
-        r.countRightAndWrongCoverages(origRules);
         if (getAccuracy(r,origRules,true)<minAccuracy) {
           result.remove(i);
           notAccurate.add(r);
@@ -364,6 +368,8 @@ public class RuleMaster {
           if (union.maxQ-union.minQ>maxQDiff)
             continue;
           union.countRightAndWrongCoveragesByQ(origRules);
+          if (union.nOrigRight<1)
+            System.out.println("Zero coverage!");
           if (minAccuracy>0 && getAccuracy(union,origRules,true)<minAccuracy)
             continue;
           result.remove(i2);
@@ -375,6 +381,8 @@ public class RuleMaster {
               union.attachAsFromRule(r2);
               result.remove(j);
               union.countRightAndWrongCoveragesByQ(origRules);
+              if (union.nOrigRight<1)
+                System.out.println("Zero coverage!");
             }
           }
           result.add(0,union);

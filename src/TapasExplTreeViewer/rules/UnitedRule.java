@@ -40,6 +40,8 @@ public class UnitedRule extends CommonExplanation {
     rule.maxQ=this.maxQ;
     rule.meanQ=this.meanQ;
     rule.sumQ=this.sumQ;
+    rule.nOrigRight=this.nOrigRight;
+    rule.nOrigWrong=this.nOrigWrong;
     if (fromRules!=null && !fromRules.isEmpty()) {
       rule.fromRules=new ArrayList<UnitedRule>(fromRules.size());
       for (int i=0; i<fromRules.size(); i++)
@@ -238,10 +240,14 @@ public class UnitedRule extends CommonExplanation {
   public static UnitedRule unite(UnitedRule r1, UnitedRule r2, Hashtable<String,float[]> attrMinMax) {
     if (r1==null || r2==null)
       return null;
+    if (r1.nOrigRight<1 || r2.nOrigRight<1)
+      System.out.println("Zero coverage!");
     if (attrMinMax!=null) {
       r1=(UnitedRule)adjustToFeatureRanges(r1,attrMinMax);
       r2=(UnitedRule)adjustToFeatureRanges(r2,attrMinMax);
     }
+    if (r1.nOrigRight<1 || r2.nOrigRight<1)
+      System.out.println("Zero coverage!");
     //if (!sameFeatures(r1,r2))
       //return null;
     ExplanationItem e1[]=r1.eItems, e2[]=r2.eItems;

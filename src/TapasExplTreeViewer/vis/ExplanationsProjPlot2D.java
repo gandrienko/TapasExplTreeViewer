@@ -218,7 +218,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   
   public static Color getColorForAction(int action, int minAction, int maxAction) {
     if (minAction==maxAction || action < minAction || action>maxAction)
-      return Color.darkGray;
+      return Color.gray;
     float actionRatio = ((float)maxAction-action) / (maxAction-minAction);
     Color color = Color.getHSBColor(actionRatio * (hsbBlue[0] - hsbRed[0]),1,1);
     return new Color(color.getRed(),color.getGreen(),color.getBlue(),100);

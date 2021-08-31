@@ -449,6 +449,14 @@ public class ShowRules {
           ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
           ArrayList<UnitedRule> expanded=RuleMaster.expandRuleHierarchies(rules);
           if (expanded!=null) {
+            if (origRules!=null) {
+              boolean noActions=RuleMaster.noActionDifference(origRules);
+              for (UnitedRule r : expanded)
+                if (noActions)
+                  r.countRightAndWrongCoveragesByQ(origRules);
+                else
+                  r.countRightAndWrongCoverages(origRules);
+            }
             ArrayList<CommonExplanation> ex=new ArrayList<CommonExplanation>(expanded.size());
             ex.addAll(expanded);
             ShowRules showRules=createShowRulesInstance(ex);

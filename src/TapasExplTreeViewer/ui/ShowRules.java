@@ -1132,6 +1132,9 @@ public class ShowRules {
     ShowRules showRules=createShowRulesInstance(aggEx);
     showRules.setNonSubsumed(true);
     showRules.setAggregated(true);
+    showRules.setAccThreshold(minAccuracy);
+    if (noActions)
+      showRules.setMaxQDiff(maxQDiff);
     showRules.showRulesInTable();
   }
   

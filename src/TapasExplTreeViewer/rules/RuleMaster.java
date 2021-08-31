@@ -279,7 +279,7 @@ public class RuleMaster {
       pairs.clear();
       for (int i=0; i<group.size()-1; i++)
         for (int j=i+1; j<group.size(); j++)
-          if (UnitedRule.sameFeatures(group.get(i),group.get(j))) {
+          if (/*UnitedRule.sameFeatures(group.get(i),group.get(j))*/true) {
             double d=UnitedRule.distance(group.get(i),group.get(j),attrMinMax);
             int pair[]={i,j};
             ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
@@ -346,7 +346,7 @@ public class RuleMaster {
           UnitedRule r2=result.get(j);
           if (Math.max(r1.maxQ,r2.maxQ)-Math.min(r1.minQ,r2.minQ)>maxQDiff)
             continue;
-          if (UnitedRule.sameFeatures(r1, r2)) {
+          if (/*UnitedRule.sameFeatures(r1, r2)*/true) {
             double d = UnitedRule.distance(r1, r2, attrMinMax);
             int pair[] = {i, j};
             ObjectWithMeasure om = new ObjectWithMeasure(pair, d, false);

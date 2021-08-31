@@ -242,29 +242,27 @@ public class UnitedRule extends CommonExplanation {
       r1=(UnitedRule)adjustToFeatureRanges(r1,attrMinMax);
       r2=(UnitedRule)adjustToFeatureRanges(r2,attrMinMax);
     }
-    if (!sameFeatures(r1,r2))
-      return null;
-    ExplanationItem e1[]=r1.eItems, e2[]=r2.eItems, e[]=new ExplanationItem[Math.min(e1.length,e2.length)];
-    int k=0;
+    //if (!sameFeatures(r1,r2))
+      //return null;
+    ExplanationItem e1[]=r1.eItems, e2[]=r2.eItems;
+
+    ArrayList<ExplanationItem> eList=new ArrayList<ExplanationItem>(Math.min(e1.length,e2.length));
     for (int i=0; i<e1.length; i++)
       for (int j=0; j<e2.length; j++)
         if (e1[i].attr.equals(e2[j].attr)) {
-          double interval[]=uniteIntervals(e1[i].interval,e2[i].interval);
+          double interval[]=uniteIntervals(e1[i].interval,e2[j].interval);
           if (interval!=null && (!Double.isInfinite(interval[0]) || !Double.isInfinite(interval[1]))) {
-            e[k]=new ExplanationItem();
-            e[k].attr=e1[i].attr;
-            e[k].interval=interval;
-            ++k;
+            ExplanationItem ei=new ExplanationItem();
+            ei.attr=e1[i].attr;
+            ei.interval=interval;
+            eList.add(ei);
           }
         }
-    if (k<1)
+    if (eList.isEmpty())
       return null;
-    if (k<e.length) {
-      ExplanationItem ee[]=new ExplanationItem[k];
-      for (int i=0; i<k; i++)
-        ee[i]=e[i];
-      e=ee;
-    }
+    ExplanationItem e[]=new ExplanationItem[eList.size()];
+    e=eList.toArray(e);
+    
     UnitedRule rule=new UnitedRule();
     rule.action=r1.action;
     rule.eItems=e;

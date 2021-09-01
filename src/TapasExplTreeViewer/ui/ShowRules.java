@@ -12,6 +12,7 @@ import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
+import TapasExplTreeViewer.vis.RuleSetVis;
 import TapasExplTreeViewer.vis.TSNE_Runner;
 import TapasUtilities.*;
 
@@ -414,9 +415,17 @@ public class ShowRules {
       }
     });
     menu.addSeparator();
-
-    JMenuItem mit=new JMenuItem("Show the OPTICS reachability plot");
+  
+    JMenuItem mit=new JMenuItem("Represent rules by glyphs");
     menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        showRuleGlyphs(exList,attrs,highlighter,selector);
+      }
+    });
+    
+    menu.add(mit=new JMenuItem("Show the OPTICS reachability plot"));
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -795,6 +804,40 @@ public class ShowRules {
       for (File f : createdFiles)
         f.delete();
     createdFiles.clear();
+  }
+  
+  public JFrame showRuleGlyphs(ArrayList exList,
+                               Vector<String> attributes,
+                               SingleHighlightManager highlighter,
+                               ItemSelectionManager selector) {
+    boolean applyToSelection=
+        selector.hasSelection() &&
+            JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                "Apply the operation to the selected subset?",
+                "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
+                ==JOptionPane.YES_OPTION;
+    ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+    RuleSetVis vis=new RuleSetVis(rules,exList,attrs,attrMinMax);
+    vis.setHighlighter(highlighter);
+    vis.setSelector(selector);
+  
+    JScrollPane scrollPane = new JScrollPane(vis);
+    scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    JFrame plotFrame=new JFrame(title+((applyToSelection)?" (selection)":""));
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add(scrollPane);
+    plotFrame.pack();
+    plotFrame.setSize((int)Math.min(plotFrame.getWidth(),0.7*size.width),
+        (int)Math.min(plotFrame.getHeight(),0.7*size.height));
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
+    plotFrame.setVisible(true);
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
+    frames.add(plotFrame);
+    return plotFrame;
   }
   
   public JFrame showProjection(ArrayList<CommonExplanation> exList,

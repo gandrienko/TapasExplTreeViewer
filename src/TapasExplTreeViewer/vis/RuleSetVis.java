@@ -5,11 +5,17 @@ import TapasExplTreeViewer.ui.ShowSingleRule;
 import TapasUtilities.ItemSelectionManager;
 import TapasUtilities.SingleHighlightManager;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Vector;
@@ -18,7 +24,7 @@ import java.util.Vector;
  * A panel with multiple rules represented by glyphs.
  */
 public class RuleSetVis extends JPanel
-  implements ChangeListener {
+    implements ChangeListener, MouseListener, MouseMotionListener {
   
   protected static int minFeatureW=15, minGlyphH=50, xSpace=30, ySpace=10,
       xMargin=25, yMargin=10;
@@ -93,6 +99,10 @@ public class RuleSetVis extends JPanel
       for (int i=0; i<fullExList.size(); i++)
         idxInSubList[i]=exList.indexOf(fullExList.get(i));
     }
+    addMouseListener(this);
+    addMouseMotionListener(this);
+    ToolTipManager.sharedInstance().registerComponent(this);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   }
   
   public SingleHighlightManager getHighlighter(){
@@ -338,5 +348,100 @@ public class RuleSetVis extends JPanel
         if (currSel.get(i) instanceof Integer)
           selected.add((Integer)currSel.get(i));
     }
+  }
+  
+  public int getRuleIdxAtPosition(int x, int y) {
+    if (gBounds==null)
+      return -1;
+    for (int i=0; i<gBounds.length; i++)
+      if (gBounds[i].contains(x,y))
+        return i;
+    return -1;
+  }
+  
+  public void mousePressed(MouseEvent e){}
+  
+  public void mouseReleased(MouseEvent e){}
+  
+  public void mouseClicked(MouseEvent e) {
+    if (e.getClickCount()==2) {
+      int idx=getRuleIdxAtPosition(e.getX(),e.getY());
+      if (idx<0) {
+        selector.deselectAll();
+        return;
+      }
+    }
+    else
+    if (e.getClickCount()==1)
+      if (e.getButton()==MouseEvent.BUTTON1){
+        int idx=getRuleIdxAtPosition(e.getX(),e.getY());
+        if (idx<0)
+          return;
+        if (idxInSubList!=null)
+          for (int i=0; i<idxInSubList.length; i++)
+            if (idxInSubList[i]==idx) {
+              idx=i; break;
+            }
+        Integer iSel=new Integer(idx);
+        if (selector.isSelected(iSel))
+          selector.deselect(iSel);
+        else
+          selector.select(iSel);
+      }
+      else {
+        //todo: reordering
+      }
+  }
+  
+  public void mouseExited(MouseEvent e) {
+    highlighter.clearHighlighting();
+  }
+  
+  public void mouseEntered(MouseEvent e) { }
+  
+  public void mouseMoved(MouseEvent e) {
+    int idx=getRuleIdxAtPosition(e.getX(),e.getY());
+    if (idx<0)
+      highlighter.clearHighlighting();
+    else {
+      if (idxInSubList!=null)
+        for (int i=0; i<idxInSubList.length; i++)
+          if (idxInSubList[i]==idx) {
+            idx=i; break;
+          }
+      highlighter.highlight(new Integer(idx));
+    }
+  }
+  public void mouseDragged(MouseEvent e) {}
+  
+  public String getToolTipText(MouseEvent me) {
+    if (!isShowing())
+      return null;
+    if (me.getButton() != MouseEvent.NOBUTTON)
+      return null;
+    int idx=getRuleIdxAtPosition(me.getX(),me.getY());
+    if (idx<0)
+      return null;
+    CommonExplanation ce=(CommonExplanation) exList.get(idx);
+    ArrayList fullSelected=(selector==null)?null:selector.getSelected();
+    Vector<CommonExplanation> exSelected=(fullSelected==null || fullSelected.isEmpty())?null:
+                                             new Vector<CommonExplanation>(fullSelected.size());
+    if (exSelected!=null) {
+      ArrayList rules=(fullExList!=null)?fullExList:exList;
+      for (int i = 0; i < fullSelected.size(); i++) {
+        int ii=(Integer)fullSelected.get(i);
+        if (ii>=0 && ii<rules.size()) {
+          CommonExplanation ex=(CommonExplanation) rules.get(ii);
+          exSelected.addElement(ex);
+        }
+      }
+    }
+    try {
+      BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, exSelected, attrs, minmax);
+      File outputfile = new File("img.png");
+      ImageIO.write(bi, "png", outputfile);
+      //System.out.println("img.png");
+    } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
+    return ce.toHTML(attrMinMax,"","img.png");
   }
 }

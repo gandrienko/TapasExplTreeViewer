@@ -78,6 +78,8 @@ public class ShowRules {
    */
   protected double distanceMatrix[][]=null;
   
+  protected JTable table=null;
+  
   public String title=null;
   
   protected ArrayList<JFrame> frames=null;
@@ -230,7 +232,7 @@ public class ShowRules {
     if (clOptics!=null)
       clOptics.addChangeListener(eTblModel);
     
-    JTable table=new JTable(eTblModel){
+    table=new JTable(eTblModel){
       public String getToolTipText(MouseEvent e) {
         java.awt.Point p = e.getPoint();
         int rowIndex = rowAtPoint(p);
@@ -798,6 +800,8 @@ public class ShowRules {
       return null;
     return result;
   }
+  
+  //public
   
   public void eraseCreatedFiles () {
     if (createdFiles!=null && !createdFiles.isEmpty())

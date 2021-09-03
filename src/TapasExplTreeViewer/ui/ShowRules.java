@@ -817,7 +817,7 @@ public class ShowRules {
                 "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                 ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
-    RuleSetVis vis=new RuleSetVis(rules,exList,attrs,attrMinMax);
+    RuleSetVis vis=new RuleSetVis(rules,exList,attributes,attrMinMax);
     vis.setHighlighter(highlighter);
     vis.setSelector(selector);
   

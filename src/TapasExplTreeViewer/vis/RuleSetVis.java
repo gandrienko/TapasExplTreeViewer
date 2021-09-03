@@ -20,14 +20,21 @@ import java.util.Vector;
 public class RuleSetVis extends JPanel
   implements ChangeListener {
   
-  protected static int minFeatureW=20, minGlyphH=50, space=20, margin=10;
+  protected static int minFeatureW=15, minGlyphH=50, xSpace=30, ySpace=10,
+      xMargin=25, yMargin=10;
   public static float hsbRed[]=Color.RGBtoHSB(255,0,0,null);
   public static float hsbBlue[]=Color.RGBtoHSB(0,0,255,null);
+  public static Color hlColor=new Color(255,255, 0,64);
   /**
    * The rules or explanations to be visualized. The elements are instances of
    * CommonExplanation or UnitedRule.
    */
-  public ArrayList exList=null;
+  public ArrayList exList=null, fullExList=null;
+  /**
+   * If exList contains a subset of fullExList, ths array contains the
+   * indices of the elements of fullExList in the smaller list or -1 when absent.
+   */
+  protected int idxInSubList[]=null;
   /**
    * The ranges of feature values
    */
@@ -48,6 +55,10 @@ public class RuleSetVis extends JPanel
   public int hlIdx=-1;
   public ArrayList<Integer> selected=null;
   /**
+   * Glyph boundaries
+   */
+  protected Rectangle gBounds[]=null;
+  /**
    * Used to speed up redrawing
    */
   protected BufferedImage off_Image=null;
@@ -55,7 +66,8 @@ public class RuleSetVis extends JPanel
   
   public RuleSetVis(ArrayList exList, ArrayList fullExList,
                     Vector<String> attrNamesOrdered, Hashtable<String,float[]> attrMinMax) {
-    this.exList=exList; this.attrMinMax=attrMinMax;
+    this.exList=exList; this.fullExList=fullExList;
+    this.attrMinMax=attrMinMax;
     attrs=attrNamesOrdered;
     if (attrs!=null && attrMinMax!=null) {
       minmax=new Vector<float[]>(attrs.size());
@@ -75,6 +87,11 @@ public class RuleSetVis extends JPanel
         if (Double.isNaN(maxQValue) || maxQValue < ex.maxQ)
           maxQValue = ex.maxQ;
       }
+    }
+    if (fullExList!=null && fullExList.size()>exList.size()) {
+      idxInSubList=new int[fullExList.size()];
+      for (int i=0; i<fullExList.size(); i++)
+        idxInSubList[i]=exList.indexOf(fullExList.get(i));
     }
   }
   
@@ -104,8 +121,10 @@ public class RuleSetVis extends JPanel
       else
         this.selector.removeChangeListener(this);
     this.selector = selector;
-    if (selector!=null)
+    if (selector!=null) {
       selector.addChangeListener(this);
+      getLocalSelection();
+    }
   }
   
   public void redraw(){
@@ -114,9 +133,11 @@ public class RuleSetVis extends JPanel
   }
   
   public void drawHighlighted(Graphics gr) {
-    if (hlIdx<0)
+    if (gBounds==null || hlIdx<0 || hlIdx>gBounds.length)
       return;
-    //todo ...
+    gr.setColor(hlColor);
+    Rectangle r=gBounds[hlIdx];
+    gr.fillRect(r.x,r.y,r.width,r.height);
   }
   
   public static Color getColorForAction(int action, int minAction, int maxAction) {
@@ -135,11 +156,12 @@ public class RuleSetVis extends JPanel
     return new Color(color.getRed(),color.getGreen(),color.getBlue(),100);
   }
   
-  public void drawRuleGlyph(Graphics2D gr,
-                            CommonExplanation ex, Vector<CommonExplanation> exSelected,
+  public void drawRuleGlyph(Graphics2D gr, int ruleIdx,
+                            Vector<CommonExplanation> exSelected,
                             int x, int y, int w, int h) {
-    if (gr==null || ex==null)
+    if (gr==null || ruleIdx<0 || ruleIdx>=exList.size())
       return;
+    CommonExplanation ex=(CommonExplanation)exList.get(ruleIdx);
     BufferedImage ruleImage= ShowSingleRule.getImageForRule(w,h,ex,exSelected,attrs,minmax);
     if (ruleImage==null)
       return;
@@ -150,21 +172,37 @@ public class RuleSetVis extends JPanel
     Stroke str=gr.getStroke();
     gr.setStroke(new BasicStroke(2));
     gr.drawRect(x,y,w,h);
-    if (exSelected!=null && exSelected.contains(ex)) {
+    if (selected!=null && selected.contains(ruleIdx)) {
       gr.setColor(Color.black);
       gr.drawRect(x-2,y-2,w+4,h+4);
     }
     gr.setStroke(str);
+
+    if (gBounds==null) {
+      gBounds=new Rectangle[exList.size()];
+      for (int i=0; i<gBounds.length; i++)
+        gBounds[i]=new Rectangle(0,0,0,0);
+    }
+    Rectangle r=gBounds[ruleIdx];
+    r.x=x-xSpace/2+1; r.y=y-ySpace/2+1; r.width=w+xSpace; r.height=h+ySpace;
+
+    if (ex.numId>=0) {
+      String txt=Integer.toString(ex.numId);
+      gr.setColor(Color.darkGray);
+      gr.drawString(txt, x - gr.getFontMetrics().stringWidth(txt)-5, y + gr.getFontMetrics().getAscent());
+    }
   }
   
   public Dimension getPreferredSize() {
+    if (off_Image!=null && off_Valid)
+      return new Dimension(off_Image.getWidth(),off_Image.getHeight());
     if (exList==null || exList.isEmpty())
       return new Dimension(100,50);
     int minGlyphW=attrs.size()*minFeatureW;
     int nGlyphsInRow=Math.min(exList.size(),5),
         nRows=(int)Math.round(Math.ceil(1.0*exList.size()/nGlyphsInRow));
-    return new Dimension(2 * margin + nGlyphsInRow * minGlyphW + (nGlyphsInRow-1) * space,
-        2*margin+nRows*minGlyphH+(nRows-1)*space);
+    return new Dimension(2 * xMargin + nGlyphsInRow * minGlyphW + (nGlyphsInRow-1) * xSpace,
+        2*yMargin+nRows*minGlyphH+(nRows-1)*ySpace);
   }
   
   public void paintComponent(Graphics gr) {
@@ -179,10 +217,30 @@ public class RuleSetVis extends JPanel
       JViewport vp=(JViewport)getParent();
       if (w>vp.getWidth())
         w=vp.getWidth();
+      if (h>vp.getHeight())
+        h=vp.getHeight();
     }
-    
+  
+    //determine glyph dimensions
+    int glyphW=attrs.size()*minFeatureW;
+    int nGlyphsInRow=Math.max(1,Math.min(exList.size(),(w-2*xMargin+xSpace)/(glyphW+xSpace)));
+    glyphW=(w-2*xMargin)/nGlyphsInRow-xSpace;
+    int totalW=xMargin*2+nGlyphsInRow*(glyphW+xSpace)-xSpace;
+    int nRows=(int)Math.round(Math.ceil(1.0*exList.size()/nGlyphsInRow));
+    if (nRows*nGlyphsInRow<exList.size())
+      ++nRows;
+    int glyphH=Math.max((h-2*yMargin+ySpace)/nRows-ySpace,minGlyphH);
+    int totalH=2*yMargin+nRows*(glyphH+ySpace)-ySpace;
+
+    if (totalH>h && totalH!=getHeight()) {
+      off_Valid=false; off_Image=null;
+      setSize(Math.max(w, totalW), totalH);
+      paintComponent(gr);
+      return;
+    }
+
     if (off_Image!=null && off_Valid) {
-      if (off_Image.getWidth()!=w || off_Image.getHeight()!=h) {
+      if (off_Image.getWidth()!=getWidth() || off_Image.getHeight()!=getHeight()) {
         off_Image = null; off_Valid=false;
       }
       else {
@@ -192,45 +250,43 @@ public class RuleSetVis extends JPanel
       }
     }
   
-    if (off_Image==null || off_Image.getWidth()!=w || off_Image.getHeight()!=h)
-      off_Image=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);
+    if (off_Image==null)
+      off_Image=new BufferedImage(getWidth(),getHeight(),BufferedImage.TYPE_INT_ARGB);
     Graphics2D g = off_Image.createGraphics();
   
     g.setColor(getBackground());
-    g.fillRect(0,0,w+1,h+1);
-    g.setColor(Color.black);
-    g.drawRect(0,0,w-2,h-2);
-    
-    //determine glyph dimensions
-    int glyphW=attrs.size()*minFeatureW;
-    int nGlyphsInRow=Math.max(1,Math.min(exList.size(),(w-2*margin+space)/(glyphW+space)));
-    glyphW=(w-2*margin)/nGlyphsInRow-space;
-    int nRows=(int)Math.round(Math.ceil(1.0*exList.size()/nGlyphsInRow));
-    int glyphH=Math.max((h-2*margin+space)/nRows-space,minGlyphH);
+    g.fillRect(0,0,getWidth()+1,getHeight()+1);
   
-    Vector<CommonExplanation> exSelected=(selected==null || selected.isEmpty())?null:
-                                             new Vector<CommonExplanation>(selected.size());
-    if (exSelected!=null)
-      for (int i=0; i<exList.size(); i++)
-        if (selected.contains(((CommonExplanation)exList.get(i)).numId))
-          exSelected.addElement((CommonExplanation)exList.get(i));
-    
-    int x=margin, y=margin, nInRow=0;
-    for (int i=0; i<exList.size(); i++) {
-      drawRuleGlyph(g,(CommonExplanation)exList.get(i),exSelected,x,y,glyphW,glyphH);
-      ++nInRow;
-      if (nInRow<nGlyphsInRow)
-        x+=glyphW+space;
-      else {
-        x=margin; y+=glyphH+space; nInRow=0;
+    ArrayList fullSelected=(selector==null)?null:selector.getSelected();
+    Vector<CommonExplanation> exSelected=(fullSelected==null || fullSelected.isEmpty())?null:
+                                             new Vector<CommonExplanation>(fullSelected.size());
+    if (exSelected!=null) {
+      ArrayList rules=(fullExList!=null)?fullExList:exList;
+      for (int i = 0; i < fullSelected.size(); i++) {
+        int idx=(Integer)fullSelected.get(i);
+        if (idx>=0 && idx<rules.size()) {
+          CommonExplanation ex=(CommonExplanation) rules.get(idx);
+          exSelected.addElement(ex);
+        }
       }
     }
-    gr.drawImage(off_Image,0,0,null);
-    off_Valid=true;
-    drawHighlighted(gr);
     
-    if (w<getWidth())
-      setSize(w,y+glyphH+margin);
+    int x=xMargin, y=yMargin, nInRow=0;
+    for (int i=0; i<exList.size(); i++) {
+      drawRuleGlyph(g,i,exSelected,x,y,glyphW,glyphH);
+      ++nInRow;
+      if (i+1<exList.size())
+        if (nInRow<nGlyphsInRow)
+          x+=glyphW+xSpace;
+        else {
+          x=xMargin; y+=glyphH+ySpace; nInRow=0;
+        }
+    }
+  
+    off_Valid=true;
+    
+    gr.drawImage(off_Image,0,0,null);
+    drawHighlighted(gr);
   }
   
   public void stateChanged(ChangeEvent e) {
@@ -239,6 +295,8 @@ public class RuleSetVis extends JPanel
         return;
       int idx=(highlighter.highlighted!=null &&
                    (highlighter.highlighted instanceof Integer))?(Integer)highlighter.highlighted:-1;
+      if (idx>=0 && idxInSubList!=null)
+        idx=idxInSubList[idx];
       if (hlIdx!=idx) {
         hlIdx=idx;
         if (off_Valid)
@@ -247,21 +305,38 @@ public class RuleSetVis extends JPanel
     }
     else
       if (e.getSource().equals(selector)) {
-        ArrayList currSel=selector.selected;
-        if (ItemSelectionManager.sameContent(currSel,selected))
-          return;
-        if (currSel==null || currSel.isEmpty())
-          selected.clear();
-        else {
-          if (selected==null)
-            selected=new ArrayList<Integer>(100);
-          selected.clear();
-          for (int i=0; i<currSel.size(); i++)
-            if (currSel.get(i) instanceof Integer)
-              selected.add((Integer)currSel.get(i));
-        }
+        getLocalSelection();
         off_Valid=false;
         redraw();
       }
+  }
+  
+  protected void getLocalSelection() {
+    ArrayList currSel=selector.getSelected();
+    if (currSel!=null && !currSel.isEmpty() && idxInSubList!=null) {
+      ArrayList<Integer> localSel=new ArrayList<Integer>(currSel.size());
+      for (int i=0; i<currSel.size(); i++)
+        if (currSel.get(i) instanceof Integer) {
+          int idx=(Integer) currSel.get(i);
+          if (idx>=0 && idx<idxInSubList.length) {
+            idx=idxInSubList[idx];
+            if (idx>=0)
+              localSel.add(idx);
+          }
+        }
+      currSel=localSel;
+    }
+    if (currSel==null || currSel.isEmpty()) {
+      if (selected!=null)
+        selected.clear();
+    }
+    else {
+      if (selected==null)
+        selected=new ArrayList<Integer>(100);
+      selected.clear();
+      for (int i=0; i<currSel.size(); i++)
+        if (currSel.get(i) instanceof Integer)
+          selected.add((Integer)currSel.get(i));
+    }
   }
 }

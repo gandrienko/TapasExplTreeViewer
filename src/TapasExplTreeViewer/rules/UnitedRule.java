@@ -342,7 +342,7 @@ public class UnitedRule extends CommonExplanation {
     return d;
   }
   
-  public static double distance(UnitedRule r1, UnitedRule r2,
+  public static double distance(CommonExplanation r1, CommonExplanation r2,
                                 Hashtable<String,float[]> attrMinMax) {
     if (r1==null)
       return (r2==null)?0:r2.eItems.length;

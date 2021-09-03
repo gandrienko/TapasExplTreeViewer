@@ -31,7 +31,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Vector;
 
-public class ShowRules {
+public class ShowRules implements RulesOrderer{
   
   public static Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
   /**
@@ -801,7 +801,19 @@ public class ShowRules {
     return result;
   }
   
-  //public
+  public int[] getRulesOrder(ArrayList rules) {
+    if (rules==null || rules.isEmpty() || exList==null || table==null)
+      return null;
+    int order[]=new int[rules.size()];
+    int k=0;
+    for (int i=0; i<table.getRowCount(); i++) {
+      int mIdx = table.convertRowIndexToModel(i);
+      int idx=rules.indexOf(exList.get(mIdx));
+      if (idx>=0)
+        order[k++]=idx;
+    }
+    return order;
+  }
   
   public void eraseCreatedFiles () {
     if (createdFiles!=null && !createdFiles.isEmpty())
@@ -824,6 +836,7 @@ public class ShowRules {
     RuleSetVis vis=new RuleSetVis(rules,exList,attributes,attrMinMax);
     vis.setHighlighter(highlighter);
     vis.setSelector(selector);
+    vis.setRulesOrderer(this);
   
     JScrollPane scrollPane = new JScrollPane(vis);
     scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);

@@ -1,6 +1,9 @@
 package TapasExplTreeViewer.vis;
 
 import TapasDataReader.CommonExplanation;
+import TapasExplTreeViewer.clustering.ObjectWithMeasure;
+import TapasExplTreeViewer.rules.UnitedRule;
+import TapasExplTreeViewer.ui.RulesOrderer;
 import TapasExplTreeViewer.ui.ShowSingleRule;
 import TapasUtilities.ItemSelectionManager;
 import TapasUtilities.SingleHighlightManager;
@@ -17,6 +20,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Vector;
 
@@ -53,6 +57,12 @@ public class RuleSetVis extends JPanel
    */
   protected Vector<String> attrs=null;
   protected Vector<float[]> minmax=null;
+  /**
+   * Ordering of glyphs
+   */
+  protected RulesOrderer rulesOrderer=null;
+  protected int order[]=null;
+  boolean orderedByDistances=false;
   /**
    * Highlighting and selection
    */
@@ -135,6 +145,12 @@ public class RuleSetVis extends JPanel
       selector.addChangeListener(this);
       getLocalSelection();
     }
+  }
+  
+  public void setRulesOrderer(RulesOrderer rulesOrderer) {
+    this.rulesOrderer = rulesOrderer;
+    if (rulesOrderer!=null)
+      order=rulesOrderer.getRulesOrder(exList);
   }
   
   public void redraw(){
@@ -283,7 +299,7 @@ public class RuleSetVis extends JPanel
     
     int x=xMargin, y=yMargin, nInRow=0;
     for (int i=0; i<exList.size(); i++) {
-      drawRuleGlyph(g,i,exSelected,x,y,glyphW,glyphH);
+      drawRuleGlyph(g,(order==null)?i:order[i],exSelected,x,y,glyphW,glyphH);
       ++nInRow;
       if (i+1<exList.size())
         if (nInRow<nGlyphsInRow)
@@ -365,32 +381,58 @@ public class RuleSetVis extends JPanel
   
   public void mouseClicked(MouseEvent e) {
     if (e.getClickCount()==2) {
-      int idx=getRuleIdxAtPosition(e.getX(),e.getY());
-      if (idx<0) {
-        selector.deselectAll();
-        return;
+      if (e.getButton()==MouseEvent.BUTTON1) {
+        int idx = getRuleIdxAtPosition(e.getX(), e.getY());
+        if (idx < 0)
+          selector.deselectAll();
+      }
+      else {
+        if (order==null)
+          return;
+        order=(rulesOrderer != null)?rulesOrderer.getRulesOrder(exList):null;
+        orderedByDistances=false;
+        off_Valid=false;
+        redraw();
       }
     }
     else
-    if (e.getClickCount()==1)
-      if (e.getButton()==MouseEvent.BUTTON1){
-        int idx=getRuleIdxAtPosition(e.getX(),e.getY());
-        if (idx<0)
-          return;
-        if (idxInSubList!=null)
-          for (int i=0; i<idxInSubList.length; i++)
-            if (idxInSubList[i]==idx) {
-              idx=i; break;
+    if (e.getClickCount()==1) {
+      int idx = getRuleIdxAtPosition(e.getX(), e.getY());
+      if (idx < 0)
+        return;
+      if (e.getButton() == MouseEvent.BUTTON1) {
+        if (idxInSubList != null)
+          for (int i = 0; i < idxInSubList.length; i++)
+            if (idxInSubList[i] == idx) {
+              idx = i;
+              break;
             }
-        Integer iSel=new Integer(idx);
+        Integer iSel = new Integer(idx);
         if (selector.isSelected(iSel))
           selector.deselect(iSel);
         else
           selector.select(iSel);
       }
       else {
-        //todo: reordering
+        if (orderedByDistances && order!=null && order[0]==idx)
+          return;
+        CommonExplanation ex=(CommonExplanation)exList.get(idx);
+        ObjectWithMeasure rDist[]=new ObjectWithMeasure[exList.size()-1];
+        int k=0;
+        for (int i=0; i<exList.size(); i++)
+          if (i!=idx)
+            rDist[k++]=new ObjectWithMeasure(i, UnitedRule.distance(ex,(CommonExplanation)exList.get(i),attrMinMax));
+        Arrays.sort(rDist);
+        if (order==null)
+          order=new int[exList.size()];
+        order[0]=idx;
+        for (int i=0; i<rDist.length; i++)
+          order[i+1]=(Integer)rDist[i].obj;
+        orderedByDistances=true;
+        off_Valid=false;
+        redraw();
       }
+    }
   }
   
   public void mouseExited(MouseEvent e) {
@@ -420,8 +462,18 @@ public class RuleSetVis extends JPanel
     if (me.getButton() != MouseEvent.NOBUTTON)
       return null;
     int idx=getRuleIdxAtPosition(me.getX(),me.getY());
-    if (idx<0)
-      return null;
+    if (idx<0) {
+      String txt="<html><body style=background-color:rgb(255,255,204)>";
+      if (orderedByDistances && order!=null)
+        txt+="Rule glyphs are ordered by distances to rule "+
+                 ((CommonExplanation)exList.get(order[0])).numId+"<br><br>";
+      txt+="Right mouse button click: order glyphs by distances to the rule at the mouse cursor<br>";
+      txt+="Right mouse button double-click: order glyphs according to the current order of the table rows<br><br>";
+      txt+="Left mouse button click: select/deselect<br>";
+      txt+="Left mouse button double-click in empty space: deselect all<br>";
+      txt+="</body></html>";
+      return txt;
+    }
     CommonExplanation ce=(CommonExplanation) exList.get(idx);
     ArrayList fullSelected=(selector==null)?null:selector.getSelected();
     Vector<CommonExplanation> exSelected=(fullSelected==null || fullSelected.isEmpty())?null:

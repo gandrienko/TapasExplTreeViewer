@@ -4,7 +4,9 @@ import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.MST.Edge;
 import TapasExplTreeViewer.MST.Prim;
 import TapasExplTreeViewer.MST.Vertex;
+import TapasExplTreeViewer.clustering.ClusterContent;
 import TapasExplTreeViewer.clustering.ClustererByOPTICS;
+import TapasExplTreeViewer.clustering.HierarchicalClusterer;
 import TapasExplTreeViewer.clustering.ReachabilityPlot;
 import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.rules.UnitedRule;
@@ -437,12 +439,19 @@ public class ShowRules implements RulesOrderer{
       }
     });
     
-    mit=new JMenuItem("Show the t-SNE projection");
-    menu.add(mit);
+    menu.add(mit=new JMenuItem("Show the t-SNE projection"));
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         showProjection(rules,distanceMatrix,highlighter,selector);
+      }
+    });
+  
+    menu.add(mit=new JMenuItem("Apply hierarchical clustering"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        hierClustering(distanceMatrix);
       }
     });
     
@@ -1048,6 +1057,44 @@ public class ShowRules implements RulesOrderer{
       }
     });
    return plotFrame;
+  }
+  
+  public JFrame hierClustering(double distanceMatrix[][]) {
+    if (distanceMatrix==null)
+      return null;
+    ClusterContent topCluster= HierarchicalClusterer.doClustering(distanceMatrix);
+    if (topCluster==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Clustering failed!",
+          "Error",JOptionPane.ERROR_MESSAGE);
+      return null;
+    }
+    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Hierarchical clustering done; hierarchy depth = "+topCluster.hierDepth,
+        "Success!",JOptionPane.INFORMATION_MESSAGE);
+    JPanel pp=topCluster.makePanel();
+    if (pp==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to visualize the hierarchy!",
+          "Error",JOptionPane.ERROR_MESSAGE);
+      return null;
+    }
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize(), prefSize=pp.getPreferredSize();
+    JScrollPane scp=(prefSize.height>0.8*size.height || prefSize.width>0.8*size.width)?
+                        new JScrollPane(pp):null;
+    JFrame plotFrame=new JFrame("Cluster hierarchy");
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add((scp==null)?pp:scp);
+    plotFrame.pack();
+    prefSize.width=Math.min(plotFrame.getWidth(),Math.round(0.8f*size.width));
+    prefSize.height=Math.min(plotFrame.getHeight(),Math.round(0.8f*size.height));
+    plotFrame.setSize(prefSize);
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
+    plotFrame.setVisible(true);
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
+    frames.add(plotFrame);
+    return plotFrame;
   }
   
   public void extractSubset(ItemSelectionManager selector,

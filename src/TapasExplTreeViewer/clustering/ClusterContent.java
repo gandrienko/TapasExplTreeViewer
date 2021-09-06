@@ -43,7 +43,7 @@ public class ClusterContent {
   
   public int getNClustersAtLevel(int level) {
     if (level>hierDepth)
-      return 0;
+      return getNClustersAtLevel(hierDepth);
     if (level==0)
       return 1;
     if (children==null)
@@ -53,11 +53,13 @@ public class ClusterContent {
   
   public ClusterContent[] getClustersAtLevel(int level) {
     if (level>hierDepth)
-      return null;
+      return getClustersAtLevel(hierDepth);
     if (level==0) {
       ClusterContent result[]={this};
       return result;
     }
+    if (level==1)
+      return children;
     if (children==null)
       return null;
     ClusterContent sub1[]=children[0].getClustersAtLevel(level-1),

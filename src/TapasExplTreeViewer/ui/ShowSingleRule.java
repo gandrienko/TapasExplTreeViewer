@@ -45,26 +45,27 @@ public class ShowSingleRule {
             g.setStroke(s);
           found=true;
         }
-      Color cblue=new Color(0,127,127, 63);
-      if (vex!=null)
-        for (int idx=0; idx<vex.size(); idx++) {
-          found=false;
-          for (int j=0; j<vex.elementAt(idx).eItems.length && !found; j++)
+      if (vex!=null && !vex.isEmpty()) {
+        Color cblue=new Color(0,127,127, 64+96/vex.size());
+        for (int idx = 0; idx < vex.size(); idx++) {
+          found = false;
+          for (int j = 0; j < vex.elementAt(idx).eItems.length && !found; j++)
             if (attrs.elementAt(i).equals(vex.elementAt(idx).eItems[j].attr)) {
               g.setColor(cblue);
-              int y[]=new int[2];
-              for (int k=0; k<y.length; k++) {
-                double v=vex.elementAt(idx).eItems[j].interval[k];
-                if (v==Double.NEGATIVE_INFINITY)
-                  v=minmax.elementAt(i)[0];
-                if (v==Double.POSITIVE_INFINITY)
-                  v=minmax.elementAt(i)[1];
-                y[k]=(int)Math.round(dy*(v-minmax.elementAt(i)[0])/(minmax.elementAt(i)[1]-minmax.elementAt(i)[0]));
+              int y[] = new int[2];
+              for (int k = 0; k < y.length; k++) {
+                double v = vex.elementAt(idx).eItems[j].interval[k];
+                if (v == Double.NEGATIVE_INFINITY)
+                  v = minmax.elementAt(i)[0];
+                if (v == Double.POSITIVE_INFINITY)
+                  v = minmax.elementAt(i)[1];
+                y[k] = (int) Math.round(dy * (v - minmax.elementAt(i)[0]) / (minmax.elementAt(i)[1] - minmax.elementAt(i)[0]));
               }
-              g.fillRect(x+2,offsetY+dy-y[1],barW+1,y[1]-y[0]);
-              found=true;
+              g.fillRect(x + 2, offsetY + dy - y[1], barW + 1, y[1] - y[0]);
+              found = true;
             }
         }
+      }
     }
     return image;
   }

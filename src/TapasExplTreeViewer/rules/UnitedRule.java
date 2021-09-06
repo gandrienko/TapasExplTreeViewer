@@ -320,6 +320,50 @@ public class UnitedRule extends CommonExplanation {
     return (da1b1+da2b2)/da1b2;
   }
   
+  public static float infinf[]={Float.NEGATIVE_INFINITY,Float.POSITIVE_INFINITY};
+  
+  public static double distance(ExplanationItem e1[], ExplanationItem e2[],
+                                Hashtable<String,float[]> attrMinMax) {
+    if (e1==null || e1.length<1)
+      if (e2==null) return 0; else return e2.length;
+    if (e2==null || e2.length<1)
+      return e1.length;
+    double d=0;
+    boolean e2InE1[]=new boolean[e2.length];
+    for (int i=0; i<e2.length; i++)
+      e2InE1[i]=false;
+    int nCommon=0;
+    for (int i=0; i<e1.length; i++) {
+      double inter1[]=e1[i].interval;
+      float minmax[]=(attrMinMax==null)?null:attrMinMax.get(e1[i].attr);
+      if (minmax==null)
+        minmax=infinf;
+      double dMinMax[]={minmax[0],minmax[1]};
+      int i2=-1;
+      for (int j=0; j<e2.length && i2<0; j++)
+        if (e1[i].attr.equals(e2[j].attr))
+          i2=j;
+      if (i2>=0) {
+        e2InE1[i2]=true;
+        ++nCommon;
+      }
+      double inter2[]=(i2>=0)?e2[i2].interval:dMinMax;
+      d+=intervalDistance(inter1[0],inter1[1],inter2[0],inter2[1],minmax);
+    }
+    if (nCommon<e2.length)
+      for (int i=0; i<e2.length; i++)
+        if (!e2InE1[i]) {
+          float minmax[]=(attrMinMax==null)?null:attrMinMax.get(e2[i].attr);
+          if (minmax==null)
+            minmax=infinf;
+          double dMinMax[]={minmax[0],minmax[1]};
+          d+=intervalDistance(e2[i].interval[0],e2[i].interval[1],
+              dMinMax[0],dMinMax[1],minmax);
+        }
+    return d;
+  }
+  
+  /*
   public static double distance(ExplanationItem e1[], ExplanationItem e2[],
                                 Hashtable<String,float[]> attrMinMax) {
     if (e1==null || e1.length<1)
@@ -341,6 +385,7 @@ public class UnitedRule extends CommonExplanation {
     }
     return d;
   }
+  */
   
   public static double distance(CommonExplanation r1, CommonExplanation r2,
                                 Hashtable<String,float[]> attrMinMax) {

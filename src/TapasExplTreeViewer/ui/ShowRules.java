@@ -1067,17 +1067,18 @@ public class ShowRules implements RulesOrderer{
           "Error",JOptionPane.ERROR_MESSAGE);
       return null;
     }
-    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-        "Hierarchical clustering done; hierarchy depth = "+topCluster.hierDepth,
-        "Success!",JOptionPane.INFORMATION_MESSAGE);
-    
+    String vstr=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Hierarchical clustering done\nHierarchy depth is "+topCluster.hierDepth+"\nSet desired N clusters here (max="+exList.size()+")", "7");
+        //"Success!",JOptionPane.INFORMATION_MESSAGE);
+    int v=Integer.valueOf(vstr);
+
     int oIds[]=new int[exList.size()];
     for (int i=0; i<exList.size(); i++)
       oIds[i]=exList.get(i).numId;
     topCluster.setObjIds(oIds);
     
     int level;
-    for (level=0; level<topCluster.hierDepth-1 && topCluster.getNClustersAtLevel(level)<7; level++);
+    for (level=0; level<topCluster.hierDepth-1 && topCluster.getNClustersAtLevel(level)<v; level++);
     ClusterContent clusters[]=topCluster.getClustersAtLevel(level);
     if (clusters!=null && clusters.length>1) {
       ClustersAssignments clAss=new ClustersAssignments();

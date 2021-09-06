@@ -4,10 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.MST.Edge;
 import TapasExplTreeViewer.MST.Prim;
 import TapasExplTreeViewer.MST.Vertex;
-import TapasExplTreeViewer.clustering.ClusterContent;
-import TapasExplTreeViewer.clustering.ClustererByOPTICS;
-import TapasExplTreeViewer.clustering.HierarchicalClusterer;
-import TapasExplTreeViewer.clustering.ReachabilityPlot;
+import TapasExplTreeViewer.clustering.*;
 import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.rules.UnitedRule;
 import TapasExplTreeViewer.util.CoordinatesReader;
@@ -451,7 +448,7 @@ public class ShowRules implements RulesOrderer{
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        hierClustering(distanceMatrix);
+        hierClustering(exList,distanceMatrix);
       }
     });
     
@@ -1059,7 +1056,8 @@ public class ShowRules implements RulesOrderer{
    return plotFrame;
   }
   
-  public JFrame hierClustering(double distanceMatrix[][]) {
+  public JFrame hierClustering(ArrayList<CommonExplanation> exList,
+                               double distanceMatrix[][]) {
     if (distanceMatrix==null)
       return null;
     ClusterContent topCluster= HierarchicalClusterer.doClustering(distanceMatrix);
@@ -1072,6 +1070,41 @@ public class ShowRules implements RulesOrderer{
     JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
         "Hierarchical clustering done; hierarchy depth = "+topCluster.hierDepth,
         "Success!",JOptionPane.INFORMATION_MESSAGE);
+    
+    int oIds[]=new int[exList.size()];
+    for (int i=0; i<exList.size(); i++)
+      oIds[i]=exList.get(i).numId;
+    topCluster.setObjIds(oIds);
+    
+    int level;
+    for (level=0; level<topCluster.hierDepth-1 && topCluster.getNClustersAtLevel(level)<7; level++);
+    ClusterContent clusters[]=topCluster.getClustersAtLevel(level);
+    if (clusters!=null && clusters.length>1) {
+      ClustersAssignments clAss=new ClustersAssignments();
+      clAss.objIndexes=new int[exList.size()];
+      clAss.clusters=new int[exList.size()];
+      for (int i=0; i<exList.size(); i++) {
+        clAss.objIndexes[i]=i;
+        clAss.clusters[i]=-1;
+      }
+      
+      clAss.minSize=exList.size()+10;
+      
+      for (int i=0; i<clusters.length; i++) {
+        int n=0;
+        for (int j = 0; j < exList.size(); j++)
+          if (clusters[i].member[j]) {
+            clAss.clusters[j] = i;
+            ++n;
+          }
+        clAss.minSize=Math.min(n,clAss.minSize);
+        clAss.maxSize=Math.max(n,clAss.maxSize);
+      }
+      
+      ExListTableModel eTblModel=(ExListTableModel)table.getModel();
+          eTblModel.setCusterAssignments(clAss);
+    }
+    
     JPanel pp=topCluster.makePanel();
     if (pp==null) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
@@ -1079,10 +1112,11 @@ public class ShowRules implements RulesOrderer{
           "Error",JOptionPane.ERROR_MESSAGE);
       return null;
     }
+    
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize(), prefSize=pp.getPreferredSize();
     JScrollPane scp=(prefSize.height>0.8*size.height || prefSize.width>0.8*size.width)?
                         new JScrollPane(pp):null;
-    JFrame plotFrame=new JFrame("Cluster hierarchy");
+    JFrame plotFrame=new JFrame("Cluster hierarchy; depth = "+topCluster.hierDepth);
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     plotFrame.getContentPane().add((scp==null)?pp:scp);
     plotFrame.pack();

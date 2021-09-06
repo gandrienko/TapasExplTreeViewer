@@ -5,6 +5,10 @@ import java.awt.*;
 
 public class ClusterContent {
   /**
+   * Numeric identifiers of all original objects; need to be set from outside
+   */
+  public int objIds[]=null;
+  /**
    * For each of N original objects contains true if the object is cluster member.
    */
   public boolean member[]=null;
@@ -37,6 +41,43 @@ public class ClusterContent {
     return n;
   }
   
+  public int getNClustersAtLevel(int level) {
+    if (level>hierDepth)
+      return 0;
+    if (level==0)
+      return 1;
+    if (children==null)
+      return 0;
+    return children[0].getNClustersAtLevel(level-1)+children[1].getNClustersAtLevel(level-1);
+  }
+  
+  public ClusterContent[] getClustersAtLevel(int level) {
+    if (level>hierDepth)
+      return null;
+    if (level==0) {
+      ClusterContent result[]={this};
+      return result;
+    }
+    if (children==null)
+      return null;
+    ClusterContent sub1[]=children[0].getClustersAtLevel(level-1),
+        sub2[]=children[1].getClustersAtLevel(level-1);
+    if (sub1==null)
+      return sub2;
+    if (sub2==null)
+      return sub1;
+    ClusterContent result[]=new ClusterContent[sub1.length+sub2.length];
+    for (int i=0; i<sub1.length; i++)
+      result[i]=sub1[i];
+    for (int i=0; i<sub2.length; i++)
+      result[sub1.length+i]=sub2[i];
+    return result;
+  }
+  
+  public void setObjIds(int[] objIds) {
+    this.objIds = objIds;
+  }
+  
   public void drawHierarchy(Graphics g, int x0, int y0, int stepX, int stepY, int width, int height) {
     if (g==null || getMemberCount()<1)
       return;
@@ -45,7 +86,8 @@ public class ClusterContent {
     if (stepY<=0)
       stepY=height/member.length;
     int n=getMemberCount();
-    String txt=(n>1)?"("+n+";"+Integer.toString(medoidIdx)+")":Integer.toString(medoidIdx);
+    int oId=(objIds!=null)?objIds[medoidIdx]:medoidIdx;
+    String txt=(n>1)?"("+n+";"+Integer.toString(oId)+")":Integer.toString(oId);
     g.drawString(txt,x0,y0+stepY-g.getFontMetrics().getDescent()-1);
     if (children!=null) {
       int h0=stepY*children[0].getMemberCount();

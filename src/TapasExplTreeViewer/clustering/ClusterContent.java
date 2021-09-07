@@ -132,4 +132,20 @@ public class ClusterContent {
     cc.children[1]=cc2;
     return cc;
   }
+
+  public double getDiameter (double distanceMatrix[][]) {
+    double d=0;
+    for (int i=0; i<member.length-2; i++)
+      if (member[i])
+        for (int j=i+1; j<member.length-1; j++)
+          if (member[j])
+            d = Math.max(d,distanceMatrix[i][j]);
+    return d;
+  }
+  public double getMRadius (double distanceMatrix[][]) {
+    double d=0;
+    for (int i=0; i<member.length-1; i++)
+      if (i!=medoidIdx && member[i]) d = Math.max(d,distanceMatrix[medoidIdx][i]);
+    return d;
+  }
 }

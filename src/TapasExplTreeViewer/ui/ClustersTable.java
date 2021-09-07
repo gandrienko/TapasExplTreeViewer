@@ -10,12 +10,14 @@ import java.awt.*;
 public class ClustersTable extends JPanel {
 
   protected ClusterContent clusters[]=null;
+  protected double distanceMatrix[][];
   public JScrollPane scrollPane=null;
 
-  public ClustersTable (ClusterContent clusters[]) {
+  public ClustersTable (ClusterContent clusters[], double distanceMatrix[][]) {
     super();
     this.clusters=clusters;
-    JTable table=new JTable(new ClustersTableModel(clusters));
+    this.distanceMatrix=distanceMatrix;
+    JTable table=new JTable(new ClustersTableModel(clusters,distanceMatrix));
     table.setFillsViewportHeight(true);
     table.setAutoCreateRowSorter(true);
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -23,9 +25,14 @@ public class ClustersTable extends JPanel {
     table.setColumnSelectionAllowed(false);
     table.getColumnModel().getColumn(0).setCellRenderer(new RenderLabelBarChart(0,clusters.length-1));
     int maxSize=clusters[0].getMemberCount();
-    for (int i=1; i<clusters.length; i++)
-      maxSize=Math.max(maxSize,clusters[i].getMemberCount());
+    float maxD=0;
+    for (int i=1; i<clusters.length; i++) {
+      maxSize = Math.max(maxSize, clusters[i].getMemberCount());
+      maxD = Math.max(maxD,(float)clusters[i].getDiameter(distanceMatrix));
+    }
     table.getColumnModel().getColumn(1).setCellRenderer(new RenderLabelBarChart(0,maxSize));
+    for (int i=2; i<=3; i++)
+      table.getColumnModel().getColumn(i).setCellRenderer(new RenderLabelBarChart(0,maxD));
     scrollPane = new JScrollPane(table);
     scrollPane.setMinimumSize(new Dimension(100,200));
     scrollPane.setOpaque(true);
@@ -35,9 +42,11 @@ public class ClustersTable extends JPanel {
 class ClustersTableModel extends AbstractTableModel {
 
   protected ClusterContent clusters[]=null;
+  protected double distanceMatrix[][]=null;
 
-  public ClustersTableModel (ClusterContent clusters[]) {
+  public ClustersTableModel (ClusterContent clusters[], double distanceMatrix[][]) {
     this.clusters=clusters;
+    this.distanceMatrix=distanceMatrix;
   }
 
   private String columnNames[] = {"Cluster","Size","m-Radius","Diameter","Rule","Outcomes"};
@@ -59,6 +68,10 @@ class ClustersTableModel extends AbstractTableModel {
         return row;
       case 1:
         return clusters[row].getMemberCount();
+      case 2:
+        return clusters[row].getMRadius(distanceMatrix);
+      case 3:
+        return clusters[row].getDiameter(distanceMatrix);
     }
     return 0;
   }

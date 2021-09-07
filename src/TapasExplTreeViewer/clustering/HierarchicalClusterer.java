@@ -39,6 +39,8 @@ public class HierarchicalClusterer {
     }
     
     do {
+      /*
+      //distance between clusters ::= distance between their medoids
       int idx1=-1,idx2=-1;
       double d=Double.NaN;
       for (int i=0; i<nObjects-1; i++)
@@ -52,16 +54,32 @@ public class HierarchicalClusterer {
             }
       if (Double.isNaN(d))
         break;
+      int cIdx1=clusterIdx[idx1], cIdx2=clusterIdx[idx2];
+      */
+      
+      //distance between clusters ::= mean pairwise distance between members
+      int cIdx1=-1, cIdx2=-1;
+      double minD=Double.NaN;
+      for (int i=0; i<clusters.size()-1; i++)
+        if (clusters.get(i).parent==null) //not included in another cluster
+          for (int j=i+1; j<clusters.size(); j++)
+            if (clusters.get(j).parent==null) {//not included in another cluster
+              Double d=ClusterContent.distanceBetweenClusters(clusters.get(i),clusters.get(j),distances);
+              if (!Double.isNaN(d) && (Double.isNaN(minD) || minD>d)) {
+                minD=d; cIdx1=i; cIdx2=j;
+              }
+            }
+      if (Double.isNaN(minD))
+        break;
       
       //join two closest clusters
-      int cIdx1=clusterIdx[idx1], cIdx2=clusterIdx[idx2];
       ClusterContent cc1=clusters.get(cIdx1), cc2=clusters.get(cIdx2),
           cc=ClusterContent.joinClusters(cc1,cc2);
       
       //determine the medoid of the joint cluster
       if (cc.getMemberCount()==2) {
         //select the member with the smallest sum of distances to all other objects
-        cc.medoidIdx=(sumDistances[idx1]<sumDistances[idx2])?idx1:idx2;
+        cc.medoidIdx=(sumDistances[cIdx1]<sumDistances[cIdx2])?cIdx1:cIdx2;
       }
       else {
         double minDist=Double.NaN;
@@ -83,6 +101,8 @@ public class HierarchicalClusterer {
           isMedoid[i]=cc.medoidIdx==i;
         }
       clusters.add(cc);
+      if ((clusters.size()-nObjects)%50==0)
+        System.out.println(Integer.toString(clusters.size()-nObjects)+" clusters have been created");
     } while (clusters.get(clusters.size()-1).getMemberCount()<nObjects);
     
     return clusters.get(clusters.size()-1);

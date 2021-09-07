@@ -14,6 +14,7 @@ import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasExplTreeViewer.vis.RuleSetVis;
 import TapasExplTreeViewer.vis.TSNE_Runner;
 import TapasUtilities.*;
+import javafx.scene.control.SplitPane;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -1086,14 +1087,22 @@ public class ShowRules implements RulesOrderer{
       ch.add("level "+i+": "+topCluster.getNClustersAtLevel(i)+" clusters");
     ch.select(2);
     putHierClustersToTable(topCluster, ch.getSelectedIndex());
-    JScrollPane scp=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
+    JScrollPane scpDendrogram=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
+    ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()));
+    JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
+    splitPane.setOneTouchExpandable(true);
+    splitPane.setDividerLocation(0.5);
+    //icAll.setMinimumSize(new Dimension(1000,750));
+    //is.setMinimumSize(new Dimension(1000,123));
     frame.getContentPane().add(ch, BorderLayout.NORTH);
-    frame.getContentPane().add(scp,BorderLayout.CENTER);
+    frame.getContentPane().add(splitPane,BorderLayout.CENTER);
 
     ch.addItemListener(new ItemListener() {
       @Override
       public void itemStateChanged(ItemEvent e) {
         putHierClustersToTable(topCluster, ch.getSelectedIndex());
+        ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()));
+        splitPane.setTopComponent(clTable.scrollPane);
       }
     });
 

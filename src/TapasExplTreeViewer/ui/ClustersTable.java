@@ -5,6 +5,7 @@ import TapasUtilities.RenderLabelBarChart;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import java.awt.*;
 
 public class ClustersTable extends JPanel {
 
@@ -20,8 +21,13 @@ public class ClustersTable extends JPanel {
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     table.setRowSelectionAllowed(true);
     table.setColumnSelectionAllowed(false);
-    table.getColumnModel().getColumn(5).setCellRenderer(new RenderLabelBarChart(0,clusters.length));
+    table.getColumnModel().getColumn(0).setCellRenderer(new RenderLabelBarChart(0,clusters.length-1));
+    int maxSize=clusters[0].getMemberCount();
+    for (int i=1; i<clusters.length; i++)
+      maxSize=Math.max(maxSize,clusters[i].getMemberCount());
+    table.getColumnModel().getColumn(1).setCellRenderer(new RenderLabelBarChart(0,maxSize));
     scrollPane = new JScrollPane(table);
+    scrollPane.setMinimumSize(new Dimension(100,200));
     scrollPane.setOpaque(true);
   }
 }

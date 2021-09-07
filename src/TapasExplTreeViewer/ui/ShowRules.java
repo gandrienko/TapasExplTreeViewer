@@ -1091,9 +1091,7 @@ public class ShowRules implements RulesOrderer{
     ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()));
     JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
     splitPane.setOneTouchExpandable(true);
-    splitPane.setDividerLocation(0.5);
-    //icAll.setMinimumSize(new Dimension(1000,750));
-    //is.setMinimumSize(new Dimension(1000,123));
+    splitPane.setDividerLocation(frame.getHeight()/2);
     frame.getContentPane().add(ch, BorderLayout.NORTH);
     frame.getContentPane().add(splitPane,BorderLayout.CENTER);
 

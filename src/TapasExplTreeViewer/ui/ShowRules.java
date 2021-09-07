@@ -1089,6 +1089,7 @@ public class ShowRules implements RulesOrderer{
     putHierClustersToTable(topCluster, ch.getSelectedIndex());
     JScrollPane scpDendrogram=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
     ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()));
+    scpDendrogram.setPreferredSize(new Dimension(100,200));
     JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
     splitPane.setOneTouchExpandable(true);
     splitPane.setDividerLocation(frame.getHeight()/2);
@@ -1114,6 +1115,7 @@ public class ShowRules implements RulesOrderer{
 */
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     frame.pack();
+    splitPane.setDividerLocation(0.5);
     frame.setSize(new Dimension(Math.min(frame.getWidth(),Math.round(0.8f*size.width)),Math.min(frame.getHeight(),Math.round(0.8f*size.height))));
     frame.setLocation(size.width-frame.getWidth()-30, size.height-frame.getHeight()-50);
     frame.setVisible(true);

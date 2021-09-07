@@ -17,6 +17,10 @@ public class ClusterContent {
    */
   public int medoidIdx=-1;
   /**
+   * Upper cluster in the hierarchy
+   */
+  public ClusterContent parent=null;
+  /**
    * Lower clusters in the hierarchy
    */
   public ClusterContent children[]=null;
@@ -147,6 +151,25 @@ public class ClusterContent {
     cc.children=new ClusterContent[2];
     cc.children[0]=cc1;
     cc.children[1]=cc2;
+    cc1.parent=cc;
+    cc2.parent=cc;
     return cc;
+  }
+  
+  public static double distanceBetweenClusters(ClusterContent cc1, ClusterContent cc2, double distances[][]) {
+    if (cc1==null || cc2==null || cc1.getMemberCount()<1 || cc2.getMemberCount()<1 || distances==null)
+      return Double.NaN;
+    int nDistances=0;
+    double sumDistances=0;
+    for (int i=0; i<cc1.member.length; i++)
+      if (cc1.member[i])
+        for (int j=0; j<cc2.member.length; j++)
+          if (cc2.member[j] && !Double.isNaN(distances[i][j])) {
+            ++nDistances;
+            sumDistances+=distances[i][j];
+          }
+    if (nDistances<1)
+      return Double.NaN;
+    return sumDistances/nDistances;
   }
 }

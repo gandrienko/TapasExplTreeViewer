@@ -362,6 +362,8 @@ public class ShowRules implements RulesOrderer{
 
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
+
+    table.getColumnModel().getColumn(10).setPreferredWidth(200);
   
     /**/
     TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();

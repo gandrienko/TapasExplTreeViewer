@@ -40,7 +40,8 @@ public class ShowSingleRule {
           }
           if (useThickerLines)
             g.setStroke(new BasicStroke(2));
-          g.drawRect(x-2,offsetY+dy-y[1],barW,y[1]-y[0]-1);
+          int hh=Math.max(1,y[1]-y[0]-1);
+          g.drawRect(x-2,offsetY+dy-y[1],barW,hh);
           if (useThickerLines)
             g.setStroke(s);
           found=true;
@@ -61,7 +62,8 @@ public class ShowSingleRule {
                   v = minmax.elementAt(i)[1];
                 y[k] = (int) Math.round(dy * (v - minmax.elementAt(i)[0]) / (minmax.elementAt(i)[1] - minmax.elementAt(i)[0]));
               }
-              g.fillRect(x + 2, offsetY + dy - y[1], barW + 1, y[1] - y[0]);
+              int hh=Math.max(1,y[1] - y[0]);
+              g.fillRect(x + 2, offsetY + dy - y[1], barW + 1, hh);
               found = true;
             }
         }

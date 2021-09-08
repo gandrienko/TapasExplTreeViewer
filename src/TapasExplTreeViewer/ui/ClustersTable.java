@@ -6,6 +6,7 @@ import TapasUtilities.RenderLabelBarChart;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Vector;
@@ -26,18 +27,21 @@ public class ClustersTable extends JPanel {
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     table.setRowSelectionAllowed(true);
     table.setColumnSelectionAllowed(false);
-    table.getColumnModel().getColumn(0).setCellRenderer(new RenderLabelBarChart(0,clusters.length-1));
+    //table.setRowHeight(table.getRowHeight()*2);
+    TableColumnModel tableColumnModel=table.getColumnModel();
+    tableColumnModel.getColumn(0).setCellRenderer(new RenderLabelBarChart(0,clusters.length-1));
     int maxSize=clusters[0].getMemberCount();
     float maxD=0;
     for (int i=1; i<clusters.length; i++) {
       maxSize = Math.max(maxSize, clusters[i].getMemberCount());
       maxD = Math.max(maxD,(float)clusters[i].getDiameter(distanceMatrix));
     }
-    table.getColumnModel().getColumn(1).setCellRenderer(new RenderLabelBarChart(0,maxSize));
+    tableColumnModel.getColumn(1).setCellRenderer(new RenderLabelBarChart(0,maxSize));
     for (int i=2; i<=3; i++)
-      table.getColumnModel().getColumn(i).setCellRenderer(new RenderLabelBarChart(0,maxD));
-
-    table.getColumnModel().getColumn(4).setCellRenderer(ruleRenderer);
+      tableColumnModel.getColumn(i).setCellRenderer(new RenderLabelBarChart(0,maxD));
+    tableColumnModel.getColumn(4).setCellRenderer(ruleRenderer);
+    for (int i=0; i<4; i++)
+      tableColumnModel.getColumn(i).setPreferredWidth((i<2)?30:50);
 
     scrollPane = new JScrollPane(table);
     scrollPane.setMinimumSize(new Dimension(100,200));
@@ -57,7 +61,7 @@ class ClustersTableModel extends AbstractTableModel {
     this.exList=exList;
   }
 
-  private String columnNames[] = {"Cluster","Size","m-Radius","Diameter","Rule","Outcomes"};
+  private String columnNames[] = {"Cluster","Size","m-Radius","Diameter","Rule","Action","Q"};
   public int getColumnCount() {
     return columnNames.length;
   }

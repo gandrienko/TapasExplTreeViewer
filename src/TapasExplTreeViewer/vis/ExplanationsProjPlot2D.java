@@ -18,7 +18,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public static int minDotRadius=4, maxDotRadius=20;
   public static float hsbRed[]=Color.RGBtoHSB(255,0,0,null);
   public static float hsbBlue[]=Color.RGBtoHSB(0,0,255,null);
-  public static Color linkColor=new Color(0,0,0,80);
+  public static Color linkColor=new Color(90,90,90,60);
   
   public ArrayList<CommonExplanation> explanations = null;
   public Hashtable<String,float[]> attrMinMax=null;

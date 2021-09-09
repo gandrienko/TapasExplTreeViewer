@@ -44,6 +44,9 @@ public class JLabel_Bars extends JLabel implements TableCellRenderer {
     g.setColor(getBackground());
     g.fillRect(0, 0, w, h);
 
+    if (max==0)
+      return;
+
     g.setColor(getForeground());
     for (int i=0; i<counts.length; i++)
       if (counts[i]>0) {

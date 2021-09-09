@@ -74,7 +74,8 @@ public class ClustersTable extends JPanel {
     for (int i=2; i<=3; i++)
       tableColumnModel.getColumn(i).setCellRenderer(new RenderLabelBarChart(0,maxD));
     tableColumnModel.getColumn(4).setCellRenderer(ruleRenderer);
-    tableColumnModel.getColumn(5).setCellRenderer(new JLabel_Bars());
+    for (int i=5; i<=6; i++)
+      tableColumnModel.getColumn(i).setCellRenderer(new JLabel_Bars());
     for (int i=0; i<4; i++)
       tableColumnModel.getColumn(i).setPreferredWidth((i<2)?30:50);
 
@@ -135,6 +136,22 @@ class ClustersTableModel extends AbstractTableModel {
           for (int i=0; i<clusters[row].member.length; i++)
             if (clusters[row].member[i])
               counts[((CommonExplanation)exList.get(i)).action-minA]++;
+        return counts;
+      case 6:
+        counts=null;
+        if (maxQ==minQ) {
+          counts=new int[1];
+          counts[0]=0;
+        }
+        else {
+          len = 10;
+          counts = new int[len];
+          for (int i = 0; i < len; i++)
+            counts[i] = 0;
+          for (int i=0; i<clusters[row].member.length; i++)
+            if (clusters[row].member[i])
+              counts[(int)Math.floor((len-1)*(((CommonExplanation)exList.get(i)).meanQ-minQ)/(maxQ-minQ))]++;
+        }
         return counts;
     }
     return 0;

@@ -23,56 +23,35 @@ public class ClustersTable extends JPanel {
   protected double distanceMatrix[][];
   public JScrollPane scrollPane=null;
 
-  public ClustersTable (ClusterContent clusters[], double distanceMatrix[][], ArrayList<CommonExplanation> exList, JLabel_Rule ruleRenderer, Hashtable<String,float[]> attrMinMax) {
+  public ClustersTable (ClusterContent clusters[], double distanceMatrix[][], ArrayList<CommonExplanation> exList,
+                        JLabel_Rule ruleRenderer, Hashtable<String,float[]> attrMinMax, int minA, int maxA, double minQ, double maxQ) {
     super();
     this.clusters=clusters;
     this.distanceMatrix=distanceMatrix;
-    JTable table=new JTable(new ClustersTableModel(clusters,distanceMatrix,exList)){
+    JTable table=new JTable(new ClustersTableModel(clusters,distanceMatrix,exList,minA,maxA,minQ,maxQ)){
       public String getToolTipText(MouseEvent e) {
         java.awt.Point p = e.getPoint();
         int rowIndex = rowAtPoint(p);
         if (rowIndex>=0) {
           int realRowIndex = convertRowIndexToModel(rowIndex);
-          //highlighter.highlight(new Integer(realRowIndex));
-          int colIndex=columnAtPoint(p);
           String s="";
-/*
-          if (colIndex>=0) {
-            int realColIndex=convertColumnIndexToModel(colIndex);
-            s=eTblModel.getColumnName(realColIndex);
-          }
-*/
           CommonExplanation ce=(CommonExplanation)exList.get(clusters[realRowIndex].medoidIdx);
           Vector<CommonExplanation> vce=null;
-          //if (table!=null && table.getSelectedRow()>=0) {
-            vce=new Vector<>();
-            for (int i=0; i<clusters[realRowIndex].member.length; i++)
-              if (clusters[realRowIndex].member[i]) {
-                //int idx=clusters[realRowIndex].objIds[i]; // objIds==null
-                CommonExplanation ce1=(CommonExplanation)exList.get(i);
-                vce.add(ce1);
-              }
-            //vce.add((CommonExplanation)exList.get(clusters[table.getSelectedRow()].medoidIdx));
-          //}
-/*
-          ArrayList selected=selector.getSelected();
-          if (selected!=null && selected.size()>0) {
-            vce=new Vector<>(selected.size());
-            for (int i = 0; i < selected.size(); i++)
-              vce.add(exList.get((Integer)selected.get(i)));
-          }
-*/
+          vce=new Vector<>();
+          for (int i=0; i<clusters[realRowIndex].member.length; i++)
+            if (clusters[realRowIndex].member[i]) {
+              //int idx=clusters[realRowIndex].objIds[i]; // objIds==null
+              CommonExplanation ce1=(CommonExplanation)exList.get(i);
+              vce.add(ce1);
+            }
           try {
             BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, vce, ruleRenderer.attrs, ruleRenderer.minmax);
             File outputfile = new File("img.png");
             ImageIO.write(bi, "png", outputfile);
-            //System.out.println("img"+ce.numId+".png");
           } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
           String out=ce.toHTML(attrMinMax,s,"img.png");
-          //System.out.println(out);
           return out;
         }
-        //highlighter.clearHighlighting();
         return "";
       }
 
@@ -95,6 +74,7 @@ public class ClustersTable extends JPanel {
     for (int i=2; i<=3; i++)
       tableColumnModel.getColumn(i).setCellRenderer(new RenderLabelBarChart(0,maxD));
     tableColumnModel.getColumn(4).setCellRenderer(ruleRenderer);
+    tableColumnModel.getColumn(5).setCellRenderer(new JLabel_Bars());
     for (int i=0; i<4; i++)
       tableColumnModel.getColumn(i).setPreferredWidth((i<2)?30:50);
 
@@ -109,11 +89,16 @@ class ClustersTableModel extends AbstractTableModel {
   protected ClusterContent clusters[]=null;
   protected double distanceMatrix[][]=null;
   protected ArrayList<CommonExplanation> exList=null;
+  protected int minA, maxA;
+  protected double minQ, maxQ;
 
-  public ClustersTableModel (ClusterContent clusters[], double distanceMatrix[][], ArrayList<CommonExplanation> exList) {
+  public ClustersTableModel (ClusterContent clusters[], double distanceMatrix[][], ArrayList<CommonExplanation> exList,
+                             int minA, int maxA, double minQ, double maxQ) {
     this.clusters=clusters;
     this.distanceMatrix=distanceMatrix;
     this.exList=exList;
+    this.minA=minA; this.maxA=maxA;
+    this.minQ=minQ; this.maxQ=maxQ;
   }
 
   private String columnNames[] = {"Cluster","Size","m-Radius","Diameter","Rule","Action","Q"};
@@ -141,6 +126,16 @@ class ClustersTableModel extends AbstractTableModel {
         return clusters[row].getDiameter(distanceMatrix);
       case 4:
         return exList.get(clusters[row].medoidIdx);
+      case 5:
+        int len=maxA-minA+1;
+        int counts[]=new int[len];
+        for (int i=0; i<len; i++)
+          counts[i]=0;
+        if (len>1)
+          for (int i=0; i<clusters[row].member.length; i++)
+            if (clusters[row].member[i])
+              counts[((CommonExplanation)exList.get(i)).action-minA]++;
+        return counts;
     }
     return 0;
   }

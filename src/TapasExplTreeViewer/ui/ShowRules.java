@@ -452,7 +452,7 @@ public class ShowRules implements RulesOrderer{
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        hierClustering(exList,distanceMatrix);
+        hierClustering(exList,distanceMatrix,minA,maxA,minQ,maxQ);
       }
     });
     menu.add(mit=new JMenuItem("Apply hierarchical clustering (old)"));
@@ -1067,7 +1067,7 @@ public class ShowRules implements RulesOrderer{
    return plotFrame;
   }
   
-  public JFrame hierClustering (ArrayList<CommonExplanation> exList, double distanceMatrix[][]) {
+  public JFrame hierClustering (ArrayList<CommonExplanation> exList, double distanceMatrix[][], int minA, int maxA, double minQ, double maxQ) {
     if (distanceMatrix==null)
       return null;
     ClusterContent topCluster=HierarchicalClusterer.doClustering(distanceMatrix);
@@ -1091,7 +1091,7 @@ public class ShowRules implements RulesOrderer{
     ch.select(2);
     putHierClustersToTable(topCluster, ch.getSelectedIndex());
     JScrollPane scpDendrogram=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
-    ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),distanceMatrix,exList,ruleRenderer,attrMinMax);
+    ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
     scpDendrogram.setPreferredSize(new Dimension(100,200));
     JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
     splitPane.setOneTouchExpandable(true);
@@ -1103,7 +1103,7 @@ public class ShowRules implements RulesOrderer{
       @Override
       public void itemStateChanged(ItemEvent e) {
         putHierClustersToTable(topCluster, ch.getSelectedIndex());
-        ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),distanceMatrix,exList,ruleRenderer,attrMinMax);
+        ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
         splitPane.setTopComponent(clTable.scrollPane);
       }
     });

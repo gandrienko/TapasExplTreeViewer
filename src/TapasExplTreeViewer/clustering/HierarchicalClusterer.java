@@ -7,7 +7,8 @@ public class HierarchicalClusterer {
    * @param distances - Matrix of distances between the objects to cluster
    * @return top cluster in the hierarchy or null if failed
    */
-  public static ClusterContent doClustering(double distances[][]) {
+  public static ClusterContent doClustering(double distances[][],
+                                            boolean useDistancesBetweenMedoids) {
     if (distances==null || distances.length<3)
       return null; //nothing to cluster
     
@@ -39,38 +40,43 @@ public class HierarchicalClusterer {
     }
     
     do {
-      /*
-      //distance between clusters ::= distance between their medoids
-      int idx1=-1,idx2=-1;
-      double d=Double.NaN;
-      for (int i=0; i<nObjects-1; i++)
-        if (isMedoid[i])
-          for (int j=i+1; j<nObjects; j++)
-            if (isMedoid[j]) {
-              if (Double.isNaN(d) || (!Double.isNaN(distances[i][j]) && distances[i][j]<d)) {
-                d=distances[i][j];
-                idx1=i; idx2=j;
-              }
-            }
-      if (Double.isNaN(d))
-        break;
-      int cIdx1=clusterIdx[idx1], cIdx2=clusterIdx[idx2];
-      */
-      
-      //distance between clusters ::= mean pairwise distance between members
       int cIdx1=-1, cIdx2=-1;
-      double minD=Double.NaN;
-      for (int i=0; i<clusters.size()-1; i++)
-        if (clusters.get(i).parent==null) //not included in another cluster
-          for (int j=i+1; j<clusters.size(); j++)
-            if (clusters.get(j).parent==null) {//not included in another cluster
-              Double d=ClusterContent.distanceBetweenClusters(clusters.get(i),clusters.get(j),distances);
-              if (!Double.isNaN(d) && (Double.isNaN(minD) || minD>d)) {
-                minD=d; cIdx1=i; cIdx2=j;
+      if (useDistancesBetweenMedoids) {
+        //distance between clusters ::= distance between their medoids
+        int idx1 = -1, idx2 = -1;
+        double minD = Double.NaN;
+        for (int i = 0; i < nObjects - 1; i++)
+          if (isMedoid[i])
+            for (int j = i + 1; j < nObjects; j++)
+              if (isMedoid[j]) {
+                if (Double.isNaN(minD) || (!Double.isNaN(distances[i][j]) && distances[i][j] < minD)) {
+                  minD = distances[i][j];
+                  idx1 = i;
+                  idx2 = j;
+                }
               }
-            }
-      if (Double.isNaN(minD))
-        break;
+        if (Double.isNaN(minD))
+          break;
+        cIdx1 = clusterIdx[idx1];
+        cIdx2 = clusterIdx[idx2];
+      }
+      else {
+        //distance between clusters ::= mean pairwise distance between members
+        double minD = Double.NaN;
+        for (int i = 0; i < clusters.size() - 1; i++)
+          if (clusters.get(i).parent == null) //not included in another cluster
+            for (int j = i + 1; j < clusters.size(); j++)
+              if (clusters.get(j).parent == null) {//not included in another cluster
+                Double d = ClusterContent.distanceBetweenClusters(clusters.get(i), clusters.get(j), distances);
+                if (!Double.isNaN(d) && (Double.isNaN(minD) || minD > d)) {
+                  minD = d;
+                  cIdx1 = i;
+                  cIdx2 = j;
+                }
+              }
+        if (Double.isNaN(minD))
+          break;
+      }
       
       //join two closest clusters
       ClusterContent cc1=clusters.get(cIdx1), cc2=clusters.get(cIdx2),

@@ -455,13 +455,6 @@ public class ShowRules implements RulesOrderer{
         hierClustering(exList,distanceMatrix,minA,maxA,minQ,maxQ);
       }
     });
-    menu.add(mit=new JMenuItem("Apply hierarchical clustering (old)"));
-    mit.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        hierClusteringOld(exList,distanceMatrix);
-      }
-    });
 
     if (aggregated && !expanded) {
       menu.add(mit=new JMenuItem("Expand rule hierarchies"));
@@ -1067,10 +1060,21 @@ public class ShowRules implements RulesOrderer{
    return plotFrame;
   }
   
-  public JFrame hierClustering (ArrayList<CommonExplanation> exList, double distanceMatrix[][], int minA, int maxA, double minQ, double maxQ) {
+  public JFrame hierClustering (ArrayList<CommonExplanation> exList,
+                                double distanceMatrix[][],
+                                int minA, int maxA,
+                                double minQ, double maxQ) {
     if (distanceMatrix==null)
       return null;
-    ClusterContent topCluster=HierarchicalClusterer.doClustering(distanceMatrix);
+  
+    String options[]={"mean pairwise distance between members",
+                      "distance between cluster medoids"};
+    String selOption = (String)JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "How to compute the distances between clusters?",
+        "What is the distance between clusters?",JOptionPane.QUESTION_MESSAGE,
+        null,options,options[0]);
+    
+    ClusterContent topCluster=HierarchicalClusterer.doClustering(distanceMatrix,selOption.equals(options[1]));
     if (topCluster==null) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Clustering failed!",
@@ -1083,7 +1087,7 @@ public class ShowRules implements RulesOrderer{
       oIds[i]=exList.get(i).numId;
     topCluster.setObjIds(oIds);
 
-    JFrame frame = new JFrame("Cluster hierarchy; depth = "+topCluster.hierDepth);
+    JFrame frame = new JFrame("Cluster hierarchy; depth = "+topCluster.hierDepth+"; "+selOption);
     frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     Choice ch=new Choice();
     for (int i=0; i<topCluster.hierDepth+1; i++)
@@ -1091,7 +1095,8 @@ public class ShowRules implements RulesOrderer{
     ch.select(2);
     putHierClustersToTable(topCluster, ch.getSelectedIndex());
     JScrollPane scpDendrogram=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
-    ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
+    ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
+        distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
     scpDendrogram.setPreferredSize(new Dimension(100,200));
     JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
     splitPane.setOneTouchExpandable(true);
@@ -1103,7 +1108,8 @@ public class ShowRules implements RulesOrderer{
       @Override
       public void itemStateChanged(ItemEvent e) {
         putHierClustersToTable(topCluster, ch.getSelectedIndex());
-        ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
+        ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
+            distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
         splitPane.setTopComponent(clTable.scrollPane);
       }
     });
@@ -1119,7 +1125,8 @@ public class ShowRules implements RulesOrderer{
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     frame.pack();
     splitPane.setDividerLocation(0.5);
-    frame.setSize(new Dimension(Math.min(frame.getWidth(),Math.round(0.8f*size.width)),Math.min(frame.getHeight(),Math.round(0.8f*size.height))));
+    frame.setSize(new Dimension(Math.min(frame.getWidth(),Math.round(0.8f*size.width)),
+        Math.min(frame.getHeight(),Math.round(0.8f*size.height))));
     frame.setLocation(size.width-frame.getWidth()-30, size.height-frame.getHeight()-50);
     frame.setVisible(true);
     if (frames==null)
@@ -1163,83 +1170,6 @@ public class ShowRules implements RulesOrderer{
     }
     JScrollPane scp=new JScrollPane(pp);
     return scp;
-  }
-
-  public JFrame hierClusteringOld (ArrayList<CommonExplanation> exList, double distanceMatrix[][]) {
-    if (distanceMatrix==null)
-      return null;
-    ClusterContent topCluster= HierarchicalClusterer.doClustering(distanceMatrix);
-    if (topCluster==null) {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-              "Clustering failed!",
-              "Error",JOptionPane.ERROR_MESSAGE);
-      return null;
-    }
-
-    for (int i=0; i<topCluster.hierDepth+1; i++)
-      System.out.println("level "+i+": "+topCluster.getNClustersAtLevel(i)+" clusters");
-
-    String vstr=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "Hierarchical clustering done\nHierarchy depth is "+topCluster.hierDepth+"\nSet desired N clusters here (max="+exList.size()+")", "7");
-    //"Success!",JOptionPane.INFORMATION_MESSAGE);
-    int v=Integer.valueOf(vstr);
-
-    int oIds[]=new int[exList.size()];
-    for (int i=0; i<exList.size(); i++)
-      oIds[i]=exList.get(i).numId;
-    topCluster.setObjIds(oIds);
-
-    int level;
-    for (level=0; level<topCluster.hierDepth && topCluster.getNClustersAtLevel(level)<v; level++);
-
-    ClusterContent clusters[]=topCluster.getClustersAtLevel(level);
-    if (clusters!=null && clusters.length>1) {
-      ClustersAssignments clAss=new ClustersAssignments();
-      clAss.objIndexes=new int[exList.size()];
-      clAss.clusters=new int[exList.size()];
-      for (int i=0; i<exList.size(); i++) {
-        clAss.objIndexes[i]=i;
-        clAss.clusters[i]=-1;
-      }
-      clAss.minSize=exList.size()+10;
-      for (int i=0; i<clusters.length; i++) {
-        int n=0;
-        for (int j = 0; j < exList.size(); j++)
-          if (clusters[i].member[j]) {
-            clAss.clusters[j] = i;
-            ++n;
-          }
-        clAss.minSize=Math.min(n,clAss.minSize);
-        clAss.maxSize=Math.max(n,clAss.maxSize);
-      }
-      ExListTableModel eTblModel=(ExListTableModel)table.getModel();
-      eTblModel.setCusterAssignments(clAss);
-    }
-
-    JPanel pp=topCluster.makePanel();
-    if (pp==null) {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-              "Failed to visualize the hierarchy!",
-              "Error",JOptionPane.ERROR_MESSAGE);
-      return null;
-    }
-
-    Dimension size=Toolkit.getDefaultToolkit().getScreenSize(), prefSize=pp.getPreferredSize();
-    JScrollPane scp=(prefSize.height>0.8*size.height || prefSize.width>0.8*size.width)?
-            new JScrollPane(pp):null;
-    JFrame plotFrame=new JFrame("Cluster hierarchy; depth = "+topCluster.hierDepth);
-    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    plotFrame.getContentPane().add((scp==null)?pp:scp);
-    plotFrame.pack();
-    prefSize.width=Math.min(plotFrame.getWidth(),Math.round(0.8f*size.width));
-    prefSize.height=Math.min(plotFrame.getHeight(),Math.round(0.8f*size.height));
-    plotFrame.setSize(prefSize);
-    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
-    plotFrame.setVisible(true);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(plotFrame);
-    return plotFrame;
   }
 
   public void extractSubset(ItemSelectionManager selector,

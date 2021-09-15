@@ -64,20 +64,22 @@ public class ClustersTable extends JPanel {
     table.setRowHeight((int)(1.5*table.getRowHeight()));
     TableColumnModel tableColumnModel=table.getColumnModel();
     tableColumnModel.getColumn(0).setCellRenderer(new RenderLabelBarChart(0,clusters.length-1));
-    int maxSize=clusters[0].getMemberCount();
+    int maxSize=clusters[0].getMemberCount(), maxUses=0;
     float maxD=0;
-    for (int i=1; i<clusters.length; i++) {
+    for (int i=0; i<clusters.length; i++) {
       maxSize = Math.max(maxSize, clusters[i].getMemberCount());
       maxD = Math.max(maxD,(float)clusters[i].getDiameter(distanceMatrix));
+      maxUses = Math.max(maxUses, (int)table.getModel().getValueAt(i,2));
     }
     tableColumnModel.getColumn(1).setCellRenderer(new RenderLabelBarChart(0,maxSize));
-    for (int i=2; i<=3; i++)
+    tableColumnModel.getColumn(2).setCellRenderer(new RenderLabelBarChart(0,maxUses));
+    for (int i=3; i<=4; i++)
       tableColumnModel.getColumn(i).setCellRenderer(new RenderLabelBarChart(0,maxD));
-    tableColumnModel.getColumn(4).setCellRenderer(ruleRenderer);
-    for (int i=5; i<=6; i++)
+    tableColumnModel.getColumn(5).setCellRenderer(ruleRenderer);
+    for (int i=6; i<=7; i++)
       tableColumnModel.getColumn(i).setCellRenderer(new JLabel_Bars());
-    for (int i=0; i<4; i++)
-      tableColumnModel.getColumn(i).setPreferredWidth((i<2)?30:50);
+    for (int i=0; i<5; i++)
+      tableColumnModel.getColumn(i).setPreferredWidth((i<3)?30:50);
 
     scrollPane = new JScrollPane(table);
     scrollPane.setMinimumSize(new Dimension(100,200));
@@ -102,7 +104,7 @@ class ClustersTableModel extends AbstractTableModel {
     this.minQ=minQ; this.maxQ=maxQ;
   }
 
-  private String columnNames[] = {"Cluster","Size","m-Radius","Diameter","Rule","Action","Q"};
+  private String columnNames[] = {"Cluster","Size","N uses","m-Radius","Diameter","Rule","Action","Q"};
   public int getColumnCount() {
     return columnNames.length;
   }
@@ -122,12 +124,18 @@ class ClustersTableModel extends AbstractTableModel {
       case 1:
         return clusters[row].getMemberCount();
       case 2:
-        return clusters[row].getMRadius(distanceMatrix);
+        int n=0;
+        for (int i=0; i<clusters[row].member.length; i++)
+          if (clusters[row].member[i])
+            n+=((CommonExplanation)exList.get(i)).nUses;
+        return n;
       case 3:
-        return clusters[row].getDiameter(distanceMatrix);
+        return clusters[row].getMRadius(distanceMatrix);
       case 4:
-        return exList.get(clusters[row].medoidIdx);
+        return clusters[row].getDiameter(distanceMatrix);
       case 5:
+        return exList.get(clusters[row].medoidIdx);
+      case 6:
         int len=maxA-minA+1;
         int counts[]=new int[len];
         for (int i=0; i<len; i++)
@@ -137,7 +145,7 @@ class ClustersTableModel extends AbstractTableModel {
             if (clusters[row].member[i])
               counts[((CommonExplanation)exList.get(i)).action-minA]++;
         return counts;
-      case 6:
+      case 7:
         counts=null;
         if (maxQ==minQ) {
           counts=new int[1];

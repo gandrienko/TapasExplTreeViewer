@@ -727,11 +727,19 @@ public class ShowRules implements RulesOrderer{
     JScrollPane scrollPane = new JScrollPane(table);
     
     if (title==null) {
+      int nUses=0, nCond=0;
+      for (int i=0; i<rules.size(); i++) {
+        CommonExplanation cEx=(CommonExplanation)rules.get(i);
+        nUses+=cEx.nUses;
+        nCond+=cEx.eItems.length;
+      }
       title = ((expanded) ? "Expanded aggregated rules " :
                    (aggregated) ? "Aggregated rules" :
                        (nonSubsumed) ? "Extracted non-subsumed rules" :
                            "Original distinct rules or explanations") +
                   " (" + rules.size() + ")" +
+                  ", N conditions (" +nCond + ")" +
+                  ", Total uses (" +nUses + ")" +
                   ((aggregated) ? "; obtained with accuracy threshold " +
                                       String.format("%.3f", accThreshold) : "");
       if (maxQDiff > 0)

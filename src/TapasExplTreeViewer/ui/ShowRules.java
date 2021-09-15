@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
+import TapasDataReader.Explanation;
 import TapasExplTreeViewer.MST.Edge;
 import TapasExplTreeViewer.MST.Prim;
 import TapasExplTreeViewer.MST.Vertex;
@@ -14,7 +15,6 @@ import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasExplTreeViewer.vis.RuleSetVis;
 import TapasExplTreeViewer.vis.TSNE_Runner;
 import TapasUtilities.*;
-import javafx.scene.control.SplitPane;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -26,10 +26,7 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.*;
 
 public class ShowRules implements RulesOrderer{
   
@@ -38,6 +35,10 @@ public class ShowRules implements RulesOrderer{
    * The very original rule set (before any transformations have been applied)
    */
   public ArrayList<CommonExplanation> origRules =null;
+  /**
+   * Whether there are different actions (decisions, classes) in the data and in the original rules
+   */
+  public boolean actionsDiffer =false;
   /**
    * The highlighter and selector for the original rule set
    */
@@ -48,6 +49,10 @@ public class ShowRules implements RulesOrderer{
    * The rules or explanations to be visualized
    */
   public ArrayList<CommonExplanation> exList=null;
+  /**
+   * The data instances (cases) the rules apply to.
+   */
+  public AbstractList<Explanation> dataInstances =null;
   /**
    * Whether the rule set has been previously reduced by removing rules
    * subsumed in more general rules.
@@ -125,6 +130,21 @@ public class ShowRules implements RulesOrderer{
   
   public ShowRules(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this(exList,attrMinMax,null);
+  }
+  
+  public AbstractList<Explanation> getDataInstances() {
+    return dataInstances;
+  }
+  
+  public void setDataInstances(AbstractList<Explanation> exData, boolean actionsDiffer) {
+    this.dataInstances = exData;
+    this.actionsDiffer=actionsDiffer;
+  }
+  
+  public void countRightAndWrongRuleApplications() {
+    if (dataInstances!=null && !dataInstances.isEmpty() && exList!=null && !exList.isEmpty())
+      for (CommonExplanation ex:exList)
+        ex.countRightAndWrongApplications(dataInstances,actionsDiffer);
   }
   
   public ArrayList<CommonExplanation> getOrigRules() {
@@ -487,6 +507,7 @@ public class ShowRules implements RulesOrderer{
             showRules.setAggregated(true);
             showRules.setExpanded(true);
             showRules.setCreatedFileRegister(createdFiles);
+            showRules.countRightAndWrongRuleApplications();
             showRules.showRulesInTable();
           }
         }
@@ -794,6 +815,7 @@ public class ShowRules implements RulesOrderer{
   protected ShowRules createShowRulesInstance(ArrayList rules) {
     ShowRules showRules=new ShowRules(rules,attrMinMax,null);
     showRules.setOrigRules(origRules);
+    showRules.setDataInstances(dataInstances,actionsDiffer);
     showRules.setOrigHighlighter(origHighlighter);
     showRules.setOrigSelector(origSelector);
     showRules.setCreatedFileRegister(createdFiles);
@@ -1207,6 +1229,7 @@ public class ShowRules implements RulesOrderer{
     }
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
     showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
+    showRules.setDataInstances(dataInstances,actionsDiffer);
     if (showRules.getOrigRules().equals(origRules)) {
       showRules.setOrigHighlighter(origHighlighter);
       showRules.setOrigSelector(origSelector);
@@ -1267,6 +1290,7 @@ public class ShowRules implements RulesOrderer{
     }
     ShowRules showRules=createShowRulesInstance(exList2);
     showRules.setNonSubsumed(true);
+    showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable();
   }
   
@@ -1336,6 +1360,7 @@ public class ShowRules implements RulesOrderer{
     showRules.setAccThreshold(minAccuracy);
     if (noActions)
       showRules.setMaxQDiff(maxQDiff);
+    showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable();
   }
   

@@ -86,12 +86,19 @@ public class SeeExList {
     /**/
   
     ArrayList<CommonExplanation> exList=new ArrayList<CommonExplanation>(10000);
+    ArrayList<Explanation> dataInstances=new ArrayList<Explanation>(100000);
+    boolean actionsDiffer=false;
+    
     for (Map.Entry<String,Flight> entry:flights.entrySet()) {
       Flight f=entry.getValue();
       if (f.expl!=null)
-        for (int i=0; i<f.expl.length; i++)
-          CommonExplanation.addExplanation(exList,f.expl[i],
-              false,attrMinMax,true);
+        for (int i=0; i<f.expl.length; i++) {
+          CommonExplanation.addExplanation(exList, f.expl[i],
+              false, attrMinMax, true);
+          dataInstances.add(f.expl[i]);
+          actionsDiffer=actionsDiffer ||
+                            (dataInstances.size()>1 && f.expl[i].action!=dataInstances.get(0).action);
+        }
     }
     if (exList.isEmpty()) {
       System.out.println("Failed to reconstruct the list of common explanations!");
@@ -99,10 +106,13 @@ public class SeeExList {
     }
     else
       System.out.println("Made a list of "+exList.size()+" common explanations!");
-  
+    
     //MainBody(attrMinMax,exList);
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     showRules.setOrigRules(exList);
+    showRules.setDataInstances(dataInstances,actionsDiffer);
+    showRules.countRightAndWrongRuleApplications();
+    
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
@@ -197,9 +207,16 @@ public class SeeExList {
     for (Explanation ex:vex)
       CommonExplanation.addExplanation(exList,ex,false,attrMinMax,true);
     //MainBody(attrMinMax,exList);
-
+  
+    boolean actionsDiffer=false;
+    for (int i=1; i<vex.size() && !actionsDiffer; i++)
+      actionsDiffer=vex.elementAt(i).action!=vex.elementAt(i-1).action;
+    
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     showRules.setOrigRules(exList);
+    showRules.setDataInstances(vex,actionsDiffer);
+    showRules.countRightAndWrongRuleApplications();
+    
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");

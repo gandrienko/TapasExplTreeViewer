@@ -42,6 +42,8 @@ public class UnitedRule extends CommonExplanation {
     rule.sumQ=this.sumQ;
     rule.nOrigRight=this.nOrigRight;
     rule.nOrigWrong=this.nOrigWrong;
+    rule.nCasesRight=this.nCasesRight;
+    rule.nCasesWrong=this.nCasesWrong;
     if (fromRules!=null && !fromRules.isEmpty()) {
       rule.fromRules=new ArrayList<UnitedRule>(fromRules.size());
       for (int i=0; i<fromRules.size(); i++)

@@ -729,7 +729,8 @@ public class ShowRules implements RulesOrderer{
           //if (selMenu==null)
             //return;
         }
-        JMenuItem selItem = new JMenuItem("Select data for the rule");
+        String title="Select data for the rule "+exList.get(realRowIndex).numId+", action="+exList.get(realRowIndex).action+", Nrecords="+exList.get(realRowIndex).applications.length;
+        JMenuItem selItem = new JMenuItem(title);
         selItem.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {

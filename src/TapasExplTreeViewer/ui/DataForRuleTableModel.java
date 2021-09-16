@@ -56,9 +56,30 @@ public class DataForRuleTableModel extends AbstractTableModel {
       default:
         int idx=col-columnNames.length;
         String aName=listOfFeatures.get(idx);
+        double values[]={Double.NaN,Double.NaN,Double.NaN,Double.NaN,Double.NaN};
+        for (int i=0; i<cEx.eItems.length; i++)
+          if (aName.equals(cEx.eItems[i].attr)) {
+            if (Double.isNaN(values[0]) || values[0]>cEx.eItems[i].interval[0])
+              values[0]=cEx.eItems[i].interval[0];
+            if (Double.isNaN(values[1]) || values[1]<cEx.eItems[i].interval[1])
+              values[1]=cEx.eItems[i].interval[1];
+          }
+        if (attrMinMax !=null && !Double.isNaN(values[0]) || !Double.isNaN(values[1]))  {
+          float minmax[]= attrMinMax.get(aName);
+          if (minmax!=null) {
+            values[2]=minmax[0];
+            values[3]=minmax[1];
+            if (Double.isNaN(values[0]) || Double.isInfinite(values[0]))
+              values[0]=values[2];
+            if (Double.isNaN(values[1]) || Double.isInfinite(values[1]))
+              values[1]=values[3];
+          }
+        }
         for (int i=0; i<cEx.applications[row].data.eItems.length; i++)
-          if (aName.equals(cEx.applications[row].data.eItems[i].attr))
-            return cEx.applications[row].data.eItems[i].value;
+          if (aName.equals(cEx.applications[row].data.eItems[i].attr)) {
+            values[4]=cEx.applications[row].data.eItems[i].value;
+            return values;
+          }
     }
     return 0;
   }

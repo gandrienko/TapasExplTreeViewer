@@ -736,7 +736,8 @@ public class ShowRules implements RulesOrderer{
         selItem.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            JTable dataTbl=new JTable(new DataForRuleTableModel(exList.get(realRowIndex),eTblModel.listOfFeatures,attrMinMax));
+            DataForRuleTableModel dataTblModel=new DataForRuleTableModel(exList.get(realRowIndex),eTblModel.listOfFeatures,attrMinMax);
+            JTable dataTbl=new JTable(dataTblModel);
             Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
             dataTbl.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
             dataTbl.setFillsViewportHeight(true);
@@ -744,6 +745,12 @@ public class ShowRules implements RulesOrderer{
             dataTbl.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
             dataTbl.setRowSelectionAllowed(true);
             dataTbl.setColumnSelectionAllowed(false);
+            for (int i=dataTblModel.columnNames.length; i<dataTblModel.getColumnCount(); i++) {
+              JLabel_Subinterval renderer=new JLabel_Subinterval();
+              renderer.setDrawValues(true);
+              //renderer.setDrawTexts(true);
+              dataTbl.getColumnModel().getColumn(i).setCellRenderer(renderer);
+            }
             JScrollPane scrollPane = new JScrollPane(dataTbl);
             JFrame fr = new JFrame(title);
             fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

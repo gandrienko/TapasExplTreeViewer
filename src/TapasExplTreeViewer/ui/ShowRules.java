@@ -589,11 +589,11 @@ public class ShowRules implements RulesOrderer{
           return;
         }
         JPopupMenu selMenu=new JPopupMenu();;
+        int rowIndex=table.rowAtPoint(e.getPoint());
+        if (rowIndex<0)
+          return;
+        int realRowIndex = table.convertRowIndexToModel(rowIndex);
         if (expanded || aggregated) {
-          int rowIndex=table.rowAtPoint(e.getPoint());
-          if (rowIndex<0)
-            return;
-          int realRowIndex = table.convertRowIndexToModel(rowIndex);
           UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
           if (origRules!=null) {
             //selMenu = new JPopupMenu();
@@ -731,7 +731,23 @@ public class ShowRules implements RulesOrderer{
         selItem.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-
+            JTable dataTbl=new JTable(new DataForRuleTableModel(exList.get(realRowIndex),attrMinMax));
+            Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+            dataTbl.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
+            dataTbl.setFillsViewportHeight(true);
+            dataTbl.setAutoCreateRowSorter(true);
+            dataTbl.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            dataTbl.setRowSelectionAllowed(true);
+            dataTbl.setColumnSelectionAllowed(false);
+            JScrollPane scrollPane = new JScrollPane(dataTbl);
+            JFrame fr = new JFrame(title);
+            fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
+            //Display the window.
+            fr.pack();
+            int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
+            fr.setLocation(30+nFrames*30, 30+nFrames*15);
+            fr.setVisible(true);
           }
         });
         selMenu.addSeparator();
@@ -772,7 +788,7 @@ public class ShowRules implements RulesOrderer{
     int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
     fr.setLocation(30+nFrames*30, 30+nFrames*15);
     fr.setVisible(true);
-    
+
     if (topFrameCreated) { //this will not be a top frame
       if (frames==null)
         frames=new ArrayList<JFrame>(20);

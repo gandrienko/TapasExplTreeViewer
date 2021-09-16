@@ -53,7 +53,7 @@ public class DataForRuleTableModel extends AbstractTableModel {
             listOfFeatures.get(col-columnNames.length));
   }
   public int getRowCount() {
-    return 0; //exList.size();
+    return cEx.applications.length; //exList.size();
   }
 
   public Class getColumnClass(int c) {
@@ -61,6 +61,12 @@ public class DataForRuleTableModel extends AbstractTableModel {
   }
 
   public Object getValueAt(int row, int col) {
+    switch (col) {
+      case 0:
+        return cEx.applications[row].data.FlightID;
+      case 1:
+        return cEx.action;
+    }
     return 0;
   }
 

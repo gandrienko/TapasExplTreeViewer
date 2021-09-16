@@ -14,37 +14,21 @@ public class DataForRuleTableModel extends AbstractTableModel {
   public ArrayList<String> listOfFeatures=null;
 
 
-  public DataForRuleTableModel (CommonExplanation cEx, ArrayList<String> listOfFeatures, Hashtable<String,float[]> attrMinMax) {
+  public DataForRuleTableModel (CommonExplanation cEx, ArrayList<String> listOfFeatures_parent, Hashtable<String, float[]> attrMinMax) {
     this.cEx=cEx;
     this.attrMinMax=attrMinMax;
-    this.listOfFeatures=listOfFeatures;
-    Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
-    for (int j = 0; j < cEx.eItems.length; j++) {
-      Integer count=attrUses.get(cEx.eItems[j].attr);
-      if (count==null)
-        attrUses.put(cEx.eItems[j].attr,1);
-      else
-        attrUses.put(cEx.eItems[j].attr,count+1);
-    }
-    listOfFeatures=new ArrayList<String>(attrUses.size());
-    for (Map.Entry<String,Integer> entry:attrUses.entrySet()) {
-      String aName=entry.getKey();
-      if (listOfFeatures.isEmpty())
+    this.listOfFeatures=new ArrayList<String>(listOfFeatures_parent.size());
+    for (String aName:listOfFeatures_parent) {
+      int idx=-1;
+      for (int j = 0; idx==-1 && j < cEx.eItems.length; j++)
+        if (aName.equals(cEx.eItems[j].attr))
+          idx=j;
+      if (idx!=-1)
         listOfFeatures.add(aName);
-      else {
-        int count=entry.getValue(), idx=-1;
-        for (int i=0; i<listOfFeatures.size() && idx<0; i++)
-          if (count>attrUses.get(listOfFeatures.get(i)))
-            idx=i;
-        if (idx<0)
-          listOfFeatures.add(aName);
-        else
-          listOfFeatures.add(idx,aName);
-      }
     }
   }
 
-  public String columnNames[] = {"Id","Action"};
+  public String columnNames[] = {"Id","ok?","Action"};
 
   public int getColumnCount() {
     return columnNames.length+listOfFeatures.size();
@@ -66,7 +50,15 @@ public class DataForRuleTableModel extends AbstractTableModel {
       case 0:
         return cEx.applications[row].data.FlightID;
       case 1:
+        return cEx.action==cEx.applications[row].data.action;
+      case 2:
         return cEx.applications[row].data.action;
+      default:
+        int idx=col-columnNames.length;
+        String aName=listOfFeatures.get(idx);
+        for (int i=0; i<cEx.applications[row].data.eItems.length; i++)
+          if (aName.equals(cEx.applications[row].data.eItems[i].attr))
+            return cEx.applications[row].data.eItems[i].value;
     }
     return 0;
   }

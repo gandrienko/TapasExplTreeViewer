@@ -4,6 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
 import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
@@ -214,14 +215,31 @@ public class RuleMaster {
   }
   
   /**
-   * Aggregates rules with coinciding actions and the same features by bottom-up
-   * hierarchical uniting of the closest rules. The accuracy of the united rules
+   * Aggregates rules with coinciding actions by bottom-up
+   * hierarchical joining of the closest rules. The accuracy of the united rules
    * is checked against the set of original explanations (rules). If the accuracy
    * (a number from 0 to 1) is less than minAccuracy, the united rule is discarded
    * and further aggregation is stopped.
    */
   public static ArrayList<UnitedRule> aggregate(ArrayList<UnitedRule> rules,
                                                 ArrayList<CommonExplanation> origRules,
+                                                double minAccuracy,
+                                                Hashtable<String,float[]> attrMinMax) {
+    return aggregate(rules,origRules,null,minAccuracy,attrMinMax);
+  }
+  
+  /**
+   * Aggregates rules with coinciding actions by bottom-up
+   * hierarchical joining of the closest rules.
+   * The accuracy of the united rules is checked against the set of original explanations (rules).
+   * If the set of data instances exData is not null, the accuracy is also checked against the data.
+   * From two accuracy estimates, the smaller one is taken.
+   * If the accuracy (a number from 0 to 1) is less than minAccuracy, the united rule is discarded
+   * and further aggregation is stopped.
+   */
+  public static ArrayList<UnitedRule> aggregate(ArrayList<UnitedRule> rules,
+                                                ArrayList<CommonExplanation> origRules,
+                                                AbstractList<Explanation> exData,
                                                 double minAccuracy,
                                                 Hashtable<String,float[]> attrMinMax) {
     if (rules==null || rules.size()<2)
@@ -249,7 +267,7 @@ public class RuleMaster {
       return rules;
     
     if (ruleGroups.size()<2)  //handle the case of no actions
-      agRules=aggregateByQ(ruleGroups.get(0), suggestMaxQDiff(rules),origRules,minAccuracy,attrMinMax);
+      agRules=aggregateByQ(ruleGroups.get(0), suggestMaxQDiff(rules),origRules,exData,minAccuracy,attrMinMax);
     else
       for (int ig=0; ig<ruleGroups.size(); ig++) {
         ArrayList<UnitedRule> group=ruleGroups.get(ig);
@@ -257,19 +275,15 @@ public class RuleMaster {
           agRules.add(group.get(0));
           continue;
         }
-        aggregateGroup(group,origRules,minAccuracy,attrMinMax);
+        aggregateGroup(group,origRules,exData,minAccuracy,attrMinMax);
         agRules.addAll(group);
       }
-    if (agRules.size()<rules.size()) {
-      for (UnitedRule r:agRules)
-        r.countRightAndWrongCoverages(origRules);
-      return agRules;
-    }
-    return rules;
+    return (agRules.size()<rules.size())?agRules:rules;
   }
   
   public static void aggregateGroup(ArrayList<UnitedRule> group,
                                     ArrayList<CommonExplanation> origRules,
+                                    AbstractList<Explanation> exData,
                                     double minAccuracy,
                                     Hashtable<String,float[]> attrMinMax) {
     if (group==null || group.size()<2)
@@ -278,7 +292,8 @@ public class RuleMaster {
     if (minAccuracy>0)
       for (int i=group.size()-1; i>=0; i--) {
         UnitedRule r=group.get(i);
-        if (getAccuracy(r,origRules,false)<minAccuracy) {
+        double dataAcc=(exData==null)?1:(1.0*r.nCasesRight/(r.nCasesRight+r.nCasesWrong));
+        if (dataAcc<minAccuracy || getAccuracy(r,origRules,false)<minAccuracy) {
           group.remove(i);
           notAccurate.add(r);
         }
@@ -303,6 +318,11 @@ public class RuleMaster {
         int i1=pair[0], i2=pair[1];
         UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
         if (union!=null) {
+          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
+            union.countRightAndWrongApplications(exData,true);
+            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
+              continue;
+          }
           union.countRightAndWrongCoverages(origRules);
           if (union.nOrigRight<1)
             System.out.println("Zero coverage!");
@@ -312,15 +332,8 @@ public class RuleMaster {
           group.remove(i1);
           for (int j=group.size()-1; j>=0; j--)
             if (union.subsumes(group.get(j),true)) {
-              UnitedRule u=union.makeRuleCopy(true,true);
               union.attachAsFromRule(group.get(j));
-              union.countRightAndWrongCoverages(origRules);
-              if (union.nOrigRight<1)
-                System.out.println("Zero coverage!");
-              if (minAccuracy>0 && getAccuracy(union,origRules,false)>=minAccuracy)
-                group.remove(j);
-              else
-                union=u;
+              group.remove(j);
             }
           group.add(0,union);
           united=true;
@@ -330,10 +343,36 @@ public class RuleMaster {
     if (notAccurate!=null && !notAccurate.isEmpty())
       group.addAll(notAccurate);
   }
+  /**
+   * Aggregates rules with close real-valued outcomes (represented by variable Q) by bottom-up
+   * hierarchical joining of the closest rules. Rule results are considered close if their difference
+   * does not exceed maxQDiff.
+   * The accuracy of the united rules is checked against the set of original explanations (rules).
+   * If the accuracy (a number from 0 to 1) is less than minAccuracy, the united rule is discarded
+   * and further aggregation is stopped.
+   */
+  public static ArrayList<UnitedRule> aggregateByQ(ArrayList<UnitedRule> rules,
+                                                   double maxQDiff,
+                                                   ArrayList<CommonExplanation> origRules,
+                                                   double minAccuracy,
+                                                   Hashtable<String,float[]> attrMinMax) {
+    return aggregateByQ(rules,maxQDiff,origRules,null,minAccuracy,attrMinMax);
+  }
   
+  /**
+   * Aggregates rules with close real-valued outcomes (represented by variable Q) by bottom-up
+   * hierarchical joining of the closest rules. Rule results are considered close if their difference
+   * does not exceed maxQDiff.
+   * The accuracy of the united rules is checked against the set of original explanations (rules).
+   * If the set of data instances exData is not null, the accuracy is also checked against the data.
+   * From two accuracy estimates, the smaller one is taken.
+   * If the accuracy (a number from 0 to 1) is less than minAccuracy, the united rule is discarded
+   * and further aggregation is stopped.
+   */
   public static ArrayList<UnitedRule> aggregateByQ(ArrayList<UnitedRule> rules,
                                             double maxQDiff,
                                             ArrayList<CommonExplanation> origRules,
+                                            AbstractList<Explanation> exData,
                                             double minAccuracy,
                                             Hashtable<String,float[]> attrMinMax) {
     if (rules==null || rules.size()<2)
@@ -347,7 +386,8 @@ public class RuleMaster {
     if (minAccuracy>0)
       for (int i=result.size()-1; i>=0; i--) {
         UnitedRule r=result.get(i);
-        if (getAccuracy(r,origRules,true)<minAccuracy) {
+        double dataAcc=(exData==null)?1:(1.0*r.nCasesRight/(r.nCasesRight+r.nCasesWrong));
+        if (dataAcc<minAccuracy || getAccuracy(r,origRules,true)<minAccuracy) {
           result.remove(i);
           notAccurate.add(r);
         }
@@ -381,6 +421,11 @@ public class RuleMaster {
         if (union!=null) {
           if (union.maxQ-union.minQ>maxQDiff)
             continue;
+          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
+            union.countRightAndWrongApplications(exData,false);
+            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
+              continue;
+          }
           union.countRightAndWrongCoveragesByQ(origRules);
           if (union.nOrigRight<1)
             System.out.println("Zero coverage!");
@@ -394,9 +439,6 @@ public class RuleMaster {
                     union.subsumes(r2)) {
               union.attachAsFromRule(r2);
               result.remove(j);
-              union.countRightAndWrongCoveragesByQ(origRules);
-              if (union.nOrigRight<1)
-                System.out.println("Zero coverage!");
             }
           }
           result.add(0,union);

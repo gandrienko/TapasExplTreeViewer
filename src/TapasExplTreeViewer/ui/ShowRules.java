@@ -540,30 +540,18 @@ public class ShowRules implements RulesOrderer{
       });
   
       menu.addSeparator();
-      menu.add(mit = new JMenuItem("Obtain generalized rules through aggregation"));
+      menu.add(mit = new JMenuItem("Aggregate and generalize rules"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          String value = JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
-              "Accuracy threshold from 0 to 1 :",
-              String.format("%.3f", accThreshold));
-          if (value == null)
-            return;
-          try {
-            double d = Double.parseDouble(value);
-            if (d < 0 || d > 1) {
-              JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                  "Illegal threshold value for the accuracy; must be from 0 to 1!",
-                  "Error", JOptionPane.ERROR_MESSAGE);
-              return;
-            }
-            aggregate(exList, attrMinMax, d);
-          } catch (Exception ex) {
-            JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                "Illegal threshold value for the accuracy!",
-                "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-          }
+          aggregate(exList, attrMinMax, false);
+        }
+      });
+      menu.add(mit = new JMenuItem("Aggregate and generalize rules checking data-based accuracy"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          aggregate(exList, attrMinMax, true);
         }
       });
     }
@@ -1305,13 +1293,36 @@ public class ShowRules implements RulesOrderer{
   
   public void aggregate(ArrayList<CommonExplanation> exList,
                         Hashtable<String,float[]> attrMinMax,
-                        double minAccuracy) {
+                        boolean checkWithData) {
     if (exList==null || exList.size()<2)
       return;
+    
+    double minAccuracy=0;
+  
+    String value = JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Accuracy threshold from 0 to 1 :",
+        String.format("%.3f", accThreshold));
+    if (value == null)
+      return;
+    try {
+      minAccuracy = Double.parseDouble(value);
+      if (minAccuracy < 0 || minAccuracy > 1) {
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal threshold value for the accuracy; must be from 0 to 1!",
+            "Error", JOptionPane.ERROR_MESSAGE);
+        return;
+      }
+    } catch (Exception ex) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Illegal threshold value for the accuracy!",
+          "Error", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+
     boolean noActions=RuleMaster.noActionDifference(exList);
     double maxQDiff=Double.NaN;
     if (noActions) {
-      String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+      value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "The rules do not differ in actions (decisions) and can be aggregated by closeness of " +
               "the Q values. Enter a threshold for the difference in Q :",
           String.format("%.5f",RuleMaster.suggestMaxQDiff(exList)));
@@ -1347,8 +1358,8 @@ public class ShowRules implements RulesOrderer{
     //}
     System.out.println("Trying to aggregate the rules...");
     ArrayList<UnitedRule> aggRules=(noActions)?RuleMaster.aggregateByQ(UnitedRule.getRules(exList),maxQDiff,
-        origRules,minAccuracy,attrMinMax):
-        RuleMaster.aggregate(UnitedRule.getRules(exList), origRules,minAccuracy,attrMinMax);
+        origRules,(checkWithData)?dataInstances:null,minAccuracy,attrMinMax):
+        RuleMaster.aggregate(UnitedRule.getRules(exList), origRules,(checkWithData)?dataInstances:null,minAccuracy,attrMinMax);
     if (aggRules==null || aggRules.size()>=exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to aggregate!",

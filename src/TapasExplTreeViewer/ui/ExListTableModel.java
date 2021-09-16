@@ -21,7 +21,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N +", "N -", "% +", "N data items",
+  public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N +", "N -", "+/+-", "N data items",
       "Order", "Cluster", "N conditions", "Rule"};
   public String columnNamesUnited[]={"N right covers","N wrong covers","Accuracy",
       "N united rules","Depth of hierarchy"};

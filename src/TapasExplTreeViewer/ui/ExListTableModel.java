@@ -21,7 +21,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N data items",
+  public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N +", "N -", "% +", "N data items",
       "Order", "Cluster", "N conditions", "Rule"};
   public String columnNamesUnited[]={"N right covers","N wrong covers","Accuracy",
       "N united rules","Depth of hierarchy"};
@@ -159,12 +159,18 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         case 5:
           return new Integer(cEx.nUses);
         case 6:
-          return new Integer(cEx.uses.size());
+          return new Integer(cEx.nCasesRight);
         case 7:
-          return (order == null) ? new Integer(row) : new Integer(order[row]);
+          return new Integer(cEx.nCasesWrong);
         case 8:
-          return (clusters == null) ? new Integer(-1) : new Integer(clusters[row]);
+          return new Float(cEx.nCasesRight*1f/(cEx.nCasesRight+cEx.nCasesWrong));
         case 9:
+          return new Integer(cEx.uses.size());
+        case 10:
+          return (order == null) ? new Integer(row) : new Integer(order[row]);
+        case 11:
+          return (clusters == null) ? new Integer(-1) : new Integer(clusters[row]);
+        case 12:
           return new Integer(cEx.eItems.length);
       }
       String cName=columnNames[col];

@@ -379,12 +379,11 @@ public class ShowRules implements RulesOrderer{
     }
     ruleRenderer.setAttrs(attrs,minmax);
     table.getColumnModel().getColumn(eTblModel.columnNames.length-1).setCellRenderer(ruleRenderer);
+    table.getColumnModel().getColumn(eTblModel.columnNames.length-1).setPreferredWidth(200);
 
     for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
       table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
 
-    table.getColumnModel().getColumn(10).setPreferredWidth(200);
-  
     /**/
     TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();
     rowSelMan.setTable(table);

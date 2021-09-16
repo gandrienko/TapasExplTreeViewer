@@ -111,7 +111,7 @@ public class SeeExList {
     //MainBody(attrMinMax,exList);
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     showRules.setOrigRules(exList);
-    showRules.setDataInstances(dataInstances,actionsDiffer);
+    //showRules.setDataInstances(dataInstances,actionsDiffer);
     showRules.countRightAndWrongRuleApplications();
     
     JFrame fr=showRules.showRulesInTable();

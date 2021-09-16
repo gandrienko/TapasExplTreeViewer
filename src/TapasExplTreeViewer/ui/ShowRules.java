@@ -547,13 +547,15 @@ public class ShowRules implements RulesOrderer{
           aggregate(exList, attrMinMax, false);
         }
       });
-      menu.add(mit = new JMenuItem("Aggregate and generalize rules checking data-based accuracy"));
-      mit.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          aggregate(exList, attrMinMax, true);
-        }
-      });
+      if (dataInstances!=null) {
+        menu.add(mit = new JMenuItem("Aggregate and generalize rules checking data-based accuracy"));
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            aggregate(exList, attrMinMax, true);
+          }
+        });
+      }
     }
     
     menu.addSeparator();

@@ -92,13 +92,14 @@ public class SeeExList {
     for (Map.Entry<String,Flight> entry:flights.entrySet()) {
       Flight f=entry.getValue();
       if (f.expl!=null)
-        for (int i=0; i<f.expl.length; i++) {
-          CommonExplanation.addExplanation(exList, f.expl[i],
-              false, attrMinMax, true);
-          dataInstances.add(f.expl[i]);
-          actionsDiffer=actionsDiffer ||
-                            (dataInstances.size()>1 && f.expl[i].action!=dataInstances.get(0).action);
-        }
+        for (int i=0; i<f.expl.length; i++)
+          if (f.expl[i]!=null) {
+            CommonExplanation.addExplanation(exList, f.expl[i],
+                false, attrMinMax, true);
+            dataInstances.add(f.expl[i]);
+            actionsDiffer=actionsDiffer ||
+                              (dataInstances.size()>1 && f.expl[i].action!=dataInstances.get(0).action);
+          }
     }
     if (exList.isEmpty()) {
       System.out.println("Failed to reconstruct the list of common explanations!");

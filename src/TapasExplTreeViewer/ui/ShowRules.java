@@ -733,7 +733,7 @@ public class ShowRules implements RulesOrderer{
         selItem.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            JTable dataTbl=new JTable(new DataForRuleTableModel(exList.get(realRowIndex),attrMinMax));
+            JTable dataTbl=new JTable(new DataForRuleTableModel(exList.get(realRowIndex),eTblModel.listOfFeatures,attrMinMax));
             Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
             dataTbl.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
             dataTbl.setFillsViewportHeight(true);

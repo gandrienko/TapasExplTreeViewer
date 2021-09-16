@@ -14,9 +14,10 @@ public class DataForRuleTableModel extends AbstractTableModel {
   public ArrayList<String> listOfFeatures=null;
 
 
-  public DataForRuleTableModel (CommonExplanation cEx, Hashtable<String,float[]> attrMinMax) {
+  public DataForRuleTableModel (CommonExplanation cEx, ArrayList<String> listOfFeatures, Hashtable<String,float[]> attrMinMax) {
     this.cEx=cEx;
-    this.attrMinMax =attrMinMax;
+    this.attrMinMax=attrMinMax;
+    this.listOfFeatures=listOfFeatures;
     Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
     for (int j = 0; j < cEx.eItems.length; j++) {
       Integer count=attrUses.get(cEx.eItems[j].attr);
@@ -65,7 +66,7 @@ public class DataForRuleTableModel extends AbstractTableModel {
       case 0:
         return cEx.applications[row].data.FlightID;
       case 1:
-        return cEx.action;
+        return cEx.applications[row].data.action;
     }
     return 0;
   }

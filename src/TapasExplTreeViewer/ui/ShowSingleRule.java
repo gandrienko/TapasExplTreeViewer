@@ -17,7 +17,7 @@ public class ShowSingleRule {
     int dx=(w-2*offsetX) / attrs.size(),
         dy=h-2*offsetY;
     offsetX=(w-attrs.size()*dx)/2;
-    boolean useThickerLines=(w/ex.eItems.length>15) && h>=40;
+    boolean useThickerLines=(w/ex.eItems.length>=14) && h>=40;
     int barW=(useThickerLines)?6:4;
     Graphics2D g = image.createGraphics();
     Stroke s=g.getStroke();

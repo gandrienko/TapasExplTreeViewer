@@ -52,6 +52,72 @@ public class UnitedRule extends CommonExplanation {
     return rule;
   }
   
+  public String toHTML (Hashtable<String,float[]> attrMinMax, String columnAtPointer, String imgFile) {
+    //System.out.println(columnAtPointer);
+    String txt="<html><body style=background-color:rgb(255,255,204)>";
+    if (numId>=0)
+      if (upperId>=0)
+        txt+="Rule <b>"+numId+"</b>; upper rule <b>"+upperId+"</b>";
+      else
+        txt+="Rule <b>"+numId+"</b>";
+    txt += "<table border=0 cellmargin=3 cellpadding=3 cellspacing=3 align=center>";
+    txt+="<tr align=right><td>Action </td><td>"+action+
+             "</td><td>Mean Q</td><td>"+String.format("%.4f",meanQ)+"</td></tr>";
+    txt+="<tr align=right><td>N uses:</td><td>"+nUses+
+             "</td><td>Min Q</td><td>"+String.format("%.4f",minQ)+"</td></tr>";
+    txt+="<tr align=right><td>N distinct items (flights):</td><td>"+uses.size()+
+             "</td><td>Max Q</td><td>"+String.format("%.4f",maxQ)+"</td></tr>";
+    txt += "<tr></tr></table>";
+    if (nOrigRight+nOrigWrong>0 || nCasesRight+nCasesWrong>0 || fromRules!=null) {
+      txt += "<table border=0 cellmargin=3 cellpadding=3 cellspacing=3 align=center>";
+      if (nOrigRight + nOrigWrong > 0)
+        txt += "<tr align=right><td>Accuracy (rule-based)</td><td>" +
+                   String.format("%.2f", 1.0f * nOrigRight / (nOrigRight + nOrigWrong)) +
+                   "</td><td>N correctly covered</td><td>" + nOrigRight +
+                   "</td><td>N wrongly covered</td><td>" + nOrigWrong + "</td></tr>";
+      if (nCasesRight + nCasesWrong > 0)
+        txt += "<tr align=right><td>Accuracy (data-based)</td><td>" +
+                   String.format("%.2f", 1.0f * nCasesRight / (nCasesRight + nCasesWrong)) +
+                   "</td><td>N correctly covered</td><td>" + nCasesRight +
+                   "</td><td>N wrongly covered</td><td>" + nCasesWrong + "</td></tr>";
+      if (fromRules != null) {
+        int nFrom = countFromRules();
+        if (nFrom > 0)
+          txt += "<tr align=right><td>N subordinate rules</td><td>" + nFrom +
+                     "</td><td>Hierarchy depth</td><td>" + getHierarchyDepth() + "</td></tr>";
+      }
+      txt += "<tr></tr></table>";
+    }
+    if (imgFile!=null)
+      txt+="<p align=center><img border=1 src=file:"+imgFile+" width=100%></p>";
+    txt += "<p align=center><table border=1 cellmargin=3 cellpadding=3 cellspacing=3>";
+    
+    txt+="<tr><td>Feature</td><td>min</td><td>from</td><td>to</td><td>max</td></tr>";
+    for (int i=0; i<eItems.length; i++) {
+      boolean b=eItems[i].attr.equals(columnAtPointer);
+      txt+="<tr align=right><td>"+((b)?"<b>":"")+eItems[i].attr+((b)?"</b>":"")+"</td>";
+      String strValue=(attrMinMax!=null && attrMinMax.get(eItems[i].attr)!=null)?
+                          String.format("%.4f",attrMinMax.get(eItems[i].attr)[0]):"";
+      txt+="<td>"+strValue+"</td><td>";
+      if (!Double.isInfinite(eItems[i].interval[0]))
+        txt+=(eItems[i].isInteger)?String.valueOf((int)eItems[i].interval[0]):String.format("%.4f",eItems[i].interval[0]);
+      else
+        txt+="- inf";
+      txt+="</td><td>";
+      if (!Double.isInfinite(eItems[i].interval[1]))
+        txt+=(eItems[i].isInteger)?String.valueOf((int)eItems[i].interval[1]):String.format("%.4f",eItems[i].interval[1]);
+      else
+        txt+="+ inf";
+      txt+="</td>";
+      strValue=(attrMinMax!=null && attrMinMax.get(eItems[i].attr)!=null)?
+                   String.format("%.4f",attrMinMax.get(eItems[i].attr)[1]):"";
+      txt+="<td>"+strValue+"</td></tr>";
+    }
+    txt += "</table>";
+    txt+="</body></html>";
+    return txt;
+  }
+  
   public void attachAsFromRule(CommonExplanation ex) {
     if (ex==null)
       return;

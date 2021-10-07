@@ -21,6 +21,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public static Color linkColor=new Color(90,90,90,60);
   
   public ArrayList<CommonExplanation> explanations = null;
+  public ArrayList<CommonExplanation> fullSet = null;
   public Hashtable<String,float[]> attrMinMax=null;
   Vector<String> attrs=null;
   Vector<float[]> minmax=null;
@@ -48,20 +49,26 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   }
   
-  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax, Vector<String> attrs, Vector<float[]> minmax, ArrayList<CommonExplanation> explanations, double coords[][]) {
+  public ExplanationsProjPlot2D(Hashtable<String,float[]> attrMinMax,
+                                Vector<String> attrs, Vector<float[]> minmax,
+                                ArrayList<CommonExplanation> explanations,
+                                ArrayList<CommonExplanation> fullSet,
+                                double coords[][]) {
     super(coords);
     this.attrMinMax=attrMinMax; this.attrs=attrs; this.minmax=minmax;
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
-    setExplanations(explanations);
+    setExplanations(explanations,fullSet);
   }
   
-  public void setExplanations(ArrayList<CommonExplanation> explanations) {
+  public void setExplanations(ArrayList<CommonExplanation> explanations,
+                              ArrayList<CommonExplanation> fullSet) {
     this.explanations = explanations;
     maxNUses = 0;
-    if (explanations != null && !explanations.isEmpty())
-      for (int i = 0; i < explanations.size(); i++) {
-        CommonExplanation ex=explanations.get(i);
+    ArrayList<CommonExplanation> exSet=(fullSet==null)?explanations:fullSet;
+    if (exSet != null)
+      for (int i = 0; i < exSet.size(); i++) {
+        CommonExplanation ex=exSet.get(i);
         if (maxNUses < ex.nUses)
           maxNUses = ex.nUses;
         if (minAction>ex.action)
@@ -75,6 +82,14 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
             maxQ=ex.meanQ;
         }
       sameAction=minAction==maxAction;
+    }
+    if (explanations != null && !explanations.equals(exSet)) {
+      maxNUses=0;
+      for (int i = 0; i < explanations.size(); i++) {
+        CommonExplanation ex = explanations.get(i);
+        if (maxNUses < ex.nUses)
+          maxNUses = ex.nUses;
+      }
     }
     maxRadius=(maxNUses<maxDotRadius)?minDotRadius+maxNUses-1:maxDotRadius;
     off_Valid=off_selected_Valid=false;

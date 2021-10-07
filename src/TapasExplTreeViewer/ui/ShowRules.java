@@ -10,10 +10,7 @@ import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.rules.UnitedRule;
 import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
-import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
-import TapasExplTreeViewer.vis.ProjectionPlot2D;
-import TapasExplTreeViewer.vis.RuleSetVis;
-import TapasExplTreeViewer.vis.TSNE_Runner;
+import TapasExplTreeViewer.vis.*;
 import TapasUtilities.*;
 
 import javax.imageio.ImageIO;
@@ -230,8 +227,8 @@ public class ShowRules implements RulesOrderer{
     
     int minAction=Integer.MAX_VALUE, maxAction=Integer.MIN_VALUE;
     double minQValue=Double.NaN, maxQValue=Double.NaN;
-    for (int i=0; i<rules.size(); i++) {
-      CommonExplanation ex = (CommonExplanation) rules.get(i);
+    for (int i=0; i<origRules.size(); i++) {
+      CommonExplanation ex = (CommonExplanation) origRules.get(i);
       if (minAction > ex.action)
         minAction = ex.action;
       if (maxAction < ex.action)
@@ -595,6 +592,19 @@ public class ShowRules implements RulesOrderer{
         if (rowIndex<0)
           return;
         int realRowIndex = table.convertRowIndexToModel(rowIndex);
+        if (exList.get(realRowIndex) instanceof UnitedRule) {
+          UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
+          if (rule.fromRules!=null && !rule.fromRules.isEmpty()) {
+            JMenuItem selItem = new JMenuItem("Show derivation hierarchy of rule " + rule.numId);
+            selMenu.add(selItem);
+            selItem.addActionListener(new ActionListener() {
+              @Override
+              public void actionPerformed(ActionEvent e) {
+                showRuleHierarchy(rule,attrs);
+              }
+            });
+          }
+        }
         if (expanded || aggregated) {
           UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
           if (origRules!=null) {
@@ -899,6 +909,7 @@ public class ShowRules implements RulesOrderer{
                 ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
     RuleSetVis vis=new RuleSetVis(rules,exList,attributes,attrMinMax);
+    vis.setOrigExList(origRules);
     vis.setHighlighter(highlighter);
     vis.setSelector(selector);
     vis.setRulesOrderer(this);
@@ -911,6 +922,23 @@ public class ShowRules implements RulesOrderer{
     JFrame plotFrame=new JFrame(title+((applyToSelection)?" (selection)":""));
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     plotFrame.getContentPane().add(scrollPane);
+    plotFrame.pack();
+    plotFrame.setSize((int)Math.min(plotFrame.getWidth(),0.7*size.width),
+        (int)Math.min(plotFrame.getHeight(),0.7*size.height));
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
+    plotFrame.setVisible(true);
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
+    frames.add(plotFrame);
+    return plotFrame;
+  }
+  
+  public JFrame showRuleHierarchy(UnitedRule rule,Vector<String> attributes) {
+    RuleHierarchyVis vis=new RuleHierarchyVis(rule,origRules,attributes,attrMinMax);
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    JFrame plotFrame=new JFrame("Derivation hierarchy of rule "+rule.numId);
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add(vis);
     plotFrame.pack();
     plotFrame.setSize((int)Math.min(plotFrame.getWidth(),0.7*size.width),
         (int)Math.min(plotFrame.getHeight(),0.7*size.height));
@@ -950,7 +978,7 @@ public class ShowRules implements RulesOrderer{
     }
     
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
-    pp.setExplanations(exList);
+    pp.setExplanations(exList,origRules);
     pp.setDistanceMatrix(distanceMatrix);
     pp.setProjectionProvider(tsne);
     pp.setHighlighter(highlighter);
@@ -1033,7 +1061,8 @@ public class ShowRules implements RulesOrderer{
           return;
         }
         System.out.println("Trying to create another plot...");
-        ExplanationsProjPlot2D anotherPlot=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax,exList,coords);
+        ExplanationsProjPlot2D anotherPlot=
+            new ExplanationsProjPlot2D(attrMinMax,attrs,minmax,exList,origRules,coords);
         anotherPlot.setPreferredSize(new Dimension(800,800));
         anotherPlot.setSelector(selector);
         anotherPlot.setHighlighter(highlighter);
@@ -1486,7 +1515,7 @@ public class ShowRules implements RulesOrderer{
     double d[][]=CommonExplanation.computeDistances(origList,attrMinMax);
   
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
-    pp.setExplanations(origList);
+    pp.setExplanations(origList,origRules);
     pp.setDistanceMatrix(d);
     pp.setGraphs(graphs);
     int uIds[]=new int[unionIds.size()];

@@ -39,7 +39,7 @@ public class RuleSetVis extends JPanel
    * The rules or explanations to be visualized. The elements are instances of
    * CommonExplanation or UnitedRule.
    */
-  public ArrayList exList=null, fullExList=null;
+  public ArrayList exList=null, fullExList=null, origExList=null;
   /**
    * If exList contains a subset of fullExList, ths array contains the
    * indices of the elements of fullExList in the smaller list or -1 when absent.
@@ -90,7 +90,23 @@ public class RuleSetVis extends JPanel
       for (int i=0; i<attrs.size(); i++)
         minmax.add(attrMinMax.get(attrs.elementAt(i)));
     }
-    ArrayList rules=(fullExList!=null)?fullExList:exList;
+    if (fullExList!=null && fullExList.size()>exList.size()) {
+      idxInSubList=new int[fullExList.size()];
+      for (int i=0; i<fullExList.size(); i++)
+        idxInSubList[i]=exList.indexOf(fullExList.get(i));
+    }
+    addMouseListener(this);
+    addMouseMotionListener(this);
+    ToolTipManager.sharedInstance().registerComponent(this);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
+  }
+  
+  public void setOrigExList(ArrayList origExList) {
+    this.origExList = origExList;
+  }
+  
+  protected void determineMinMaxQorAction() {
+    ArrayList rules=(origExList!=null)?origExList:(fullExList!=null)?fullExList:exList;
     for (int i=0; i<rules.size(); i++) {
       CommonExplanation ex = (CommonExplanation) rules.get(i);
       if (minAction > ex.action)
@@ -104,15 +120,6 @@ public class RuleSetVis extends JPanel
           maxQValue = ex.maxQ;
       }
     }
-    if (fullExList!=null && fullExList.size()>exList.size()) {
-      idxInSubList=new int[fullExList.size()];
-      for (int i=0; i<fullExList.size(); i++)
-        idxInSubList[i]=exList.indexOf(fullExList.get(i));
-    }
-    addMouseListener(this);
-    addMouseMotionListener(this);
-    ToolTipManager.sharedInstance().registerComponent(this);
-    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   }
   
   public SingleHighlightManager getHighlighter(){
@@ -239,6 +246,10 @@ public class RuleSetVis extends JPanel
     int w=getWidth(), h=getHeight();
     if (w<1 || h<1)
       return;
+    
+    if (minAction>maxAction && Double.isNaN(maxQValue))
+      determineMinMaxQorAction();
+    
     if (getParent() instanceof JViewport) {
       JViewport vp=(JViewport)getParent();
       if (w>vp.getWidth())
@@ -446,11 +457,16 @@ public class RuleSetVis extends JPanel
     if (idx<0)
       highlighter.clearHighlighting();
     else {
-      if (idxInSubList!=null)
-        for (int i=0; i<idxInSubList.length; i++)
-          if (idxInSubList[i]==idx) {
-            idx=i; break;
+      if (idxInSubList!=null) {
+        boolean found=false;
+        for (int i = 0; i < idxInSubList.length && !found; i++)
+          if (idxInSubList[i] == idx) {
+            idx = i;
+            found=true;
           }
+        if (!found)
+          return;
+      }
       highlighter.highlight(new Integer(idx));
     }
   }

@@ -185,21 +185,21 @@ public class RuleHierarchyVis extends JPanel
       gr.setColor(Color.black);
       gr.drawRect(x - 2, y - 2, w + 4, h + 4);
     }
+    gr.setStroke(str);
     
     if (r.nOrigRight+r.nOrigWrong>0 || r.nCasesRight+r.nCasesWrong>0) {
-      gr.setColor(c);
+      gr.setColor(new Color(0,0,0,160));
       if (r.nOrigRight+r.nOrigWrong>0) {
         float acc=1.0f*r.nOrigRight/(r.nOrigRight+r.nOrigWrong);
         int l=Math.round(acc*w);
-        gr.drawLine(x,y-2,x+l,y-2);
+        gr.drawRect(x,y-2,l,3);
       }
       if (r.nCasesRight+r.nCasesWrong>0) {
         float acc=1.0f*r.nCasesRight/(r.nCasesRight+r.nCasesWrong);
         int l=Math.round(acc*w);
-        gr.drawLine(x,y+h+2,x+l,y+h+2);
+        gr.drawRect(x,y+h-2,l,3);
       }
     }
-    gr.setStroke(str);
     
     if (gBounds == null) {
       gBounds = new Rectangle[rules.length];

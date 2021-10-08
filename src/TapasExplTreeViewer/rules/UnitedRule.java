@@ -297,6 +297,8 @@ public class UnitedRule extends CommonExplanation {
       r1.fromRules=r0.fromRules;
       r1.nOrigRight=r0.nOrigRight;
       r1.nOrigWrong=r0.nOrigWrong;
+      r1.nCasesRight=r0.nCasesRight;
+      r1.nCasesWrong=r0.nCasesWrong;
     }
     return rule;
   }

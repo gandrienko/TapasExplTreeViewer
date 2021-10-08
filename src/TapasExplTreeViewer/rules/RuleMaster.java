@@ -249,6 +249,9 @@ public class RuleMaster {
     for (int i=0; i<rules.size(); i++) {
       UnitedRule rule=rules.get(i);
       rule.countRightAndWrongCoverages(origRules);
+      if (minAccuracy>0 && exData != null && rule.nCasesRight + rule.nCasesWrong < 1)
+        rule.countRightAndWrongApplications(exData, true);
+      
       boolean added=false;
       for (int j=0; j<ruleGroups.size() && !added; j++) {
         UnitedRule rule2=ruleGroups.get(j).get(0);
@@ -318,21 +321,23 @@ public class RuleMaster {
         int i1=pair[0], i2=pair[1];
         UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
         if (union!=null) {
-          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
-            union.countRightAndWrongApplications(exData,true);
-            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
-              continue;
-          }
           union.countRightAndWrongCoverages(origRules);
           if (union.nOrigRight<1)
             System.out.println("Zero coverage!");
           if (minAccuracy>0 && getAccuracy(union,origRules,false)<minAccuracy)
             continue;
+          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
+            union.countRightAndWrongApplications(exData,true);
+            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
+              continue;
+          }
           group.remove(i2);
           group.remove(i1);
           for (int j=group.size()-1; j>=0; j--)
             if (union.subsumes(group.get(j),true)) {
               union.attachAsFromRule(group.get(j));
+              if (minAccuracy>0 && exData!=null)  //check the accuracy based on the data
+                union.countRightAndWrongApplications(exData,true);
               group.remove(j);
             }
           group.add(0,union);
@@ -386,6 +391,9 @@ public class RuleMaster {
     if (minAccuracy>0)
       for (int i=result.size()-1; i>=0; i--) {
         UnitedRule r=result.get(i);
+        r.countRightAndWrongCoveragesByQ(origRules);
+        if (minAccuracy>0 && exData!=null && r.nCasesRight+r.nCasesWrong<1)
+          r.countRightAndWrongApplications(exData,false);
         double dataAcc=(exData==null)?1:(1.0*r.nCasesRight/(r.nCasesRight+r.nCasesWrong));
         if (dataAcc<minAccuracy || getAccuracy(r,origRules,true)<minAccuracy) {
           result.remove(i);
@@ -421,16 +429,16 @@ public class RuleMaster {
         if (union!=null) {
           if (union.maxQ-union.minQ>maxQDiff)
             continue;
-          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
-            union.countRightAndWrongApplications(exData,false);
-            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
-              continue;
-          }
           union.countRightAndWrongCoveragesByQ(origRules);
           if (union.nOrigRight<1)
             System.out.println("Zero coverage!");
           if (minAccuracy>0 && getAccuracy(union,origRules,true)<minAccuracy)
             continue;
+          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
+            union.countRightAndWrongApplications(exData,false);
+            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
+              continue;
+          }
           result.remove(i2);
           result.remove(i1);
           for (int j=result.size()-1; j>=0; j--) {
@@ -438,6 +446,8 @@ public class RuleMaster {
             if (r2.minQ >= union.minQ && r2.maxQ <= union.maxQ &&
                     union.subsumes(r2)) {
               union.attachAsFromRule(r2);
+              if (minAccuracy>0 && exData!=null)  //check the accuracy based on the data
+                union.countRightAndWrongApplications(exData,false);
               result.remove(j);
             }
           }

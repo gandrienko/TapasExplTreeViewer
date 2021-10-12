@@ -70,6 +70,7 @@ public class RuleSetVis extends JPanel
   protected ItemSelectionManager selector=null;
   public int hlIdx=-1;
   public ArrayList<Integer> selected=null;
+  public boolean applyHiAndSelToFullList=true;
   /**
    * Glyph boundaries
    */
@@ -80,7 +81,13 @@ public class RuleSetVis extends JPanel
   protected BufferedImage off_Image=null;
   protected boolean off_Valid=false;
   
+  
   public RuleSetVis(ArrayList exList, ArrayList fullExList,
+                    Vector<String> attrNamesOrdered, Hashtable<String,float[]> attrMinMax) {
+    this(exList,fullExList,true,attrNamesOrdered,attrMinMax);
+  }
+  
+  public RuleSetVis(ArrayList exList, ArrayList fullExList, boolean applyHiAndSelToFullList,
                     Vector<String> attrNamesOrdered, Hashtable<String,float[]> attrMinMax) {
     this.exList=exList; this.fullExList=fullExList;
     this.attrMinMax=attrMinMax;
@@ -90,7 +97,8 @@ public class RuleSetVis extends JPanel
       for (int i=0; i<attrs.size(); i++)
         minmax.add(attrMinMax.get(attrs.elementAt(i)));
     }
-    if (fullExList!=null && fullExList.size()>exList.size()) {
+    this.applyHiAndSelToFullList=applyHiAndSelToFullList;
+    if (applyHiAndSelToFullList && fullExList!=null && fullExList.size()>exList.size()) {
       idxInSubList=new int[fullExList.size()];
       for (int i=0; i<fullExList.size(); i++)
         idxInSubList[i]=exList.indexOf(fullExList.get(i));
@@ -99,6 +107,10 @@ public class RuleSetVis extends JPanel
     addMouseMotionListener(this);
     ToolTipManager.sharedInstance().registerComponent(this);
     ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
+    highlighter=new SingleHighlightManager();
+    highlighter.addChangeListener(this);
+    selector=new ItemSelectionManager();
+    selector.addChangeListener(this);
   }
   
   public void setOrigExList(ArrayList origExList) {
@@ -298,7 +310,7 @@ public class RuleSetVis extends JPanel
     Vector<CommonExplanation> exSelected=(fullSelected==null || fullSelected.isEmpty())?null:
                                              new Vector<CommonExplanation>(fullSelected.size());
     if (exSelected!=null) {
-      ArrayList rules=(fullExList!=null)?fullExList:exList;
+      ArrayList rules=(applyHiAndSelToFullList && fullExList!=null)?fullExList:exList;
       for (int i = 0; i < fullSelected.size(); i++) {
         int idx=(Integer)fullSelected.get(i);
         if (idx>=0 && idx<rules.size()) {
@@ -495,7 +507,7 @@ public class RuleSetVis extends JPanel
     Vector<CommonExplanation> exSelected=(fullSelected==null || fullSelected.isEmpty())?null:
                                              new Vector<CommonExplanation>(fullSelected.size());
     if (exSelected!=null) {
-      ArrayList rules=(fullExList!=null)?fullExList:exList;
+      ArrayList rules=(applyHiAndSelToFullList && fullExList!=null)?fullExList:exList;
       for (int i = 0; i < fullSelected.size(); i++) {
         int ii=(Integer)fullSelected.get(i);
         if (ii>=0 && ii<rules.size()) {

@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.vis;
 
 import TapasDataReader.CommonExplanation;
+import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.rules.UnitedRule;
 import TapasExplTreeViewer.ui.ShowSingleRule;
 import TapasUtilities.ItemSelectionManager;
@@ -11,9 +12,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -24,8 +23,8 @@ import java.util.Vector;
 public class RuleHierarchyVis extends JPanel
     implements ChangeListener, MouseListener, MouseMotionListener {
   
-  protected static int minFeatureW = 15, minGlyphH = 50, xSpace = 30, ySpace = 10,
-      xMargin = 25, yMargin = 10;
+  protected static int minFeatureW = 15, minGlyphH = 50, xSpace = 30, ySpace = 15,
+      xMargin = 25, yMargin = 15;
   public static float hsbRed[] = Color.RGBtoHSB(255, 0, 0, null);
   public static float hsbBlue[] = Color.RGBtoHSB(0, 0, 255, null);
   public static Color hlColor = new Color(255, 255, 0, 64);
@@ -38,6 +37,10 @@ public class RuleHierarchyVis extends JPanel
    * The ranges of feature values
    */
   public Hashtable<String, float[]> attrMinMax = null;
+  /**
+   * The very original rule set (before any transformations have been applied)
+   */
+  public ArrayList<CommonExplanation> origRules =null;
   
   protected int minAction = Integer.MAX_VALUE, maxAction = Integer.MIN_VALUE;
   protected double minQValue = Double.NaN, maxQValue = Double.NaN;
@@ -77,19 +80,21 @@ public class RuleHierarchyVis extends JPanel
   protected ItemSelectionManager selector = null;
   public int hlIdx = -1;
   
-  public RuleHierarchyVis(UnitedRule topRule, ArrayList fullExList,
+  public RuleHierarchyVis(UnitedRule topRule, ArrayList origRules,
                           Vector<String> attrNamesOrdered,
                           Hashtable<String, float[]> attrMinMax) {
     this.topRule = topRule;
+    this.origRules=origRules;
     this.attrMinMax = attrMinMax;
     attrs = attrNamesOrdered;
+    
     if (attrs != null && attrMinMax != null) {
       minmax = new Vector<float[]>(attrs.size());
       for (int i = 0; i < attrs.size(); i++)
         minmax.add(attrMinMax.get(attrs.elementAt(i)));
     }
-    for (int i = 0; i < fullExList.size(); i++) {
-      CommonExplanation ex = (CommonExplanation) fullExList.get(i);
+    for (int i = 0; i < origRules.size(); i++) {
+      CommonExplanation ex = (CommonExplanation) origRules.get(i);
       if (minAction > ex.action)
         minAction = ex.action;
       if (maxAction < ex.action)
@@ -192,12 +197,20 @@ public class RuleHierarchyVis extends JPanel
       if (r.nOrigRight+r.nOrigWrong>0) {
         float acc=1.0f*r.nOrigRight/(r.nOrigRight+r.nOrigWrong);
         int l=Math.round(acc*w);
-        gr.drawRect(x,y-2,l,3);
+        gr.drawRect(x,y-2,l,4);
+        if (acc<1) {
+          String txt = String.format("%.2f", acc);
+          gr.drawString(txt, x + l - gr.getFontMetrics().stringWidth(txt), y - 2);
+        }
       }
       if (r.nCasesRight+r.nCasesWrong>0) {
         float acc=1.0f*r.nCasesRight/(r.nCasesRight+r.nCasesWrong);
         int l=Math.round(acc*w);
-        gr.drawRect(x,y+h-2,l,3);
+        gr.drawRect(x,y+h-2,l,4);
+        if (acc<1) {
+          String txt = String.format("%.2f", acc);
+          gr.drawString(txt, x + l - gr.getFontMetrics().stringWidth(txt), y + h + gr.getFontMetrics().getAscent());
+        }
       }
     }
     
@@ -380,7 +393,44 @@ public class RuleHierarchyVis extends JPanel
   }
   public void mouseDragged(MouseEvent e) {}
   
-  public void mousePressed(MouseEvent e) {}
+  public void mousePressed(MouseEvent e) {
+    if (e.getButton()>MouseEvent.BUTTON1) {
+      int idx=getRuleIdxAtPosition(e.getX(),e.getY());
+      if (idx>=0 && rules[idx].nOrigWrong>0) {
+        JPopupMenu popup=new JPopupMenu();
+        JMenuItem mit=new JMenuItem("Show wrong coverages of this rule");
+        mit.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            ArrayList<CommonExplanation> wrong=rules[idx].extractWrongCoverages(origRules,
+                minAction >= maxAction);
+            if (wrong==null || wrong.isEmpty()) {
+              JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                  "No wrong coverages found!",
+                  "No exceptions", JOptionPane.INFORMATION_MESSAGE);
+              return;
+            }
+            wrong.add(0,rules[idx]);
+            RuleSetVis vis=new RuleSetVis(wrong,origRules,false,attrs,attrMinMax);
+            vis.setOrigExList(origRules);
+            Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+            JFrame plotFrame=new JFrame("Wrong coverages of the rule that is shown first");
+            plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            plotFrame.getContentPane().add(vis);
+            plotFrame.pack();
+            plotFrame.setSize((int)Math.min(plotFrame.getWidth(),0.7*size.width),
+                (int)Math.min(plotFrame.getHeight(),0.7*size.height));
+            plotFrame.setLocation(gBounds[idx].x+gBounds[idx].width,gBounds[idx].y+gBounds[idx].height);
+            plotFrame.setVisible(true);
+          }
+        });
+        popup.add(mit);
+        popup.add(new JMenuItem("Cancel"));
+        popup.show(this,e.getX(),e.getY());
+      }
+    }
+  }
+  
   public void mouseReleased(MouseEvent e) {}
   
   public void mouseClicked(MouseEvent e) {

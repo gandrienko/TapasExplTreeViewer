@@ -537,13 +537,14 @@ public class ShowRules implements RulesOrderer{
       });
   
       menu.addSeparator();
-      menu.add(mit = new JMenuItem("Aggregate and generalize rules"));
+      menu.add(mit = new JMenuItem("Aggregate and generalise rules"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          aggregate(exList, attrMinMax, false);
+          aggregate(exList, attrMinMax);
         }
       });
+      /*
       if (dataInstances!=null) {
         menu.add(mit = new JMenuItem("Aggregate and generalize rules checking data-based accuracy"));
         mit.addActionListener(new ActionListener() {
@@ -553,6 +554,7 @@ public class ShowRules implements RulesOrderer{
           }
         });
       }
+      */
     }
     
     menu.addSeparator();
@@ -1349,16 +1351,68 @@ public class ShowRules implements RulesOrderer{
   }
   
   public void aggregate(ArrayList<CommonExplanation> exList,
-                        Hashtable<String,float[]> attrMinMax,
-                        boolean checkWithData) {
+                        Hashtable<String,float[]> attrMinMax) {
     if (exList==null || exList.size()<2)
+      return;
+  
+    boolean noActions=RuleMaster.noActionDifference(exList);
+    
+    JPanel pDialog=new JPanel();
+    pDialog.setLayout(new BoxLayout(pDialog,BoxLayout.Y_AXIS));
+    pDialog.add(new JLabel("Set parameters for rule aggregation and generalisation:",JLabel.CENTER));
+    JPanel pp=new JPanel(new BorderLayout(10,0));
+    pp.add(new JLabel("Accuracy threshold from 0 to 1 :",JLabel.RIGHT),BorderLayout.CENTER);
+    
+    JTextField tfAcc=new JTextField(String.format("%.3f", (float)Math.max(0.6f,accThreshold-0.25f)),5);
+    pp.add(tfAcc,BorderLayout.EAST);
+    pDialog.add(pp);
+    JCheckBox cbData=(dataInstances==null)?null:
+                         new JCheckBox("Additionally check the data-based accuracy",true);
+    if (cbData!=null)
+      pDialog.add(cbData);
+    
+    JTextField tfQDiff=null;
+    if (noActions) {
+      pDialog.add(Box.createVerticalStrut(5)); // a spacer
+      pDialog.add(new JLabel("The rules do not differ in resulting " +
+                           "class labels / actions / decisions.",JLabel.CENTER));
+      pDialog.add(new JLabel("They can be joined based on close " +
+                           "real-valued results (denoted as Q).",JLabel.CENTER));
+      pp=new JPanel(new BorderLayout(10,0));
+      pp.add(new JLabel("Enter a threshold for the difference in Q :",JLabel.RIGHT),BorderLayout.CENTER);
+      tfQDiff=new JTextField(String.format("%.4f",RuleMaster.suggestMaxQDiff(exList)),7);
+      pp.add(tfQDiff,BorderLayout.EAST);
+      pDialog.add(pp);
+    }
+    pDialog.add(Box.createVerticalStrut(5)); // a spacer
+    /**/
+    pDialog.add(new JLabel("The aggregation can be fulfilled in a step-wise manner:",JLabel.CENTER));
+    pDialog.add(new JLabel("The process is executed several times", JLabel.CENTER));
+    pDialog.add(new JLabel("with decreasing the accuracy threshold in each step.", JLabel.CENTER));
+    /**/
+    pDialog.add(Box.createVerticalStrut(5)); // a spacer
+    JCheckBox cbIterative=new JCheckBox("Do step-wise aggregation",true);
+    pDialog.add(cbIterative);
+    JTextField tfAcc0=new JTextField("1.00",5);
+    pp=new JPanel(new BorderLayout(10,0));
+    pp.add(new JLabel("Initial accuracy threshold:",JLabel.RIGHT),BorderLayout.CENTER);
+    pp.add(tfAcc0,BorderLayout.EAST);
+    pDialog.add(pp);
+    JTextField tfAccStep=new JTextField("0.05",5);
+    pp=new JPanel(new BorderLayout(10,0));
+    pp.add(new JLabel("Decrease the threshold in each run by",JLabel.RIGHT),BorderLayout.CENTER);
+    pp.add(tfAccStep,BorderLayout.EAST);
+    pDialog.add(pp);
+  
+    int result = JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(), pDialog,
+        "Rule aggregation parameters", JOptionPane.OK_CANCEL_OPTION);
+    if (result != JOptionPane.OK_OPTION)
       return;
     
     double minAccuracy=0;
-  
-    String value = JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
-        "Accuracy threshold from 0 to 1 :",
-        String.format("%.3f", accThreshold));
+    double maxQDiff=Double.NaN;
+    
+    String value=tfAcc.getText();
     if (value == null)
       return;
     try {
@@ -1375,14 +1429,9 @@ public class ShowRules implements RulesOrderer{
           "Error", JOptionPane.ERROR_MESSAGE);
       return;
     }
-
-    boolean noActions=RuleMaster.noActionDifference(exList);
-    double maxQDiff=Double.NaN;
+    
     if (noActions) {
-      value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "The rules do not differ in actions (decisions) and can be aggregated by closeness of " +
-              "the Q values. Enter a threshold for the difference in Q :",
-          String.format("%.5f",RuleMaster.suggestMaxQDiff(exList)));
+      value=tfQDiff.getText();
       if (value==null)
         return;
       try {
@@ -1400,35 +1449,65 @@ public class ShowRules implements RulesOrderer{
       }
     }
     
-    //if (!nonSubsumed) {
-      //System.out.println("Prior to aggregation, trying to remove less general explanations...");
-      //ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList, origRules,attrMinMax,noActions,maxQDiff);
-      //if  (exList2!=null && exList2.size()<exList.size()) {
-        /*
-        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "Removal of subsumed rules has reduced the number of explanations from " +
-                               exList.size() + " to " + exList2.size(),
-            "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
-        */
-      //  exList = exList2;
-      //}
-    //}
+    boolean checkWithData=cbData!=null && cbData.isSelected();
+    
     System.out.println("Trying to aggregate the rules...");
-    ArrayList<UnitedRule> aggRules=(noActions)?RuleMaster.aggregateByQ(UnitedRule.getRules(exList),maxQDiff,
-        origRules,(checkWithData)?dataInstances:null,minAccuracy,attrMinMax):
-        RuleMaster.aggregate(UnitedRule.getRules(exList), origRules,(checkWithData)?dataInstances:null,minAccuracy,attrMinMax);
+  
+    ArrayList<UnitedRule> rules=UnitedRule.getRules(exList);
+    ArrayList<UnitedRule> aggRules=null;
+    AbstractList<Explanation> data=(checkWithData)?dataInstances:null;
+    
+    if (cbIterative.isSelected()) {
+      double initAccuracy=Double.NaN;
+      value=tfAcc0.getText();
+      if (value!=null)
+        try {
+          initAccuracy=Float.parseFloat(value);
+        } catch (Exception ex) {}
+      if (Double.isNaN(initAccuracy) || initAccuracy<0.5 || initAccuracy>1) {
+        result = JOptionPane.showConfirmDialog (FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal value for the initial accuracy threshold! Should it be set to 1?",
+            "Illegal initial threshold value!",JOptionPane.YES_NO_OPTION);
+        if (result != JOptionPane.YES_OPTION)
+          return;
+        initAccuracy=1;
+      }
+      double accStep=Double.NaN;
+      value=tfAccStep.getText();
+      if (value!=null)
+        try {
+          accStep=Double.parseDouble(value);
+        } catch (Exception ex) {}
+      if (Double.isNaN(accStep) || accStep<=0 || initAccuracy-accStep<=0) {
+        result = JOptionPane.showConfirmDialog (FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal value for the accuracy threshold decrement in each step! Should it be set to 0.1?",
+            "Illegal value for threshold decrement!",JOptionPane.YES_NO_OPTION);
+        if (result != JOptionPane.YES_OPTION)
+          return;
+        accStep=0.1;
+      }
+      
+      for (double acc=initAccuracy; acc>=minAccuracy; acc-=accStep) {
+        aggRules=(noActions)?
+                     RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,acc,attrMinMax):
+                     RuleMaster.aggregate(rules, origRules,data,acc,attrMinMax);
+        if (aggRules!=null && aggRules.size()<rules.size())
+          rules=aggRules;
+      }
+      aggRules=rules;
+    }
+    else
+      aggRules=(noActions)?
+                   RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
+                   RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax);
+    
     if (aggRules==null || aggRules.size()>=exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to aggregate!",
           "Fail",JOptionPane.WARNING_MESSAGE);
       return;
     }
-    /*
-    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-        "Reduced the number of explanations from " +
-                           exList.size() + " to " + aggRules.size(),
-        "Aggregated rule set",JOptionPane.INFORMATION_MESSAGE);
-    */
+    
     ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
     aggEx.addAll(aggRules);
     ShowRules showRules=createShowRulesInstance(aggEx);

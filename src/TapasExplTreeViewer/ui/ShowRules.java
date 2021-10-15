@@ -435,9 +435,17 @@ public class ShowRules implements RulesOrderer{
         eTblModel.fireTableDataChanged();
       }
     });
+    JMenuItem mit=new JMenuItem("Table -> Clipboard");
+    menu.add(mit);
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        eTblModel.putTableToClipboard();
+      }
+    });
     menu.addSeparator();
   
-    JMenuItem mit=new JMenuItem("Represent rules by glyphs");
+    mit=new JMenuItem("Represent rules by glyphs");
     menu.add(mit);
     mit.addActionListener(new ActionListener() {
       @Override

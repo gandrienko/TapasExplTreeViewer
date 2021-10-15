@@ -9,6 +9,9 @@ import TapasUtilities.MySammonsProjection;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.AbstractTableModel;
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Map;
@@ -237,7 +240,34 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     }
     return v;
   }
-  
+
+  public void putTableToClipboard () {
+    String s="";
+    boolean first=true;
+    for (int c=0; c<getColumnCount(); c++) {
+      Object v=getValueAt(0,c);
+      if (v instanceof Integer || v instanceof Float || v instanceof String || v instanceof Double) {
+        s += ((first) ? "" : ",") + getColumnName(c);
+        first=false;
+      }
+    }
+    s+="\n";
+    for (int r=0; r<getRowCount(); r++) {
+      first=true;
+      for (int c=0; c<getColumnCount(); c++) {
+        Object v=getValueAt(r,c);
+        if (v instanceof Integer || v instanceof Float || v instanceof String || v instanceof Double) {
+          s += ((first) ? "" : ",") + v;
+          first=false;
+        }
+      }
+      s+="\n";
+    }
+    StringSelection stringSelection = new StringSelection(s);
+    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    clipboard.setContents(stringSelection, null);
+  }
+
   public float getColumnMax(int col) {
     float max=Float.NaN;
     for (int i=0; i<getRowCount(); i++) {

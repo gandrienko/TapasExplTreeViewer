@@ -399,10 +399,10 @@ public class ShowRules implements RulesOrderer{
             if (Double.isNaN(d1) && Double.isNaN(d2))
               return 0;
             if (Double.isNaN(d1))
-              return -1;
-            if (Double.isNaN(d2))
               return 1;
-            return (d1<d2)?1:(d1==d2)?0:-1;
+            if (Double.isNaN(d2))
+              return -1;
+            return (d1<d2)?-1:(d1==d2)?0:1;
           }
           else
             return 0;

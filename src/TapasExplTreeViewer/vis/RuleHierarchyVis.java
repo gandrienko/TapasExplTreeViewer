@@ -352,7 +352,7 @@ public class RuleHierarchyVis extends JPanel
       ImageIO.write(bi, "png", outputfile);
       //System.out.println("img.png");
     } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
-    return rules[idx].toHTML(attrMinMax,"","img.png");
+    return rules[idx].toHTML(null,attrMinMax,"","img.png");
   }
   
   

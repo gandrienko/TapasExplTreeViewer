@@ -278,7 +278,7 @@ public class ShowRules implements RulesOrderer{
             ImageIO.write(bi, "png", outputfile);
             //System.out.println("img"+ce.numId+".png");
           } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
-          String out=ce.toHTML(attrMinMax,s,"img.png");
+          String out=ce.toHTML(eTblModel.listOfFeatures,attrMinMax,s,"img.png");
           //System.out.println(out);
           return out;
         }

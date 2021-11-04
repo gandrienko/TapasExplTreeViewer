@@ -52,7 +52,7 @@ public class UnitedRule extends CommonExplanation {
     return rule;
   }
   
-  public String toHTML (Hashtable<String,float[]> attrMinMax, String columnAtPointer, String imgFile) {
+  public String toHTML (ArrayList<String> listOfFeatures, Hashtable<String,float[]> attrMinMax, String columnAtPointer, String imgFile) {
     //System.out.println(columnAtPointer);
     String txt="<html><body style=background-color:rgb(255,255,204)>";
     if (numId>=0)
@@ -93,28 +93,39 @@ public class UnitedRule extends CommonExplanation {
     txt += "<p align=center><table border=1 cellmargin=3 cellpadding=3 cellspacing=3>";
     
     txt+="<tr><td>Feature</td><td>min</td><td>from</td><td>to</td><td>max</td></tr>";
-    for (int i=0; i<eItems.length; i++) {
-      boolean b=eItems[i].attr.equals(columnAtPointer);
-      txt+="<tr align=right><td>"+((b)?"<b>":"")+eItems[i].attr+((b)?"</b>":"")+"</td>";
-      String strValue=(attrMinMax!=null && attrMinMax.get(eItems[i].attr)!=null)?
-                          String.format("%.4f",attrMinMax.get(eItems[i].attr)[0]):"";
-      txt+="<td>"+strValue+"</td><td>";
-      if (!Double.isInfinite(eItems[i].interval[0]))
-        txt+=(eItems[i].isInteger)?String.valueOf((int)eItems[i].interval[0]):String.format("%.4f",eItems[i].interval[0]);
-      else
-        txt+="- inf";
-      txt+="</td><td>";
-      if (!Double.isInfinite(eItems[i].interval[1]))
-        txt+=(eItems[i].isInteger)?String.valueOf((int)eItems[i].interval[1]):String.format("%.4f",eItems[i].interval[1]);
-      else
-        txt+="+ inf";
-      txt+="</td>";
-      strValue=(attrMinMax!=null && attrMinMax.get(eItems[i].attr)!=null)?
-                   String.format("%.4f",attrMinMax.get(eItems[i].attr)[1]):"";
-      txt+="<td>"+strValue+"</td></tr>";
-    }
+    if (listOfFeatures==null)
+      for (int i=0; i<eItems.length; i++)
+        txt+=processEItem(i,attrMinMax,columnAtPointer,imgFile);
+    else
+      for (int idx=0; idx<listOfFeatures.size(); idx++)
+        for (int i=0; i<eItems.length; i++)
+          if (eItems[i].attr.equals(listOfFeatures.get(idx)))
+            txt+=processEItem(i,attrMinMax,columnAtPointer,imgFile);
     txt += "</table>";
     txt+="</body></html>";
+    return txt;
+  }
+
+  protected String processEItem (int i, Hashtable<String,float[]> attrMinMax, String columnAtPointer, String imgFile) {
+    String txt="";
+    boolean b=eItems[i].attr.equals(columnAtPointer);
+    txt+="<tr align=right><td>"+((b)?"<b>":"")+eItems[i].attr+((b)?"</b>":"")+"</td>";
+    String strValue=(attrMinMax!=null && attrMinMax.get(eItems[i].attr)!=null)?
+            String.format("%.4f",attrMinMax.get(eItems[i].attr)[0]):"";
+    txt+="<td>"+strValue+"</td><td>";
+    if (!Double.isInfinite(eItems[i].interval[0]))
+      txt+=(eItems[i].isInteger)?String.valueOf((int)eItems[i].interval[0]):String.format("%.4f",eItems[i].interval[0]);
+    else
+      txt+="- inf";
+    txt+="</td><td>";
+    if (!Double.isInfinite(eItems[i].interval[1]))
+      txt+=(eItems[i].isInteger)?String.valueOf((int)eItems[i].interval[1]):String.format("%.4f",eItems[i].interval[1]);
+    else
+      txt+="+ inf";
+    txt+="</td>";
+    strValue=(attrMinMax!=null && attrMinMax.get(eItems[i].attr)!=null)?
+            String.format("%.4f",attrMinMax.get(eItems[i].attr)[1]):"";
+    txt+="<td>"+strValue+"</td></tr>";
     return txt;
   }
   

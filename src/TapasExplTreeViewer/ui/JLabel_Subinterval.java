@@ -64,7 +64,7 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     int x1 = (int) Math.round((min - absMin) * w / (absMax - absMin)),
         x2 = (int) Math.round((max - absMin) * w / (absMax - absMin));
     g.setColor(Color.lightGray);
-    g.fillRect(x1, h / 2, x2 - x1, h / 2);
+    g.fillRect(x1, h / 2, Math.max(1,x2 - x1), h / 2);
     g.setColor(Color.gray.darker());
     if (drawValues)
       for (int i=4; i<v.length; i++) {

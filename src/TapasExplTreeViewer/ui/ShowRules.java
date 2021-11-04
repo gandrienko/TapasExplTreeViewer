@@ -18,6 +18,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
@@ -388,6 +389,25 @@ public class ShowRules implements RulesOrderer{
     rowSelMan.setSelector(selector);
     rowSelMan.setMayScrollTable(false);
     /**/
+
+    TableRowSorter sorter=(TableRowSorter)table.getRowSorter();
+    for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
+      sorter.setComparator(i, new Comparator<Object>() {
+        public int compare (Object o1, Object o2) {
+          if (o1 instanceof double[]) {
+            double d1=((double[])o1)[0], d2=((double[])o2)[0];
+            if (Double.isNaN(d1) && Double.isNaN(d2))
+              return 0;
+            if (Double.isNaN(d1))
+              return -1;
+            if (Double.isNaN(d2))
+              return 1;
+            return (d1<d2)?1:(d1==d2)?0:-1;
+          }
+          else
+            return 0;
+        }
+      });
     
     JPopupMenu menu=new JPopupMenu();
 

@@ -395,14 +395,14 @@ public class ShowRules implements RulesOrderer{
       sorter.setComparator(i, new Comparator<Object>() {
         public int compare (Object o1, Object o2) {
           if (o1 instanceof double[]) {
-            double d1=((double[])o1)[0], d2=((double[])o2)[0];
+            double d1=((double[])o1)[0], d2=((double[])o2)[0], d1r=((double[])o1)[1], d2r=((double[])o2)[1];
             if (Double.isNaN(d1) && Double.isNaN(d2))
               return 0;
             if (Double.isNaN(d1))
               return 1;
             if (Double.isNaN(d2))
               return -1;
-            return (d1<d2)?-1:(d1==d2)?0:1;
+            return (d1<d2)?-1:(d1==d2)?((d1r<d2r)?-1:(d1r==d2r)?0:1):1;
           }
           else
             return 0;

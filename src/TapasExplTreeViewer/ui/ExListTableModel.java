@@ -26,7 +26,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public int order[]=null, clusters[]=null;
   public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N +", "N -", "+/+-", "N data items",
       "Order", "Cluster", "N conditions", "Rule"};
-  public String columnNamesUnited[]={"N right covers","N wrong covers","Accuracy",
+  public String columnNamesUnited[]={"N right covers","N wrong covers","Coherence",
       "N united rules","Depth of hierarchy"};
   public boolean toShowUpperId=false;
 

@@ -806,7 +806,7 @@ public class ShowRules implements RulesOrderer{
                   " (" + rules.size() + ")" +
                   ", N conditions (" +nCond + ")" +
                   ", Total uses (" +nUses + ")" +
-                  ((aggregated) ? "; obtained with accuracy threshold " +
+                  ((aggregated) ? "; obtained with coherence threshold " +
                                       String.format("%.3f", accThreshold) : "");
       if (maxQDiff > 0)
         title += " and max Q difference " + String.format("%.5f", maxQDiff);
@@ -1369,7 +1369,7 @@ public class ShowRules implements RulesOrderer{
     pDialog.setLayout(new BoxLayout(pDialog,BoxLayout.Y_AXIS));
     pDialog.add(new JLabel("Set parameters for rule aggregation and generalisation:",JLabel.CENTER));
     JPanel pp=new JPanel(new BorderLayout(10,0));
-    pp.add(new JLabel("Accuracy threshold from 0 to 1 :",JLabel.RIGHT),BorderLayout.CENTER);
+    pp.add(new JLabel("Coherence threshold from 0 to 1 :",JLabel.RIGHT),BorderLayout.CENTER);
     
     JTextField tfAcc=new JTextField(String.format("%.3f", (float)Math.max(0.6f,accThreshold-0.25f)),5);
     pp.add(tfAcc,BorderLayout.EAST);
@@ -1396,14 +1396,14 @@ public class ShowRules implements RulesOrderer{
     /**/
     pDialog.add(new JLabel("The aggregation can be fulfilled in a step-wise manner:",JLabel.CENTER));
     pDialog.add(new JLabel("The process is executed several times", JLabel.CENTER));
-    pDialog.add(new JLabel("with decreasing the accuracy threshold in each step.", JLabel.CENTER));
+    pDialog.add(new JLabel("with decreasing the coherence threshold in each step.", JLabel.CENTER));
     /**/
     pDialog.add(Box.createVerticalStrut(5)); // a spacer
     JCheckBox cbIterative=new JCheckBox("Do step-wise aggregation",true);
     pDialog.add(cbIterative);
     JTextField tfAcc0=new JTextField("1.00",5);
     pp=new JPanel(new BorderLayout(10,0));
-    pp.add(new JLabel("Initial accuracy threshold:",JLabel.RIGHT),BorderLayout.CENTER);
+    pp.add(new JLabel("Initial c threshold:",JLabel.RIGHT),BorderLayout.CENTER);
     pp.add(tfAcc0,BorderLayout.EAST);
     pDialog.add(pp);
     JTextField tfAccStep=new JTextField("0.05",5);
@@ -1427,13 +1427,13 @@ public class ShowRules implements RulesOrderer{
       minAccuracy = Double.parseDouble(value);
       if (minAccuracy < 0 || minAccuracy > 1) {
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "Illegal threshold value for the accuracy; must be from 0 to 1!",
+            "Illegal threshold value for the coherence/accuracy; must be from 0 to 1!",
             "Error", JOptionPane.ERROR_MESSAGE);
         return;
       }
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Illegal threshold value for the accuracy!",
+          "Illegal threshold value for the coherence/accuracy!",
           "Error", JOptionPane.ERROR_MESSAGE);
       return;
     }
@@ -1488,7 +1488,7 @@ public class ShowRules implements RulesOrderer{
         } catch (Exception ex) {}
       if (Double.isNaN(accStep) || accStep<=0 || initAccuracy-accStep<=0) {
         result = JOptionPane.showConfirmDialog (FocusManager.getCurrentManager().getActiveWindow(),
-            "Illegal value for the accuracy threshold decrement in each step! Should it be set to 0.1?",
+            "Illegal value for the threshold decrement in each step! Should it be set to 0.1?",
             "Illegal value for threshold decrement!",JOptionPane.YES_NO_OPTION);
         if (result != JOptionPane.YES_OPTION)
           return;

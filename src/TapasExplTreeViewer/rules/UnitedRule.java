@@ -65,13 +65,13 @@ public class UnitedRule extends CommonExplanation {
              "</td><td>Mean Q</td><td>"+String.format("%.4f",meanQ)+"</td></tr>";
     txt+="<tr align=right><td>N uses:</td><td>"+nUses+
              "</td><td>Min Q</td><td>"+String.format("%.4f",minQ)+"</td></tr>";
-    txt+="<tr align=right><td>N distinct items (flights):</td><td>"+uses.size()+
+    txt+="<tr align=right><td>N distinct objects:</td><td>"+uses.size()+
              "</td><td>Max Q</td><td>"+String.format("%.4f",maxQ)+"</td></tr>";
     txt += "<tr></tr></table>";
     if (nOrigRight+nOrigWrong>0 || nCasesRight+nCasesWrong>0 || fromRules!=null) {
       txt += "<table border=0 cellmargin=3 cellpadding=3 cellspacing=3 align=center>";
       if (nOrigRight + nOrigWrong > 0)
-        txt += "<tr align=right><td>Accuracy (rule-based)</td><td>" +
+        txt += "<tr align=right><td>Coherence (rule-based)</td><td>" +
                    String.format("%.2f", 1.0f * nOrigRight / (nOrigRight + nOrigWrong)) +
                    "</td><td>N correctly covered</td><td>" + nOrigRight +
                    "</td><td>N wrongly covered</td><td>" + nOrigWrong + "</td></tr>";

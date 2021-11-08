@@ -228,7 +228,7 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
       ImageIO.write(bi, "png", outputfile);
       //System.out.println("img.png");
     } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
-    return explanations.get(idx).toHTML(attrMinMax,"","img.png");
+    return explanations.get(idx).toHTML(null,attrMinMax,"","img.png");
   }
   
   public static Color getColorForAction(int action, int minAction, int maxAction) {

@@ -56,6 +56,7 @@ public class RuleSetVis extends JPanel
    * used for rendering glyphs
    */
   protected Vector<String> attrs=null;
+  protected ArrayList<String> listOfFeatures=null;
   protected Vector<float[]> minmax=null;
   /**
    * Ordering of glyphs
@@ -94,8 +95,11 @@ public class RuleSetVis extends JPanel
     attrs=attrNamesOrdered;
     if (attrs!=null && attrMinMax!=null) {
       minmax=new Vector<float[]>(attrs.size());
-      for (int i=0; i<attrs.size(); i++)
+      listOfFeatures=new ArrayList<String>(attrs.size());
+      for (int i=0; i<attrs.size(); i++) {
         minmax.add(attrMinMax.get(attrs.elementAt(i)));
+        listOfFeatures.add(attrs.elementAt(i));
+      }
     }
     this.applyHiAndSelToFullList=applyHiAndSelToFullList;
     if (applyHiAndSelToFullList && fullExList!=null && fullExList.size()>exList.size()) {
@@ -522,6 +526,6 @@ public class RuleSetVis extends JPanel
       ImageIO.write(bi, "png", outputfile);
       //System.out.println("img.png");
     } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
-    return ce.toHTML(attrMinMax,"","img.png");
+    return ce.toHTML(listOfFeatures,attrMinMax,"","img.png");
   }
 }

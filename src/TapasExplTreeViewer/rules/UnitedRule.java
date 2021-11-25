@@ -76,10 +76,10 @@ public class UnitedRule extends CommonExplanation {
                    "</td><td>N correctly covered</td><td>" + nOrigRight +
                    "</td><td>N wrongly covered</td><td>" + nOrigWrong + "</td></tr>";
       if (nCasesRight + nCasesWrong > 0)
-        txt += "<tr align=right><td>Accuracy (data-based)</td><td>" +
+        txt += "<tr align=right><td>Fidelity (data-based)</td><td>" +
                    String.format("%.2f", 1.0f * nCasesRight / (nCasesRight + nCasesWrong)) +
-                   "</td><td>N correctly covered</td><td>" + nCasesRight +
-                   "</td><td>N wrongly covered</td><td>" + nCasesWrong + "</td></tr>";
+                   "</td><td>N congruent predictions</td><td>" + nCasesRight +
+                   "</td><td>N incongruent predictions</td><td>" + nCasesWrong + "</td></tr>";
       if (fromRules != null) {
         int nFrom = countFromRules();
         if (nFrom > 0)

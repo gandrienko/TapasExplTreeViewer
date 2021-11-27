@@ -1395,7 +1395,7 @@ public class ShowRules implements RulesOrderer{
     pp.add(tfAcc,BorderLayout.EAST);
     pDialog.add(pp);
     JCheckBox cbData=(dataInstances==null)?null:
-                         new JCheckBox("Additionally check the data-based accuracy",true);
+                         new JCheckBox("Additionally check the data-based rule fidelity",true);
     if (cbData!=null)
       pDialog.add(cbData);
     
@@ -1447,13 +1447,13 @@ public class ShowRules implements RulesOrderer{
       minAccuracy = Double.parseDouble(value);
       if (minAccuracy < 0 || minAccuracy > 1) {
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "Illegal threshold value for the coherence/accuracy; must be from 0 to 1!",
+            "Illegal threshold value for the coherence; must be from 0 to 1!",
             "Error", JOptionPane.ERROR_MESSAGE);
         return;
       }
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Illegal threshold value for the coherence/accuracy!",
+          "Illegal threshold value for the coherence!",
           "Error", JOptionPane.ERROR_MESSAGE);
       return;
     }
@@ -1494,7 +1494,7 @@ public class ShowRules implements RulesOrderer{
         } catch (Exception ex) {}
       if (Double.isNaN(initAccuracy) || initAccuracy<0.5 || initAccuracy>1) {
         result = JOptionPane.showConfirmDialog (FocusManager.getCurrentManager().getActiveWindow(),
-            "Illegal value for the initial accuracy threshold! Should it be set to 1?",
+            "Illegal value for the initial coherence threshold! Should it be set to 1?",
             "Illegal initial threshold value!",JOptionPane.YES_NO_OPTION);
         if (result != JOptionPane.YES_OPTION)
           return;

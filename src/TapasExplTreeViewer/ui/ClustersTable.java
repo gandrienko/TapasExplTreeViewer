@@ -49,7 +49,7 @@ public class ClustersTable extends JPanel {
             File outputfile = new File("img.png");
             ImageIO.write(bi, "png", outputfile);
           } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
-          String out=ce.toHTML(attrMinMax,s,"img.png");
+          String out=ce.toHTML(null,attrMinMax,s,"img.png");
           return out;
         }
         return "";

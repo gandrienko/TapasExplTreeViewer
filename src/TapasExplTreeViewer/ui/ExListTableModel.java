@@ -24,11 +24,14 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   public Hashtable<String,float[]> attrMinMax =null;
   public ArrayList<String> listOfFeatures=null;
   public int order[]=null, clusters[]=null;
-  public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N +", "N -", "+/+-", "N data items",
-      "Order", "Cluster", "N conditions", "Rule"};
+//  public String columnNames[] = {"Id","Action", "(mean) Q", "min Q", "max Q", "N uses", "N +", "N -", "+/+-", "N data items",
+//      "Order", "Cluster", "N conditions", "Rule"};
+  public String columnNames[] = {"Id","Action", "Q (mean)", "min Q", "max Q", "Q min..max", "N uses", "N +", "N -", "+/+-", "N data items",
+    "Order", "Cluster", "N conditions", "Rule"};
   public String columnNamesUnited[]={"N right covers","N wrong covers","Coherence",
       "N united rules","Depth of hierarchy"};
   public boolean toShowUpperId=false;
+  public double qMin=Double.NaN, qMax=Double.NaN;
 
   boolean drawValuesOrStatsForIntervals=false;
   public void setDrawValuesOrStatsForIntervals (boolean drawValuesOrStatsForIntervals) {
@@ -50,6 +53,12 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         else
           attrUses.put(cEx.eItems[j].attr,count+1);
       }
+      if (!Double.isNaN(cEx.minQ))
+        if (Double.isNaN(qMin) || qMin>cEx.minQ)
+          qMin=cEx.minQ;
+      if (!Double.isNaN(cEx.maxQ))
+        if (Double.isNaN(qMax) || qMax<cEx.maxQ)
+          qMax=cEx.maxQ;
     }
     if (hasUnitedRules) {
       int lastUpperN=exList.get(0).upperId;
@@ -148,6 +157,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         if (col>0)
           --cN;
       }
+      /*
       switch (cN) {
         case 0:
           return cEx.numId;
@@ -174,6 +184,38 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         case 11:
           return (clusters == null) ? new Integer(-1) : new Integer(clusters[row]);
         case 12:
+          return new Integer(cEx.eItems.length);
+      }
+      */
+      switch (cN) {
+        case 0:
+          return cEx.numId;
+        case 1:
+          return new Integer(cEx.action);
+        case 2:
+          return new Float(cEx.meanQ);
+        case 3:
+          return new Float(cEx.minQ);
+        case 4:
+          return new Float(cEx.maxQ);
+        case 5:
+          double values[]={cEx.minQ,cEx.maxQ,qMin,qMax};
+          return values;
+        case 6:
+          return new Integer(cEx.nUses);
+        case 7:
+          return new Integer(cEx.nCasesRight);
+        case 8:
+          return new Integer(cEx.nCasesWrong);
+        case 9:
+          return new Float(cEx.nCasesRight*1f/(cEx.nCasesRight+cEx.nCasesWrong));
+        case 10:
+          return new Integer(cEx.uses.size());
+        case 11:
+          return (order == null) ? new Integer(row) : new Integer(order[row]);
+        case 12:
+          return (clusters == null) ? new Integer(-1) : new Integer(clusters[row]);
+        case 13:
           return new Integer(cEx.eItems.length);
       }
       String cName=columnNames[col];
@@ -293,7 +335,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       }
       else
       if (v instanceof double[]) {
-        double d[]=(double[])v, dv=d[d.length-1];
+        double d[]=(double[])v, dv=d[Math.min(1,d.length-1)];
         if (Double.isNaN(max) || max<dv)
           max=(float)dv;
       }
@@ -328,7 +370,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       }
       else
       if (v instanceof double[]) {
-        double d[]=(double[])v, dv=d[d.length-1];
+        double d[]=(double[])v, dv=d[0];//d[d.length-1];
         if (Double.isNaN(min) || min>dv)
           min=(float)dv;
       }

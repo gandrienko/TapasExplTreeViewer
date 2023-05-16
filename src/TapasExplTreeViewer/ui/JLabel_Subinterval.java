@@ -9,6 +9,7 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double min=Double.NaN, max=Double.NaN, absMin=Double.NaN, absMax=Double.NaN;
   public double v[]=null, values[]=null, Q1,Q2,Q3,avg;
   public boolean drawTexts=false, drawValues=false, drawStats=false;
+  public int precision=0;
   
   public JLabel_Subinterval() {
     setHorizontalAlignment(SwingConstants.RIGHT);
@@ -23,6 +24,11 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public void setDrawStats (boolean drawStats) {
     this.drawStats=drawStats;
   }
+
+  public void setPrecision(int precision) {
+    this.precision = precision;
+  }
+
   public void setValues (double v[]) {
     if (v!=null && v.length>=4) {
       min=v[0]; max=v[1];
@@ -48,7 +54,8 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
       if (Double.isNaN(min) || Double.isNaN(max))
         setText("");
       else
-        setText(Math.round(min)+".."+Math.round(max));
+        //setText(Math.round(min)+".."+Math.round(max));
+        setText(String.format("%."+precision+"f..%."+precision+"f",min,max));
     }
     else
       setText("");
@@ -85,6 +92,7 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
       g.setColor(Color.blue);
       g.drawLine(x,0, x, h/2-dy);
     }
+    setForeground(new Color(0,0,0,80));
     super.paint(g);
   }
   public Component getTableCellRendererComponent(JTable table,

@@ -359,13 +359,22 @@ public class ShowRules implements RulesOrderer{
     table.setRowSelectionAllowed(true);
     table.setColumnSelectionAllowed(false);
 
-    for (int i=0; i<eTblModel.columnNames.length-1; i++)
-      if ((eTblModel.getColumnClass(i).equals(Integer.class) ||
-               eTblModel.getColumnClass(i).equals(Float.class) ||
-               eTblModel.getColumnClass(i).equals(Double.class)) &&
-              !eTblModel.getColumnName(i).equalsIgnoreCase("cluster"))
+    for (int i=0; i<eTblModel.columnNames.length-1; i++) {
+      Class columnClass=eTblModel.getColumnClass(i);
+      if ((columnClass.equals(Integer.class) ||
+          columnClass.equals(Float.class) ||
+          columnClass.equals(Double.class)) &&
+          !eTblModel.getColumnName(i).equalsIgnoreCase("cluster"))
         table.getColumnModel().getColumn(i).setCellRenderer(
-            new RenderLabelBarChart(eTblModel.getColumnMin(i),eTblModel.getColumnMax(i)));
+            new RenderLabelBarChart(eTblModel.getColumnMin(i), eTblModel.getColumnMax(i)));
+      else
+        if (table.getColumnName(i).contains("min..max")) {
+          JLabel_Subinterval subIntRend=new JLabel_Subinterval();
+          subIntRend.setDrawTexts(true);
+          subIntRend.setPrecision(3);
+          table.getColumnModel().getColumn(i).setCellRenderer(subIntRend);
+        }
+    }
 
     ruleRenderer=new JLabel_Rule();
     attrs=new Vector(eTblModel.getColumnCount()-eTblModel.columnNames.length);

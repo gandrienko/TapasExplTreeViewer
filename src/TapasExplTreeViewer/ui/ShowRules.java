@@ -301,10 +301,22 @@ public class ShowRules implements RulesOrderer{
               minA, maxA);
           isAction=true;
         }
-        if (!isCluster && minQ<maxQ && colName.toUpperCase().endsWith(" Q")) {
-          bkColor = ExplanationsProjPlot2D.getColorForQ(new Double((Float)eTblModel.getValueAt(rowIdx, colIdx)),
-              minQ, maxQ);
-          isQ=true;
+        if (!isCluster && minQ<maxQ && (colName.toUpperCase().contains(" Q") || colName.toUpperCase().contains("Q "))) {
+          Object v=eTblModel.getValueAt(rowIdx, colIdx);
+          if (v!=null)
+          if (v instanceof Float) {
+            bkColor = ExplanationsProjPlot2D.getColorForQ(new Double((Float)v),minQ, maxQ);
+            isQ = true;
+          }
+          else
+            if (v instanceof double[]) {
+              double d[]=(double[])v;
+              if (d.length>1) {
+                Color qC=ExplanationsProjPlot2D.getColorForQ((d[0]+d[1])/2,minQ, maxQ);
+                bkColor = new Color(qC.getRed(),qC.getGreen(),qC.getBlue(),30);
+                isQ = true;
+              }
+            }
         }
         c.setBackground(bkColor);
         if (highlighter==null || highlighter.getHighlighted()==null ||
@@ -364,9 +376,11 @@ public class ShowRules implements RulesOrderer{
       if ((columnClass.equals(Integer.class) ||
           columnClass.equals(Float.class) ||
           columnClass.equals(Double.class)) &&
-          !eTblModel.getColumnName(i).equalsIgnoreCase("cluster"))
-        table.getColumnModel().getColumn(i).setCellRenderer(
-            new RenderLabelBarChart(eTblModel.getColumnMin(i), eTblModel.getColumnMax(i)));
+          !eTblModel.getColumnName(i).equalsIgnoreCase("cluster")) {
+        float min=eTblModel.getColumnMin(i), max=eTblModel.getColumnMax(i);
+        RenderLabelBarChart rBar=new RenderLabelBarChart(min, max);
+        table.getColumnModel().getColumn(i).setCellRenderer(rBar);
+      }
       else
         if (table.getColumnName(i).contains("min..max")) {
           JLabel_Subinterval subIntRend=new JLabel_Subinterval();

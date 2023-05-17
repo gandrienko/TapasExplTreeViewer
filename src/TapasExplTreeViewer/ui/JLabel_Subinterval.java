@@ -10,6 +10,7 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double v[]=null, values[]=null, Q1,Q2,Q3,avg;
   public boolean drawTexts=false, drawValues=false, drawStats=false;
   public int precision=0;
+  public Color barColor=new Color(160,160,160);
   
   public JLabel_Subinterval() {
     setHorizontalAlignment(SwingConstants.RIGHT);
@@ -70,7 +71,7 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     g.fillRect(0, 0, w, h);
     int x1 = (int) Math.round((min - absMin) * w / (absMax - absMin)),
         x2 = (int) Math.round((max - absMin) * w / (absMax - absMin));
-    g.setColor(Color.lightGray);
+    g.setColor(barColor);
     g.fillRect(x1, h / 2, Math.max(1,x2 - x1), h / 2);
     g.setColor(Color.gray.darker());
     if (drawValues)

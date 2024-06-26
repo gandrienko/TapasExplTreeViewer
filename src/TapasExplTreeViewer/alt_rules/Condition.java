@@ -1,9 +1,9 @@
 package TapasExplTreeViewer.alt_rules;
 
 public class Condition {
-  private String feature;
-  private double minValue;
-  private double maxValue;
+  private String feature=null;
+  private double minValue=Double.NEGATIVE_INFINITY;
+  private double maxValue=Double.POSITIVE_INFINITY;
 
   public Condition(String feature, double minValue, double maxValue) {
     this.feature = feature;

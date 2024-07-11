@@ -210,7 +210,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         case 9:
           return new Float(cEx.nCasesRight*1f/(cEx.nCasesRight+cEx.nCasesWrong));
         case 10:
-          return new Integer(cEx.uses.size());
+          return (cEx.uses==null)?0:new Integer(cEx.uses.size());
         case 11:
           return (order == null) ? new Integer(row) : new Integer(order[row]);
         case 12:
@@ -258,10 +258,11 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     if (!drawValuesOrStatsForIntervals)
       return values;
     int N=0;
-    for (String s:cEx.uses.keySet()) {
-      ArrayList<Explanation> aex = cEx.uses.get(s);
-      N += aex.size();
-    }
+    if (cEx.uses!=null)
+      for (String s:cEx.uses.keySet()) {
+        ArrayList<Explanation> aex = cEx.uses.get(s);
+        N += aex.size();
+      }
     double v[]=new double[values.length+N];
     for (int j=0; j<values.length; j++)
       v[j]=values[j];

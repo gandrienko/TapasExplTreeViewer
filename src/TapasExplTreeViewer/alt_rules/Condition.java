@@ -2,10 +2,10 @@ package TapasExplTreeViewer.alt_rules;
 
 public class Condition {
   private String feature=null;
-  private double minValue=Double.NEGATIVE_INFINITY;
-  private double maxValue=Double.POSITIVE_INFINITY;
+  private float minValue=Float.NEGATIVE_INFINITY;
+  private float maxValue=Float.POSITIVE_INFINITY;
 
-  public Condition(String feature, double minValue, double maxValue) {
+  public Condition(String feature, float minValue, float maxValue) {
     this.feature = feature;
     this.minValue = minValue;
     this.maxValue = maxValue;
@@ -16,11 +16,11 @@ public class Condition {
     return feature;
   }
 
-  public double getMinValue() {
+  public float getMinValue() {
     return minValue;
   }
 
-  public double getMaxValue() {
+  public float getMaxValue() {
     return maxValue;
   }
 

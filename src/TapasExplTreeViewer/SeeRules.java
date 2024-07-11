@@ -1,7 +1,12 @@
 package TapasExplTreeViewer;
+import TapasDataReader.CommonExplanation;
+import TapasDataReader.Explanation;
+import TapasDataReader.ExplanationItem;
 import TapasExplTreeViewer.alt_rules.Condition;
 import TapasExplTreeViewer.alt_rules.Rule;
+import TapasExplTreeViewer.ui.ShowRules;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -15,6 +20,10 @@ public class SeeRules {
     String csvFile = args[0];
     List<Rule> rules = new ArrayList<>();
     int maxNConditions=0;
+
+    String featureType=null;
+    if (args.length>1 && args[1].startsWith("feature_type="))
+      featureType=args[1].substring(13).toLowerCase();
 
     try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
       String line=null;
@@ -38,7 +47,7 @@ public class SeeRules {
           int predictedClass=(realValued)?-1:Integer.parseInt(fields[2]);
           double predictedValue=(realValued)?Double.parseDouble(fields[2]):Double.NaN;
   
-          List<Condition> conditions=parseConditions(ruleText);
+          List<Condition> conditions=parseConditions(ruleText,featureType);
           if (conditions==null || conditions.isEmpty())
             continue;
           if (maxNConditions<conditions.size())
@@ -63,13 +72,38 @@ public class SeeRules {
       System.out.println(rule);
     }
     */
+
     Hashtable<String,Integer> features=new Hashtable<String,Integer>(100);
+    Hashtable<String,float[]> attrMinMax=new Hashtable<String,float[]>(100);
     for (Rule rule:rules) {
       for (Condition cnd:rule.getConditions()) {
         String feature=cnd.getFeature();
         Integer count=features.get(feature);
         if (count==null) count=0;
         features.put(feature,count+1);
+        float min=cnd.getMinValue(), max=cnd.getMaxValue();
+        if (featureType!=null) {
+          if (featureType.startsWith("int")) {
+            if (Float.isInfinite(min))
+              min=(int)Math.floor(max);
+            if (Float.isInfinite(max))
+              max=(int)Math.ceil(min);
+          }
+        }
+
+        float minmax[]=attrMinMax.get(feature);
+        if (minmax==null) {
+          minmax=new float[2];
+          minmax[0]=min;
+          minmax[1]=max;
+          attrMinMax.put(feature,minmax);
+        }
+        else {
+          if (!Float.isInfinite(minmax[0]) && minmax[0]>min)
+            minmax[0]=min;
+          if (!Float.isInfinite(minmax[1]) && minmax[1]<max)
+            minmax[1]=max;
+        }
       }
     }
     System.out.println("Got "+rules.size()+" rules with "+features.size()+
@@ -81,11 +115,42 @@ public class SeeRules {
   
     // Print sorted feature frequencies
     for (Map.Entry<String, Integer> entry : fList) {
-      System.out.println(entry.getKey() + ": " + entry.getValue());
+      float minmax[]=attrMinMax.get(entry.getKey());
+      System.out.println(entry.getKey() + ": frequency = " + entry.getValue()+"; values = "+minmax[0]+".."+minmax[1]);
+    }
+
+    ArrayList<CommonExplanation> exList=new ArrayList<CommonExplanation>(rules.size());
+    boolean intOrBin=featureType!=null && (featureType.startsWith("int") || featureType.startsWith("bin"));
+
+    for (Rule rule:rules) {
+      CommonExplanation ex=new CommonExplanation();
+      ex.numId=rule.getId();
+      if (!Double.isNaN(rule.getPredictedValue()))
+        ex.minQ=ex.maxQ=ex.meanQ=(float)rule.getPredictedValue();
+      ex.action=rule.getPredictedClass();
+      ex.eItems=new ExplanationItem[rule.getConditionCount()];
+      int i=0;
+      for (Condition cnd:rule.getConditions()) {
+        ex.eItems[i]=new ExplanationItem();
+        ex.eItems[i].attr=cnd.getFeature();
+        ex.eItems[i].interval[0]=cnd.getMinValue();
+        ex.eItems[i].interval[1]=cnd.getMaxValue();
+        ex.eItems[i].isInteger=intOrBin;
+        ++i;
+      }
+      exList.add(ex);
+    }
+
+    ShowRules showRules=new ShowRules(exList,attrMinMax);
+    showRules.setOrigRules(exList);
+    JFrame fr=showRules.showRulesInTable();
+    if (fr==null) {
+      System.out.println("Failed to visualize the rules!");
+      System.exit(1);
     }
   }
 
-  private static List<Condition> parseConditions(String ruleText) {
+  private static List<Condition> parseConditions(String ruleText, String featureType) {
     if (ruleText==null)
       return null;
     String[] parts = ruleText.split(";");
@@ -99,8 +164,24 @@ public class SeeRules {
       String minStr=conditionParts[1].replace("{", "").trim();
       String maxStr=conditionParts[2].replace("}", "").trim();
 
-      double minValue = minStr.equals("-inf") ? Double.NEGATIVE_INFINITY : Double.parseDouble(minStr);
-      double maxValue = maxStr.equals("inf") ? Double.POSITIVE_INFINITY : Double.parseDouble(maxStr);
+      float minValue = minStr.equals("-inf") ? Float.NEGATIVE_INFINITY : Float.parseFloat(minStr);
+      float maxValue = maxStr.equals("inf") ? Float.POSITIVE_INFINITY : Float.parseFloat(maxStr);
+      if (Float.isInfinite(minValue) && Float.isInfinite(maxValue))
+        continue; //this condition is excessive
+
+      if (featureType!=null) {
+        if (featureType.startsWith("bin"))  {
+          if (Float.isInfinite(minValue))
+            minValue=0;
+          else
+            if (minValue>0) minValue=1;
+          if (Float.isInfinite(maxValue))
+            maxValue=1;
+          else
+            if (maxValue<1)
+              maxValue=0;
+        }
+      }
 
       conditions.add(new Condition(feature, minValue, maxValue));
     }

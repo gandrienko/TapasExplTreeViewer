@@ -5,10 +5,10 @@ import java.util.List;
 public class Rule {
   private int id=0;
   private List<Condition> conditions=null;
-  private String predictedClass=null;
+  private int predictedClass=-1;
   private double predictedValue=Double.NaN;
 
-  public Rule(int id, List<Condition> conditions, String predictedClass) {
+  public Rule(int id, List<Condition> conditions, int predictedClass) {
     this.id = id;
     this.conditions = conditions;
     this.predictedClass = predictedClass;
@@ -29,8 +29,14 @@ public class Rule {
     return conditions;
   }
 
-  public String getPredictedClass() {
+  public int getConditionCount(){ return conditions.size(); }
+
+  public int getPredictedClass() {
     return predictedClass;
+  }
+
+  public double getPredictedValue() {
+    return predictedValue;
   }
 
   @Override

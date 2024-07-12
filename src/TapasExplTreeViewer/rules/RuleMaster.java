@@ -4,10 +4,7 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
 import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 
-import java.util.AbstractList;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Hashtable;
+import java.util.*;
 
 /**
  * Intended to contain methods for minimisation and aggregation of a set of rules (or explanations)
@@ -291,6 +288,8 @@ public class RuleMaster {
                                     Hashtable<String,float[]> attrMinMax) {
     if (group==null || group.size()<2)
       return;
+    int origSize=group.size();
+    System.out.println("Aggregating group with "+origSize+" rules; action or class = "+group.get(0).action);
     ArrayList<UnitedRule> notAccurate=(minAccuracy>0)?new ArrayList<UnitedRule>(group.size()):null;
     if (minAccuracy>0)
       for (int i=group.size()-1; i>=0; i--) {
@@ -302,24 +301,34 @@ public class RuleMaster {
         }
       }
     boolean united;
-    ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(group.size());
+    ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(group.size()*2);
+    System.out.println("Computing pairwise distances");
+    for (int i=0; i<group.size()-1; i++)
+      for (int j=i+1; j<group.size(); j++)
+        if (/*UnitedRule.sameFeatures(group.get(i),group.get(j))*/true) {
+          double d=UnitedRule.distance(group.get(i),group.get(j),attrMinMax);
+          int pair[]={i,j};
+          ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
+          pairs.add(om);
+        }
+    System.out.println("Sorting "+pairs.size()+" pairs by distances");
+    Collections.sort(pairs);
+    System.out.println("Sorted "+pairs.size()+" pairs!");
+
+    HashSet<Integer> excluded=new HashSet<Integer>(group.size()*10);
+
+    int nUnions=0, nExcluded=0;
     do {
       united=false;
-      pairs.clear();
-      for (int i=0; i<group.size()-1; i++)
-        for (int j=i+1; j<group.size(); j++)
-          if (/*UnitedRule.sameFeatures(group.get(i),group.get(j))*/true) {
-            double d=UnitedRule.distance(group.get(i),group.get(j),attrMinMax);
-            int pair[]={i,j};
-            ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
-            pairs.add(om);
-          }
-      Collections.sort(pairs);
+      UnitedRule union=null;
+      //pairs.clear();
       for (int i=0; i<pairs.size() && !united; i++) {
         ObjectWithMeasure om=pairs.get(i);
         int pair[]=(int[])om.obj;
         int i1=pair[0], i2=pair[1];
-        UnitedRule union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
+        if (excluded.contains(i1) || excluded.contains(i2))
+          continue;
+        union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
         if (union!=null) {
           union.countRightAndWrongCoverages(origRules);
           if (union.nOrigRight<1)
@@ -331,22 +340,61 @@ public class RuleMaster {
             if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
               continue;
           }
-          group.remove(i2);
-          group.remove(i1);
+          //group.remove(i2);
+          //group.remove(i1);
+          excluded.add(i1);
+          excluded.add(i2);
+          nExcluded+=2;
           for (int j=group.size()-1; j>=0; j--)
-            if (union.subsumes(group.get(j),true)) {
+            if (!excluded.contains(j) && union.subsumes(group.get(j),true)) {
               union.attachAsFromRule(group.get(j));
               if (minAccuracy>0 && exData!=null)  //check the accuracy based on the data
                 union.countRightAndWrongApplications(exData,true);
-              group.remove(j);
+              //group.remove(j);
+              excluded.add(j);
+              ++nExcluded;
             }
-          group.add(0,union);
+          group.add(union);
           united=true;
+          ++nUnions;
         }
       }
-    } while (united && group.size()>1);
+      if (united) {
+        for (int i = pairs.size() - 1; i > 0; i--) {
+          ObjectWithMeasure om = pairs.get(i);
+          int pair[] = (int[]) om.obj;
+          int i1 = pair[0], i2 = pair[1];
+          if (excluded.contains(i1) || excluded.contains(i2))
+            pairs.remove(i);
+        }
+        int nRemain=1;
+        for (int i=0; i<group.size()-1; i++)
+          if (!excluded.contains(i)) {
+            ++nRemain;
+            double d=UnitedRule.distance(group.get(i),union,attrMinMax);
+            int pair[]={i,group.size()-1};
+            ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
+            pairs.add(om);
+          }
+        //System.out.println("Sorting "+pairs.size()+" pairs by distances");
+        Collections.sort(pairs);
+        //System.out.println("Sorted "+pairs.size()+" pairs!");
+        if (nUnions%10==0) {
+          System.out.println("Aggregation: made "+nUnions+" unions; excluded "+nExcluded+" rules; "+
+              nRemain+" rules remain; group size = "+group.size());
+        }
+      }
+    } while (united /*&& group.size()>1*/ && pairs.size()>0);
+
+    for (int i=group.size()-1; i>=0; i--)
+      if (excluded.contains(i))
+        group.remove(i);
+
     if (notAccurate!=null && !notAccurate.isEmpty())
       group.addAll(notAccurate);
+
+    System.out.println("Finished group aggregation attempt; action or class = "+group.get(0).action+
+        "; original size = "+origSize+"; final size = "+group.size());
   }
   /**
    * Aggregates rules with close real-valued outcomes (represented by variable Q) by bottom-up

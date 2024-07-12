@@ -28,4 +28,34 @@ public class Condition {
   public String toString() {
     return feature + ": {" + minValue + ": " + maxValue + "}";
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj==null || !(obj instanceof Condition))
+      return false;
+    Condition c=(Condition)obj;
+    if (feature==null)
+      return false;
+    if (!feature.equals(c.feature))
+      return false;
+    if (Float.isInfinite(minValue))
+      if (!!Float.isInfinite(c.minValue))
+        return false;
+      else;
+    else
+    if (Float.isInfinite(c.minValue))
+      return false;
+    if (minValue!=c.minValue)
+      return false;
+    if (Float.isInfinite(maxValue))
+      if (!Float.isInfinite(c.maxValue))
+        return false;
+      else;
+    else
+    if (Float.isInfinite(c.maxValue))
+      return false;
+    if (maxValue!=c.maxValue)
+      return false;
+    return true;
+  }
 }

@@ -65,7 +65,7 @@ public class UnitedRule extends CommonExplanation {
              "</td><td>Mean Q</td><td>"+String.format("%.4f",meanQ)+"</td></tr>";
     txt+="<tr align=right><td>N uses:</td><td>"+nUses+
              "</td><td>Min Q</td><td>"+String.format("%.4f",minQ)+"</td></tr>";
-    txt+="<tr align=right><td>N distinct objects:</td><td>"+uses.size()+
+    txt+="<tr align=right><td>N distinct objects:</td><td>"+getUsesCount()+
              "</td><td>Max Q</td><td>"+String.format("%.4f",maxQ)+"</td></tr>";
     txt += "<tr></tr></table>";
     if (nOrigRight+nOrigWrong>0 || nCasesRight+nCasesWrong>0 || fromRules!=null) {

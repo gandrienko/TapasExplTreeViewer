@@ -794,7 +794,7 @@ public class ShowRules implements RulesOrderer{
         }
         String title="Select data for the rule "+
                 exList.get(realRowIndex).numId+", action="+exList.get(realRowIndex).action+
-                ", Nrecords="+exList.get(realRowIndex).applications.length;
+                ", Nrecords="+exList.get(realRowIndex).getApplicationsCount();
         JMenuItem selItem = new JMenuItem(title);
         selItem.addActionListener(new ActionListener() {
           @Override
@@ -1397,6 +1397,7 @@ public class ShowRules implements RulesOrderer{
     }
     ShowRules showRules=createShowRulesInstance(exList2);
     showRules.setNonSubsumed(true);
+    showRules.setAggregated(true);
     showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable();
   }

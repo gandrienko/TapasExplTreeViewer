@@ -52,10 +52,13 @@ public class SeeRules {
             continue;
           if (maxNConditions<conditions.size())
             maxNConditions=conditions.size();
-          if (realValued)
-            rules.add(new Rule(ruleId, conditions, predictedValue));
+          Rule r=(realValued)?new Rule(ruleId, conditions, predictedValue):
+                              new Rule(ruleId, conditions, predictedClass);
+          int idx=rules.indexOf(r);
+          if (idx<0)
+            rules.add(r);
           else
-            rules.add(new Rule(ruleId, conditions, predictedClass));
+            ++rules.get(idx).nSame;
         }
       }
     } catch (IOException e) {
@@ -125,6 +128,7 @@ public class SeeRules {
     for (Rule rule:rules) {
       CommonExplanation ex=new CommonExplanation();
       ex.numId=rule.getId();
+      ex.nSame=rule.nSame;
       if (!Double.isNaN(rule.getPredictedValue()))
         ex.minQ=ex.maxQ=ex.meanQ=(float)rule.getPredictedValue();
       ex.action=rule.getPredictedClass();
@@ -136,6 +140,15 @@ public class SeeRules {
         ex.eItems[i].interval[0]=cnd.getMinValue();
         ex.eItems[i].interval[1]=cnd.getMaxValue();
         ex.eItems[i].isInteger=intOrBin;
+        if (intOrBin && (Double.isInfinite(ex.eItems[i].interval[0]) || Double.isInfinite(ex.eItems[i].interval[1]))) {
+          float minmax[] = attrMinMax.get(ex.eItems[i].attr);
+          if (minmax!=null) {
+            if (Double.isInfinite(ex.eItems[i].interval[0]))
+              ex.eItems[i].interval[0]=minmax[0];
+            if (Double.isInfinite(ex.eItems[i].interval[1]))
+              ex.eItems[i].interval[1]=minmax[1];
+          }
+        }
         ++i;
       }
       exList.add(ex);
@@ -182,8 +195,9 @@ public class SeeRules {
               maxValue=0;
         }
       }
-
-      conditions.add(new Condition(feature, minValue, maxValue));
+      Condition c=new Condition(feature, minValue, maxValue);
+      if (!conditions.contains(c))
+        conditions.add(c);
     }
 
     return conditions;

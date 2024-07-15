@@ -89,9 +89,15 @@ public class TSNE_Runner implements ProjectionProvider{
               createdFiles.add(matrFile);
             distanceMatrixPutInFile=true;
           }
-          String command="cmd.exe /C TSNE-precomputed.bat "+distFName+" "+perplexity;
+          //String command="cmd.exe /C TSNE-precomputed.bat "+distFName+" "+perplexity;
+          String command = "cmd.exe",
+              argument = "/C",
+              batchFilePath = "TSNE-precomputed.bat "+distFName+" "+perplexity; // ioFilePath + "TSNE-" + numSt + ".bat";
           try {
-            Process p = Runtime.getRuntime().exec(command);
+            ProcessBuilder pb = new ProcessBuilder(command, argument, batchFilePath);
+            pb.redirectOutput(ProcessBuilder.Redirect.INHERIT); // Redirect output to Java's standard output
+            pb.redirectError(ProcessBuilder.Redirect.INHERIT);  // Redirect error to Java's standard error
+            Process p = pb.start(); //Runtime.getRuntime().exec(command);
             int exit_value = p.waitFor();
             System.out.println("TSNE: finished, code="+exit_value);
             pathName=distFName+"_out_p"+perplexity+".csv";

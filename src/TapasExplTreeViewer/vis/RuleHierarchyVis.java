@@ -111,7 +111,10 @@ public class RuleHierarchyVis extends JPanel
     rules = hList.toArray(new UnitedRule[hList.size()]);
     ruleXY = new Point[rules.length];
     parentIdx = new int[rules.length];
-    parentIdx[0] = -1;
+    for (int i=0; i<rules.length; i++) {
+      ruleXY[i]=null;
+      parentIdx[i]=-1;
+    }
     putSubTree(0, 0, 0, hList);
   
     highlighter = new SingleHighlightManager();
@@ -127,6 +130,8 @@ public class RuleHierarchyVis extends JPanel
   }
   
   protected int putSubTree(int rIdx, int col, int row, ArrayList<UnitedRule> hList) {
+    if (ruleXY[rIdx]!=null)
+      return row;
     if (maxRuleX < col) maxRuleX = col;
     if (maxRuleY < row) maxRuleY = row;
     ruleXY[rIdx] = new Point(col, row);
@@ -136,6 +141,8 @@ public class RuleHierarchyVis extends JPanel
     for (int i = 0; i < rules[rIdx].fromRules.size(); i++) {
       int chIdx = hList.indexOf(rules[rIdx].fromRules.get(i));
       if (chIdx < 0)
+        continue;
+      if (parentIdx[chIdx]>=0 || ruleXY[chIdx]!=null)
         continue;
       parentIdx[chIdx] = rIdx;
       lastRow = putSubTree(chIdx, col + 1, row, hList);

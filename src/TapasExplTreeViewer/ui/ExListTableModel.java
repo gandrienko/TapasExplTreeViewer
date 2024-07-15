@@ -146,6 +146,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   }
   
   public Object getValueAt(int row, int col) {
+    if (row>=exList.size())
+      return null;
     CommonExplanation cEx=exList.get(row);
     if (col<columnNames.length) {
       if (col==columnNames.length-1)

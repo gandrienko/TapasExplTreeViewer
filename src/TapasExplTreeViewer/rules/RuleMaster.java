@@ -4,6 +4,9 @@ import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
 import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 
+import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.util.*;
 
 /**
@@ -51,6 +54,7 @@ public class RuleMaster {
         //rule.nUses-=n1+n2-rule.uses.size();
     }
     rule.eItems=CommonExplanation.makeCopy(ex1.eItems);
+    /*
     rule.fromRules=new ArrayList<UnitedRule>(10);
     rule.fromRules.add(UnitedRule.getRule(ex1));
     rule.fromRules.add(UnitedRule.getRule(ex2));
@@ -58,6 +62,7 @@ public class RuleMaster {
       rule.nOrigRight+=rule.fromRules.get(i).nOrigRight;
       rule.nOrigWrong+=rule.fromRules.get(i).nOrigWrong;
     }
+    */
   
     rule.minQ=Math.min(ex1.minQ,ex2.minQ);
     rule.maxQ=Math.max(ex1.maxQ,ex2.maxQ);
@@ -75,7 +80,8 @@ public class RuleMaster {
   public static ArrayList<CommonExplanation> removeLessGeneral(ArrayList<CommonExplanation> rules,
                                                                ArrayList<CommonExplanation> origRules,
                                                                Hashtable<String,float[]> attrMinMax,
-                                                               boolean useQ, double maxQDiff) {
+                                                               boolean useQ, double maxQDiff,
+                                                               boolean listSubsumedRules) {
     if (rules==null || rules.size()<2)
       return rules;
     if (attrMinMax!=null) {
@@ -114,33 +120,34 @@ public class RuleMaster {
     boolean removed[]=new boolean[rules.size()];
     for (int i=0; i<removed.length; i++)
       removed[i]=false;
-    for (int i=0; i<rules.size()-1; i++) {
-      CommonExplanation ex= rules.get(i);
-      for (int j = i + 1; j < rules.size(); j++)
-        if (!removed[j]) {
-          UnitedRule gEx = selectMoreGeneral(ex, rules.get(j));
-          if (gEx != null) {
-            if (useQ && gEx.maxQ-gEx.minQ>maxQDiff);
-            else {
-              removed[i] = removed[j] = true;
-              ex = gEx;
+    for (int i=0; i<rules.size()-1; i++)
+      if (!removed[i]) {
+        CommonExplanation ex= rules.get(i);
+        for (int j = i + 1; j < rules.size(); j++)
+          if (!removed[j]) {
+            UnitedRule gEx = selectMoreGeneral(ex, rules.get(j));
+            if (gEx != null) {
+              if (useQ && gEx.maxQ-gEx.minQ>maxQDiff);
+              else {
+                removed[i] = removed[j] = true;
+                ex = gEx;
+              }
             }
           }
-        }
-      if (removed[i]) {
-        for (int j=moreGeneral.size()-1; j>=0; j--) {
-          UnitedRule gEx = selectMoreGeneral(ex, moreGeneral.get(j));
-          if (gEx!=null) {
-            if (useQ && gEx.maxQ-gEx.minQ>maxQDiff);
-            else {
-              moreGeneral.remove(j);
-              ex = gEx;
+        if (removed[i]) {
+          for (int j=moreGeneral.size()-1; j>=0; j--) {
+            UnitedRule gEx = selectMoreGeneral(ex, moreGeneral.get(j));
+            if (gEx!=null) {
+              if (useQ && gEx.maxQ-gEx.minQ>maxQDiff);
+              else {
+                moreGeneral.remove(j);
+                ex = gEx;
+              }
             }
           }
+          moreGeneral.add(UnitedRule.getRule(ex));
         }
-        moreGeneral.add(UnitedRule.getRule(ex));
       }
-    }
     if (moreGeneral.isEmpty())
       return rules; //nothing reduced
     boolean changed;
@@ -164,6 +171,17 @@ public class RuleMaster {
     for (int i=0; i<rules.size(); i++)
       if (!removed[i])
         moreGeneral.add(UnitedRule.getRule(rules.get(i)));
+      else
+        for (CommonExplanation gen:moreGeneral)
+          if (gen.subsumes(rules.get(i))) {
+            UnitedRule genR=(UnitedRule.getRule(gen));
+            if (genR.equals(rules.get(i)))
+              break;
+            if (genR.fromRules==null)
+              genR.fromRules=new ArrayList<UnitedRule>(50);
+            genR.fromRules.add(UnitedRule.getRule(rules.get(i)));
+            break;
+          }
   
     boolean noActions=noActionDifference(rules);
     for (int i=0; i<moreGeneral.size(); i++)
@@ -222,7 +240,7 @@ public class RuleMaster {
                                                 ArrayList<CommonExplanation> origRules,
                                                 double minAccuracy,
                                                 Hashtable<String,float[]> attrMinMax) {
-    return aggregate(rules,origRules,null,minAccuracy,attrMinMax);
+    return aggregate(rules,origRules,null,minAccuracy,attrMinMax,null);
   }
   
   /**
@@ -238,7 +256,8 @@ public class RuleMaster {
                                                 ArrayList<CommonExplanation> origRules,
                                                 AbstractList<Explanation> exData,
                                                 double minAccuracy,
-                                                Hashtable<String,float[]> attrMinMax) {
+                                                Hashtable<String,float[]> attrMinMax,
+                                                ChangeListener listener) {
     if (rules==null || rules.size()<2)
       return rules;
     ArrayList<ArrayList<UnitedRule>> ruleGroups=new ArrayList<ArrayList<UnitedRule>>(rules.size()/2);
@@ -268,16 +287,38 @@ public class RuleMaster {
     
     if (ruleGroups.size()<2)  //handle the case of no actions
       agRules=aggregateByQ(ruleGroups.get(0), suggestMaxQDiff(rules),origRules,exData,minAccuracy,attrMinMax);
-    else
+    else {
       for (int ig=0; ig<ruleGroups.size(); ig++) {
         ArrayList<UnitedRule> group=ruleGroups.get(ig);
         if (group.size()==1) {
           agRules.add(group.get(0));
           continue;
         }
+        /**/
+        final ArrayList<UnitedRule> finAgRules=agRules;
+        SwingWorker worker=new SwingWorker() {
+          @Override
+          public Boolean doInBackground() {
+            aggregateGroup(group, origRules, exData, minAccuracy, attrMinMax);
+            return true;
+          }
+  
+          @Override
+          protected void done() {
+            finAgRules.addAll(group);
+            if (listener!=null)
+              listener.stateChanged(new ChangeEvent(finAgRules));
+          }
+        };
+        worker.execute();
+        /*
         aggregateGroup(group,origRules,exData,minAccuracy,attrMinMax);
         agRules.addAll(group);
+        if (listener!=null)
+          listener.stateChanged(new ChangeEvent(agRules));
+        */
       }
+    }
     return (agRules.size()<rules.size())?agRules:rules;
   }
   
@@ -318,6 +359,7 @@ public class RuleMaster {
     HashSet<Integer> excluded=new HashSet<Integer>(group.size()*10);
 
     int nUnions=0, nExcluded=0;
+    Hashtable<Integer,HashSet<Integer>> failedPairs=new Hashtable<Integer,HashSet<Integer>>(group.size()*5);
     do {
       united=false;
       UnitedRule union=null;
@@ -328,23 +370,40 @@ public class RuleMaster {
         int i1=pair[0], i2=pair[1];
         if (excluded.contains(i1) || excluded.contains(i2))
           continue;
+        HashSet<Integer> failed=failedPairs.get(i1);
+        if (failed!=null && failed.contains(i2))
+          continue;
         union=UnitedRule.unite(group.get(i1),group.get(i2),attrMinMax);
-        if (union!=null) {
+        boolean success=union!=null;
+        if (success) {
           union.countRightAndWrongCoverages(origRules);
           if (union.nOrigRight<1)
             System.out.println("Zero coverage!");
-          if (minAccuracy>0 && getAccuracy(union,origRules,false)<minAccuracy)
+          if (minAccuracy>0) {
+            if (getAccuracy(union, origRules, false)<minAccuracy)
+              success=false;
+            else
+              if (exData!=null) { //check the accuracy based on the data
+                union.countRightAndWrongApplications(exData, true);
+                if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
+                  success=false;
+              }
+          }
+          if (!success) {
+            if (failed==null) {
+              failed=new HashSet<Integer>(origSize*5);
+              failedPairs.put(i1,failed);
+            }
+            failed.add(i2);
             continue;
-          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
-            union.countRightAndWrongApplications(exData,true);
-            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
-              continue;
           }
           //group.remove(i2);
           //group.remove(i1);
           excluded.add(i1);
           excluded.add(i2);
           nExcluded+=2;
+          failedPairs.remove(i1); //no more needed
+          failedPairs.remove(i2); //no more needed
           for (int j=group.size()-1; j>=0; j--)
             if (!excluded.contains(j) && union.subsumes(group.get(j),true)) {
               union.attachAsFromRule(group.get(j));
@@ -513,7 +572,7 @@ public class RuleMaster {
       return rules;
     ArrayList<CommonExplanation> aEx=new ArrayList<CommonExplanation>(result.size());
     aEx.addAll(result);
-    aEx = removeLessGeneral(aEx, origRules, attrMinMax, true, maxQDiff);
+    aEx = removeLessGeneral(aEx, origRules, attrMinMax, true, maxQDiff, false);
     if (aEx.size()<result.size()) {
       result.clear();
       for (int i=0; i<aEx.size(); i++)

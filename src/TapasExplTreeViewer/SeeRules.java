@@ -47,7 +47,7 @@ public class SeeRules {
           int predictedClass=(realValued)?-1:Integer.parseInt(fields[2]);
           double predictedValue=(realValued)?Double.parseDouble(fields[2]):Double.NaN;
   
-          List<Condition> conditions=parseConditions(ruleText,featureType);
+          List<Condition> conditions=parseConditions(ruleText);
           if (conditions==null || conditions.isEmpty())
             continue;
           if (maxNConditions<conditions.size())
@@ -91,6 +91,16 @@ public class SeeRules {
               min=(int)Math.floor(max);
             if (Float.isInfinite(max))
               max=(int)Math.ceil(min);
+          }
+          else
+          if (featureType.startsWith("bin")) {
+            if (Float.isInfinite(min)) {
+              min=0; cnd.setMinValue(0); cnd.setMaxValue(0);
+            }
+            else
+            if (Float.isInfinite(max)) {
+              max=1; cnd.setMinValue(1); cnd.setMaxValue(1);
+            }
           }
         }
 
@@ -140,14 +150,11 @@ public class SeeRules {
         ex.eItems[i].interval[0]=cnd.getMinValue();
         ex.eItems[i].interval[1]=cnd.getMaxValue();
         ex.eItems[i].isInteger=intOrBin;
-        if (intOrBin && (Double.isInfinite(ex.eItems[i].interval[0]) || Double.isInfinite(ex.eItems[i].interval[1]))) {
-          float minmax[] = attrMinMax.get(ex.eItems[i].attr);
-          if (minmax!=null) {
-            if (Double.isInfinite(ex.eItems[i].interval[0]))
-              ex.eItems[i].interval[0]=minmax[0];
-            if (Double.isInfinite(ex.eItems[i].interval[1]))
-              ex.eItems[i].interval[1]=minmax[1];
-          }
+        if (intOrBin) {
+          if (!Double.isInfinite(ex.eItems[i].interval[0]))
+            ex.eItems[i].interval[0]=Math.ceil(ex.eItems[i].interval[0]);
+          if (!Double.isInfinite(ex.eItems[i].interval[1]))
+            ex.eItems[i].interval[1]=Math.floor(ex.eItems[i].interval[1]);
         }
         ++i;
       }
@@ -163,7 +170,7 @@ public class SeeRules {
     }
   }
 
-  private static List<Condition> parseConditions(String ruleText, String featureType) {
+  private static List<Condition> parseConditions(String ruleText) {
     if (ruleText==null)
       return null;
     String[] parts = ruleText.split(";");
@@ -182,19 +189,6 @@ public class SeeRules {
       if (Float.isInfinite(minValue) && Float.isInfinite(maxValue))
         continue; //this condition is excessive
 
-      if (featureType!=null) {
-        if (featureType.startsWith("bin"))  {
-          if (Float.isInfinite(minValue))
-            minValue=0;
-          else
-            if (minValue>0) minValue=1;
-          if (Float.isInfinite(maxValue))
-            maxValue=1;
-          else
-            if (maxValue<1)
-              maxValue=0;
-        }
-      }
       Condition c=new Condition(feature, minValue, maxValue);
       if (!conditions.contains(c))
         conditions.add(c);

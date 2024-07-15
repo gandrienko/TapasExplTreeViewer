@@ -19,7 +19,7 @@ perplexity = 30
 if len(sys.argv)>2 and sys.argv[2] is not None:
     perplexity=int(sys.argv[2])
 
-model = manifold.TSNE(metric="precomputed", perplexity=perplexity)
+model = manifold.TSNE(metric="precomputed", init="random", perplexity=perplexity)
 Y = model.fit_transform(A)
 tsne_df = pd.DataFrame({'X':Y[:,0],'Y':Y[:,1]})
 tsne_df.to_csv(fname+'_out_p'+str(perplexity)+'.csv')

@@ -17,6 +17,8 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
@@ -26,7 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public class ShowRules implements RulesOrderer{
+public class ShowRules implements RulesOrderer, ChangeListener {
   
   public static Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
   /**
@@ -1382,7 +1384,8 @@ public class ShowRules implements RulesOrderer{
       }
     }
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
-    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,noActions,maxQDiff);
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,
+        noActions,maxQDiff,true);
     if (exList2.size()<exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Reduced the number of explanations from " +
@@ -1400,6 +1403,30 @@ public class ShowRules implements RulesOrderer{
     showRules.setAggregated(true);
     showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable();
+  }
+  
+  public void stateChanged(ChangeEvent e) {
+    if (e.getSource() instanceof AggregationRunner) {
+      AggregationRunner aRun=(AggregationRunner)e.getSource();
+      ArrayList<UnitedRule> aggRules=aRun.aggRules;
+      if (aggRules==null || aggRules.size()>=exList.size()) {
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Failed to aggregate!",
+            "Fail",JOptionPane.WARNING_MESSAGE);
+        return;
+      }
+  
+      ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
+      aggEx.addAll(aggRules);
+      ShowRules showRules=createShowRulesInstance(aggEx);
+      showRules.setNonSubsumed(true);
+      showRules.setAggregated(true);
+      showRules.setAccThreshold(aRun.minAccuracy);
+      if (aRun.aggregateByQ)
+        showRules.setMaxQDiff(aRun.maxQDiff);
+      showRules.countRightAndWrongRuleApplications();
+      showRules.showRulesInTable();
+    }
   }
   
   public void aggregate(ArrayList<CommonExplanation> exList,
@@ -1509,6 +1536,12 @@ public class ShowRules implements RulesOrderer{
     ArrayList<UnitedRule> aggRules=null;
     AbstractList<Explanation> data=(checkWithData)?dataInstances:null;
     
+    AggregationRunner aggRunner=new AggregationRunner(rules,origRules,attrMinMax,data);
+    aggRunner.setOwner(this);
+    aggRunner.setAggregateByQ(noActions);
+    aggRunner.setMinAccuracy(minAccuracy);
+    aggRunner.setMaxQDiff(maxQDiff);
+    
     if (cbIterative.isSelected()) {
       double initAccuracy=Double.NaN;
       value=tfAcc0.getText();
@@ -1538,7 +1571,9 @@ public class ShowRules implements RulesOrderer{
           return;
         accStep=0.1;
       }
+      aggRunner.setIterationParameters(minAccuracy,accStep);
       
+      /*
       for (double acc=initAccuracy; acc>=minAccuracy; acc-=accStep) {
         aggRules=(noActions)?
                      RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,acc,attrMinMax):
@@ -1547,12 +1582,17 @@ public class ShowRules implements RulesOrderer{
           rules=aggRules;
       }
       aggRules=rules;
+      */
     }
+    /*
     else
       aggRules=(noActions)?
                    RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
                    RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax);
+    */
+    aggRunner.aggregate();
     
+    /*
     if (aggRules==null || aggRules.size()>=exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to aggregate!",
@@ -1570,6 +1610,7 @@ public class ShowRules implements RulesOrderer{
       showRules.setMaxQDiff(maxQDiff);
     showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable();
+    */
   }
   
   public void showAggregationInProjection(ItemSelectionManager selector) {

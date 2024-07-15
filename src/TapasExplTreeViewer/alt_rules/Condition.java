@@ -23,7 +23,15 @@ public class Condition {
   public float getMaxValue() {
     return maxValue;
   }
-
+  
+  public void setMinValue(float minValue) {
+    this.minValue=minValue;
+  }
+  
+  public void setMaxValue(float maxValue) {
+    this.maxValue=maxValue;
+  }
+  
   @Override
   public String toString() {
     return feature + ": {" + minValue + ": " + maxValue + "}";

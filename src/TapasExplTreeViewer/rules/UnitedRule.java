@@ -153,6 +153,8 @@ public class UnitedRule extends CommonExplanation {
   public ArrayList<UnitedRule> putHierarchyInList(ArrayList<UnitedRule> hList) {
     if (hList==null)
       hList=new ArrayList<UnitedRule>((fromRules==null || fromRules.isEmpty())?1:20);
+    if (hList.contains(this))
+      return hList;
     hList.add(this);
     if (fromRules!=null)
       for (int i=0; i<fromRules.size(); i++)

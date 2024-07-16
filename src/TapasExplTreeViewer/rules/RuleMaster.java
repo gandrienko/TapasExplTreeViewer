@@ -294,7 +294,7 @@ public class RuleMaster {
           agRules.add(group.get(0));
           continue;
         }
-        /**/
+        /*
         final ArrayList<UnitedRule> finAgRules=agRules;
         SwingWorker worker=new SwingWorker() {
           @Override
@@ -311,14 +311,15 @@ public class RuleMaster {
           }
         };
         worker.execute();
-        /*
+        */
         aggregateGroup(group,origRules,exData,minAccuracy,attrMinMax);
         agRules.addAll(group);
         if (listener!=null)
           listener.stateChanged(new ChangeEvent(agRules));
-        */
       }
     }
+    if (listener!=null)
+      listener.stateChanged(new ChangeEvent("aggregation_finished"));
     return (agRules.size()<rules.size())?agRules:rules;
   }
   

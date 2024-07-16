@@ -1409,7 +1409,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (e.getSource() instanceof AggregationRunner) {
       AggregationRunner aRun=(AggregationRunner)e.getSource();
       ArrayList<UnitedRule> aggRules=aRun.aggRules;
-      if (aggRules==null || aggRules.size()>=exList.size()) {
+      if (aggRules==null || aggRules.isEmpty() || aggRules.size()>=exList.size()) {
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
             "Failed to aggregate!",
             "Fail",JOptionPane.WARNING_MESSAGE);

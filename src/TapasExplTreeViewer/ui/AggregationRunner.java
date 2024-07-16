@@ -63,8 +63,8 @@ public class AggregationRunner implements ChangeListener {
     
       @Override
       protected void done() {
-        finished=true;
-        owner.stateChanged(new ChangeEvent(source));
+        if (aggRules!=null && ! aggRules.isEmpty())
+          owner.stateChanged(new ChangeEvent(source));
       }
     };
     System.out.println("Running rule aggregation in background");
@@ -87,12 +87,21 @@ public class AggregationRunner implements ChangeListener {
                    RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
                    RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax,this);
     }
+    if (aggregateByQ)
+      finished=true;
   }
-  
+
   public void stateChanged(ChangeEvent e) {
     if (e.getSource() instanceof ArrayList) {
       aggRules=(ArrayList<UnitedRule>)e.getSource();
       owner.stateChanged(new ChangeEvent(this));
     }
+    else
+      if (e.getSource() instanceof String) {
+        String msg=(String)e.getSource();
+        if (msg.equals("aggregation_finished")) {
+          finished=true;
+        }
+      }
   }
 }

@@ -316,6 +316,7 @@ public class RuleMaster {
         agRules.addAll(group);
         if (listener!=null)
           listener.stateChanged(new ChangeEvent(agRules));
+        /**/
       }
     }
     if (listener!=null)

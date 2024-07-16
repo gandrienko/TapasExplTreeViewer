@@ -1415,6 +1415,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
             "Fail",JOptionPane.WARNING_MESSAGE);
         return;
       }
+      
+      if (!aRun.finished) {
+        //
+      }
+      else {
+        //
+      }
   
       ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
       aggEx.addAll(aggRules);

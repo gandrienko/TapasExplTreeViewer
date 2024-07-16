@@ -26,6 +26,9 @@ public class AggregationRunner implements ChangeListener {
   public ChangeListener owner=null;
   public boolean finished=false;
   
+  public JDialog progressDialog=null;
+  
+  
   public AggregationRunner(ArrayList<UnitedRule> rules, ArrayList<CommonExplanation> origRules,
                            Hashtable<String,float[]> attrMinMax, AbstractList<Explanation> data) {
     this.rules=rules; this.origRules=origRules;
@@ -77,8 +80,11 @@ public class AggregationRunner implements ChangeListener {
         aggRules=(aggregateByQ)?
                      RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,acc,attrMinMax):
                      RuleMaster.aggregate(rules, origRules,data,acc,attrMinMax,this);
-        if (aggRules!=null && aggRules.size()<rules.size())
+        if (aggRules!=null && aggRules.size()<rules.size()) {
           rules=aggRules;
+          if (acc-accStep>=minAccuracy)
+            owner.stateChanged(new ChangeEvent(this)); //notify about intermediate result
+        }
       }
       aggRules=rules;
     }
@@ -87,14 +93,13 @@ public class AggregationRunner implements ChangeListener {
                    RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
                    RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax,this);
     }
-    if (aggregateByQ)
-      finished=true;
+    finished=true;
   }
 
   public void stateChanged(ChangeEvent e) {
     if (e.getSource() instanceof ArrayList) {
       aggRules=(ArrayList<UnitedRule>)e.getSource();
-      owner.stateChanged(new ChangeEvent(this));
+      owner.stateChanged(new ChangeEvent(this)); //notify about intermediate result
     }
     else
       if (e.getSource() instanceof String) {

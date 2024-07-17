@@ -1431,7 +1431,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       ShowRules showRules=createShowRulesInstance(aggEx);
       showRules.setNonSubsumed(true);
       showRules.setAggregated(true);
-      showRules.setAccThreshold(aRun.minAccuracy);
+      showRules.setAccThreshold(aRun.currAccuracy);
       if (aRun.aggregateByQ)
         showRules.setMaxQDiff(aRun.maxQDiff);
       showRules.countRightAndWrongRuleApplications();
@@ -1560,15 +1560,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
 
     if (exList2.size()<exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Reduced the number of explanations from " +
+          "After excluding the subsumed (less general) rules, the number of the rules has decreased from " +
               exList.size() + " to " + exList2.size(),
           "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
       exList=exList2;
-    }
-    else {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Did not manage to reduce the set of explanations!",
-          "Fail",JOptionPane.WARNING_MESSAGE);
     }
 
     System.out.println("Trying to aggregate the rules...");
@@ -1612,7 +1607,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           return;
         accStep=0.1;
       }
-      aggRunner.setIterationParameters(minAccuracy,accStep);
+      aggRunner.setIterationParameters(initAccuracy,accStep);
       
       /*
       for (double acc=initAccuracy; acc>=minAccuracy; acc-=accStep) {

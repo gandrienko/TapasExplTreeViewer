@@ -22,16 +22,16 @@ public class AggregationRunner implements ChangeListener {
   public AbstractList<Explanation> data=null;
   
   public boolean aggregateByQ=false;
-  public double minAccuracy=0, initAccuracy=Double.NaN, accStep=Double.NaN;
+  public double minAccuracy=0, initAccuracy=Double.NaN, currAccuracy=Double.NaN, accStep=Double.NaN;
   public double maxQDiff=Double.NaN;
   
   public ArrayList<UnitedRule> aggRules=null;
   public ChangeListener owner=null;
   public boolean finished=false;
   
-  public JDialog progressDialog=null;
-  JLabel lMessage=null;
-  
+  protected JDialog progressDialog=null;
+  protected JLabel lMessage=null;
+
   public AggregationRunner(ArrayList<UnitedRule> rules, ArrayList<CommonExplanation> origRules,
                            Hashtable<String,float[]> attrMinMax, AbstractList<Explanation> data) {
     this.rules=rules; this.origRules=origRules;
@@ -44,6 +44,7 @@ public class AggregationRunner implements ChangeListener {
   
   public void setMinAccuracy(double minAccuracy) {
     this.minAccuracy=minAccuracy;
+    currAccuracy=minAccuracy;
   }
   
   public void setMaxQDiff(double maxQDiff) {
@@ -56,6 +57,7 @@ public class AggregationRunner implements ChangeListener {
   
   public void setIterationParameters (double initAccuracy, double accStep) {
     this.initAccuracy=initAccuracy; this.accStep=accStep;
+    currAccuracy=initAccuracy;
   }
   
   public void aggregate (Window win) {
@@ -94,55 +96,87 @@ public class AggregationRunner implements ChangeListener {
   
   public void runAggregation() {
     if (!Double.isNaN(initAccuracy) && !Double.isNaN(accStep)) {
-      for (double acc=initAccuracy; acc>=minAccuracy; acc-=accStep) {
+      int nLoops=(int)Math.round((initAccuracy-minAccuracy)/accStep)+1;
+      double acc=initAccuracy;
+      JLabel lStatus=null;
+      if (progressDialog.isShowing()) {
+        lStatus=new JLabel("",JLabel.CENTER);
+        JPanel pp=(JPanel)progressDialog.getContentPane().getComponent(0);
+        pp.add(lStatus,1);
+      }
+      for (int i=0; i<nLoops; i++) {
+        System.out.println("Starting compression attempt with fidelity/accuracy threshold = "+acc);
+        if (progressDialog!=null && progressDialog.isShowing()) {
+          lStatus.setText("Starting compression attempt with fidelity/accuracy threshold = "+acc+
+              "; the process may take some time ...");
+          progressDialog.pack();
+          progressDialog.toFront();
+        }
         aggRules=(aggregateByQ)?
                      RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,acc,attrMinMax):
-                     RuleMaster.aggregate(rules, origRules,data,acc,attrMinMax,this);
+                     RuleMaster.aggregate(rules, origRules,data,acc,attrMinMax,null);
+        System.out.println("Finished compression attempt with fidelity/accuracy threshold = "+acc);
         if (aggRules!=null && aggRules.size()<rules.size()) {
           rules=aggRules;
-          if (acc-accStep>=minAccuracy)
-            owner.stateChanged(new ChangeEvent(this)); //notify about intermediate result
+          currAccuracy=acc;
+          if (i+1<nLoops)
+            notifyAboutIntermediateResult();
         }
+        else {
+          System.out.println("No compression achieved with fidelity/accuracy threshold = "+acc);
+          if (progressDialog != null && progressDialog.isShowing()) {
+            lMessage.setText("No compression achieved with fidelity/accuracy threshold = " + acc +
+                ((i+1<nLoops) ? "; continuing iteration ..." : "; iteration finished."));
+            progressDialog.pack();
+            progressDialog.toFront();
+          }
+        }
+        acc=initAccuracy-(i+1)*accStep;
       }
       aggRules=rules;
+      finished=true;
     }
     else {
       aggRules=(aggregateByQ)?
                    RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
                    RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax,this);
+      finished=aggregateByQ;
     }
-    finished=aggregateByQ;
     if (finished && progressDialog!=null) {
       progressDialog.dispose();
       progressDialog=null;
     }
   }
 
+  protected void notifyAboutIntermediateResult() {
+    if (progressDialog!=null) {
+      lMessage.setText("Rule aggregation: received an intermediate result; current number of rules = "+aggRules.size());
+      JPanel pp=(JPanel)progressDialog.getContentPane().getComponent(0);
+      JPanel p=new JPanel(new FlowLayout(FlowLayout.CENTER,5,5));
+      Button b=new Button("Show intermediate result in a new window");
+      Object eventSource=this;
+      b.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          b.setEnabled(false);
+          owner.stateChanged(new ChangeEvent(eventSource)); //notify about intermediate result
+          progressDialog.toFront();
+        }
+      });
+      p.add(b);
+      pp.remove(pp.getComponentCount()-1);
+      pp.add(p);
+      progressDialog.pack();
+      progressDialog.toFront();
+    }
+    else
+      owner.stateChanged(new ChangeEvent(this)); //notify about intermediate result
+  }
+
   public void stateChanged(ChangeEvent e) {
     if (e.getSource() instanceof ArrayList) {
       aggRules=(ArrayList<UnitedRule>)e.getSource();
-      if (progressDialog!=null) {
-        lMessage.setText("Rule aggregation: received an intermediate result; current number of rules = "+aggRules.size());
-        JPanel pp=(JPanel)progressDialog.getContentPane().getComponent(0);
-        JPanel p=new JPanel(new FlowLayout(FlowLayout.CENTER,5,5));
-        Button b=new Button("Show in a new window");
-        Object eventSource=this;
-        b.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            b.setEnabled(false);
-            owner.stateChanged(new ChangeEvent(eventSource)); //notify about intermediate result
-            progressDialog.toFront();
-          }
-        });
-        p.add(b);
-        pp.remove(1);
-        pp.add(p);
-        progressDialog.pack();
-        progressDialog.toFront();
-      }
-      else
-        owner.stateChanged(new ChangeEvent(this)); //notify about intermediate result
+      notifyAboutIntermediateResult();
     }
     else
       if (e.getSource() instanceof String) {

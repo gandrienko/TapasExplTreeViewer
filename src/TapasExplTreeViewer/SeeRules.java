@@ -42,7 +42,7 @@ public class SeeRules {
           realValued=predictionType.contains("num") || predictionType.contains("value");
         }
         else {
-          int ruleId=Integer.parseInt(fields[0]);
+          int ruleId=(fieldNames[0].toLowerCase().endsWith("id"))?Integer.parseInt(fields[0]):1+rules.size();
           String ruleText=fields[1];
           int predictedClass=(realValued)?-1:Integer.parseInt(fields[2]);
           double predictedValue=(realValued)?Double.parseDouble(fields[2]):Double.NaN;

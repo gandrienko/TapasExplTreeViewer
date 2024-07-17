@@ -117,7 +117,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (exList!=null && !exList.isEmpty() && exList.get(0).numId<0)
       for (int i=0; i<exList.size(); i++)
         exList.get(i).numId=i+1;
-    if (distanceMatrix==null) {
+    if (distanceMatrix==null && exList.size()<=1000) {
       System.out.println("Computing distance matrix...");
       distanceMatrix = CommonExplanation.computeDistances(exList, attrMinMax);
       if (distanceMatrix == null)

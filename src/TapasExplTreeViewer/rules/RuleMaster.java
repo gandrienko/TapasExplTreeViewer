@@ -426,8 +426,10 @@ public class RuleMaster {
           excluded.add(i1);
           excluded.add(i2);
           nExcluded+=2;
-          failedPairs.remove(i1); //no more needed
-          failedPairs.remove(i2); //no more needed
+          if (failedPairs!=null) {
+            failedPairs.remove(i1); //no more needed
+            failedPairs.remove(i2); //no more needed
+          }
           for (int j=group.size()-1; j>=0; j--)
             if (!excluded.contains(j) && union.subsumes(group.get(j),true)) {
               union.attachAsFromRule(group.get(j));
@@ -436,10 +438,19 @@ public class RuleMaster {
               //group.remove(j);
               excluded.add(j);
               ++nExcluded;
+              if (failedPairs!=null)
+                failedPairs.remove(j);
             }
           group.add(union);
           united=true;
           ++nUnions;
+        }
+        else {
+          if (failed==null) {
+            failed=new HashSet<Integer>(origSize*5);
+            failedPairs.put(i1,failed);
+          }
+          failed.add(i2);
         }
       }
       if (united) {
@@ -571,6 +582,7 @@ public class RuleMaster {
         HashSet<Integer> failed=failedPairs.get(i1);
         if (failed!=null && failed.contains(i2))
           continue;
+        //System.out.println("Trying to unite rules "+i1+" and "+i2);
         union=UnitedRule.unite(result.get(i1),result.get(i2),attrMinMax);
         boolean success=union!=null;
         if (success) {
@@ -590,6 +602,7 @@ public class RuleMaster {
             }
           }
           if (!success) {
+            System.out.println("The union of "+i1+" and "+i2+" discarded due to low accuracy.");
             if (failed==null) {
               failed=new HashSet<Integer>(origSize*5);
               failedPairs.put(i1,failed);
@@ -597,13 +610,14 @@ public class RuleMaster {
             failed.add(i2);
             continue;
           }
-          //group.remove(i2);
-          //group.remove(i1);
+          System.out.println("Successfully united rules "+i1+" and "+i2+"!");
           excluded.add(i1);
           excluded.add(i2);
           nExcluded+=2;
-          failedPairs.remove(i1); //no more needed
-          failedPairs.remove(i2); //no more needed
+          if (failedPairs!=null) {
+            failedPairs.remove(i1); //no more needed
+            failedPairs.remove(i2); //no more needed
+          }
           for (int j=result.size()-1; j>=0; j--)
             if (!excluded.contains(j)) {
               UnitedRule r2 = result.get(j);
@@ -614,11 +628,22 @@ public class RuleMaster {
                   union.countRightAndWrongApplications(exData,false);
                 excluded.add(j);
                 ++nExcluded;
+                if (failedPairs!=null)
+                  failedPairs.remove(j);
               }
             }
           result.add(union);
           united=true;
           ++nUnions;
+        }
+        else {
+          //System.out.println("Failed to unite rules "+i1+" and "+i2+"...");
+          if (failed==null) {
+            failed=new HashSet<Integer>(origSize*5);
+            failedPairs.put(i1,failed);
+          }
+          failed.add(i2);
+          continue;
         }
       }
       if (united) {
@@ -641,7 +666,7 @@ public class RuleMaster {
         //System.out.println("Sorting "+pairs.size()+" pairs by distances");
         Collections.sort(pairs);
         //System.out.println("Sorted "+pairs.size()+" pairs!");
-        if (nUnions%10==0) {
+        if (nUnions%1==0) {
           System.out.println("Aggregation: made "+nUnions+" unions; excluded "+nExcluded+" rules; "+
               nRemain+" rules remain; current total number of rules = "+result.size());
         }

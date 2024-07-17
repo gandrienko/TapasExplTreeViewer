@@ -7,6 +7,7 @@ import java.util.Arrays;
 
 public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
   public double min=Double.NaN, max=Double.NaN, absMin=Double.NaN, absMax=Double.NaN;
+  boolean isInteger=false;
   public double v[]=null, values[]=null, Q1,Q2,Q3,avg;
   public boolean drawTexts=false, drawValues=false, drawStats=false;
   public int precision=0;
@@ -34,6 +35,7 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     if (v!=null && v.length>=4) {
       min=v[0]; max=v[1];
       absMin=v[2]; absMax=v[3];
+      isInteger= Math.floor(absMin)==Math.ceil(absMin) && Math.floor(absMax)==Math.ceil(absMax);
     }
     this.v=v;
     if (v.length>5 && drawStats) {
@@ -71,8 +73,17 @@ public class JLabel_Subinterval extends JLabel implements TableCellRenderer {
     g.fillRect(0, 0, w, h);
     int x1 = (int) Math.round((min - absMin) * w / (absMax - absMin)),
         x2 = (int) Math.round((max - absMin) * w / (absMax - absMin));
+    int barW=Math.max(1,x2 - x1);
+    if (isInteger) {
+      int step = (int) Math.round(w / (absMax - absMin + 1));
+      if (step>1) {
+        x1 = step * (int) Math.round(min - absMin);
+        barW = step * (int) Math.round(max - min + 1);
+        x2 = x1 + barW;
+      }
+    }
     g.setColor(barColor);
-    g.fillRect(x1, h / 2, Math.max(1,x2 - x1), h / 2);
+    g.fillRect(x1, h / 2, barW, h / 2);
     g.setColor(Color.gray.darker());
     if (drawValues)
       for (int i=4; i<v.length; i++) {

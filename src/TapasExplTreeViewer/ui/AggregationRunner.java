@@ -140,6 +140,7 @@ public class AggregationRunner implements ChangeListener {
       aggRules=(aggregateByQ)?
                    RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
                    RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax,this);
+      currAccuracy=minAccuracy;
       finished=aggregateByQ;
     }
     if (finished && progressDialog!=null) {

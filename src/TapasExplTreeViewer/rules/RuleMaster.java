@@ -533,61 +533,125 @@ public class RuleMaster {
       }
 
     ArrayList<ObjectWithMeasure> pairs=new ArrayList<ObjectWithMeasure>(result.size());
-    boolean united;
-    do {
-      united=false;
-      pairs.clear();
-      for (int i=0; i<result.size()-1; i++) {
-        UnitedRule r1=result.get(i);
-        for (int j = i + 1; j < result.size(); j++) {
-          UnitedRule r2=result.get(j);
-          if (Math.max(r1.maxQ,r2.maxQ)-Math.min(r1.minQ,r2.minQ)>maxQDiff)
-            continue;
-          if (/*UnitedRule.sameFeatures(r1, r2)*/true) {
-            double d = UnitedRule.distance(r1, r2, attrMinMax);
-            int pair[] = {i, j};
-            ObjectWithMeasure om = new ObjectWithMeasure(pair, d, false);
-            pairs.add(om);
-          }
+    System.out.println("Computing pairwise distances");
+    for (int i=0; i<result.size()-1; i++) {
+      UnitedRule r1=result.get(i);
+      for (int j = i + 1; j < result.size(); j++) {
+        UnitedRule r2=result.get(j);
+        if (Math.max(r1.maxQ,r2.maxQ)-Math.min(r1.minQ,r2.minQ)>maxQDiff)
+          continue;
+        if (/*UnitedRule.sameFeatures(r1, r2)*/true) {
+          double d = UnitedRule.distance(r1, r2, attrMinMax);
+          int pair[] = {i, j};
+          ObjectWithMeasure om = new ObjectWithMeasure(pair, d, false);
+          pairs.add(om);
         }
       }
-      Collections.sort(pairs);
+    }
+    System.out.println("Sorting "+pairs.size()+" pairs by distances");
+    Collections.sort(pairs);
+    System.out.println("Sorted "+pairs.size()+" pairs!");
+
+    HashSet<Integer> excluded=new HashSet<Integer>(result.size()*10);
+
+    int nUnions=0, nExcluded=0;
+    Hashtable<Integer,HashSet<Integer>> failedPairs=new Hashtable<Integer,HashSet<Integer>>(result.size()*5);
+
+    boolean united;
+    int origSize=result.size();
+    do {
+      united=false;
+      UnitedRule union=null;
       for (int i=0; i<pairs.size() && !united; i++) {
         ObjectWithMeasure om=pairs.get(i);
         int pair[]=(int[])om.obj;
         int i1=pair[0], i2=pair[1];
-        UnitedRule union=UnitedRule.unite(result.get(i1),result.get(i2),attrMinMax);
-        if (union!=null) {
+        if (excluded.contains(i1) || excluded.contains(i2))
+          continue;
+        HashSet<Integer> failed=failedPairs.get(i1);
+        if (failed!=null && failed.contains(i2))
+          continue;
+        union=UnitedRule.unite(result.get(i1),result.get(i2),attrMinMax);
+        boolean success=union!=null;
+        if (success) {
           if (union.maxQ-union.minQ>maxQDiff)
             continue;
           union.countRightAndWrongCoveragesByQ(origRules);
           if (union.nOrigRight<1)
             System.out.println("Zero coverage!");
-          if (minAccuracy>0 && getAccuracy(union,origRules,true)<minAccuracy)
-            continue;
-          if (minAccuracy>0 && exData!=null) { //check the accuracy based on the data
-            union.countRightAndWrongApplications(exData,false);
-            if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
-              continue;
-          }
-          result.remove(i2);
-          result.remove(i1);
-          for (int j=result.size()-1; j>=0; j--) {
-            UnitedRule r2 = result.get(j);
-            if (r2.minQ >= union.minQ && r2.maxQ <= union.maxQ &&
-                    union.subsumes(r2)) {
-              union.attachAsFromRule(r2);
-              if (minAccuracy>0 && exData!=null)  //check the accuracy based on the data
-                union.countRightAndWrongApplications(exData,false);
-              result.remove(j);
+          if (minAccuracy>0) {
+            if (getAccuracy(union, origRules, false)<minAccuracy)
+              success=false;
+            else
+            if (exData!=null) { //check the accuracy based on the data
+              union.countRightAndWrongApplications(exData, true);
+              if (1.0*union.nCasesRight/(union.nCasesRight+union.nCasesWrong)<minAccuracy)
+                success=false;
             }
           }
-          result.add(0,union);
+          if (!success) {
+            if (failed==null) {
+              failed=new HashSet<Integer>(origSize*5);
+              failedPairs.put(i1,failed);
+            }
+            failed.add(i2);
+            continue;
+          }
+          //group.remove(i2);
+          //group.remove(i1);
+          excluded.add(i1);
+          excluded.add(i2);
+          nExcluded+=2;
+          failedPairs.remove(i1); //no more needed
+          failedPairs.remove(i2); //no more needed
+          for (int j=result.size()-1; j>=0; j--)
+            if (!excluded.contains(j)) {
+              UnitedRule r2 = result.get(j);
+              if (r2.minQ >= union.minQ && r2.maxQ <= union.maxQ &&
+                      union.subsumes(r2)) {
+                union.attachAsFromRule(r2);
+                if (minAccuracy>0 && exData!=null)  //check the accuracy based on the data
+                  union.countRightAndWrongApplications(exData,false);
+                excluded.add(j);
+                ++nExcluded;
+              }
+            }
+          result.add(union);
           united=true;
+          ++nUnions;
         }
       }
-    } while (united && result.size()>1);
-    
+      if (united) {
+        for (int i = pairs.size() - 1; i > 0; i--) {
+          ObjectWithMeasure om = pairs.get(i);
+          int pair[] = (int[]) om.obj;
+          int i1 = pair[0], i2 = pair[1];
+          if (excluded.contains(i1) || excluded.contains(i2))
+            pairs.remove(i);
+        }
+        int nRemain=1;
+        for (int i=0; i<result.size()-1; i++)
+          if (!excluded.contains(i)) {
+            ++nRemain;
+            double d=UnitedRule.distance(result.get(i),union,attrMinMax);
+            int pair[]={i,result.size()-1};
+            ObjectWithMeasure om=new ObjectWithMeasure(pair,d,false);
+            pairs.add(om);
+          }
+        //System.out.println("Sorting "+pairs.size()+" pairs by distances");
+        Collections.sort(pairs);
+        //System.out.println("Sorted "+pairs.size()+" pairs!");
+        if (nUnions%10==0) {
+          System.out.println("Aggregation: made "+nUnions+" unions; excluded "+nExcluded+" rules; "+
+              nRemain+" rules remain; current total number of rules = "+result.size());
+        }
+      }
+    } while (united && pairs.size()>1);
+
+    for (int i=result.size()-1; i>=0; i--)
+      if (excluded.contains(i))
+        result.remove(i);
+
     int nResult=result.size();
     if (notAccurate!=null)
       nResult+=notAccurate.size();

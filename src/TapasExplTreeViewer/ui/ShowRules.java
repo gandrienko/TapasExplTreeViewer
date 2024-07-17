@@ -95,7 +95,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    * When a top frame is closed, all other frames created by this instance of ShowRules
    * are also closed.
    * When the last top frame is closed, the temporary files that have been created
-   * are esased.
+   * are erased.
    */
   protected static ArrayList<JFrame> topFrames=null;
   /**
@@ -298,7 +298,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         if (isCluster)
           bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,colIdx));
         boolean isAction=false, isQ=false;
-        if (!isCluster && minA<maxA && colName.equalsIgnoreCase("action")) {
+        if (!isCluster && minA<maxA &&
+            (colName.equalsIgnoreCase("action") || colName.equalsIgnoreCase("class"))) {
           bkColor = ExplanationsProjPlot2D.getColorForAction((Integer) eTblModel.getValueAt(rowIdx, colIdx),
               minA, maxA);
           isAction=true;
@@ -1412,15 +1413,17 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       if (aggRules==null || aggRules.isEmpty() || aggRules.size()>=exList.size()) {
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
             "Failed to aggregate!",
-            "Fail",JOptionPane.WARNING_MESSAGE);
+            "Failed",JOptionPane.WARNING_MESSAGE);
         return;
       }
       
-      if (!aRun.finished) {
-        //
-      }
-      else {
-        //
+      if (aRun.finished) {
+        if (aggRules.size()>=exList.size()) {
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "The given rules could not be aggregated!",
+              "Failed",JOptionPane.WARNING_MESSAGE);
+          return;
+        }
       }
   
       ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
@@ -1536,7 +1539,38 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     }
     
     boolean checkWithData=cbData!=null && cbData.isSelected();
-    
+
+    Window win=FocusManager.getCurrentManager().getActiveWindow();
+    System.out.println("Trying to reduce the explanation set by removing less general explanations...");
+    JDialog dialog=new JDialog(win, "Trying to remove less general rules ...",
+        Dialog.ModalityType.MODELESS);
+    dialog.setLayout(new BorderLayout());
+    JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 50, 20));
+    p.add(new JLabel("Trying to reduce the explanation set " +
+        "by removing less general explanations...", JLabel.CENTER));
+    dialog.getContentPane().add(p, BorderLayout.CENTER);
+    dialog.pack();
+    dialog.setLocationRelativeTo(win);
+    dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+    dialog.setVisible(true);
+
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,
+      noActions,maxQDiff,true);
+    dialog.dispose();
+
+    if (exList2.size()<exList.size()) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Reduced the number of explanations from " +
+              exList.size() + " to " + exList2.size(),
+          "Reduced rule set",JOptionPane.INFORMATION_MESSAGE);
+      exList=exList2;
+    }
+    else {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Did not manage to reduce the set of explanations!",
+          "Fail",JOptionPane.WARNING_MESSAGE);
+    }
+
     System.out.println("Trying to aggregate the rules...");
   
     ArrayList<UnitedRule> rules=UnitedRule.getRules(exList);
@@ -1597,7 +1631,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
                    RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
                    RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax);
     */
-    aggRunner.aggregate();
+    aggRunner.aggregate(FocusManager.getCurrentManager().getActiveWindow());
     
     /*
     if (aggRules==null || aggRules.size()>=exList.size()) {

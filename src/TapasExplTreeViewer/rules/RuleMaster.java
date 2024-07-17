@@ -288,15 +288,17 @@ public class RuleMaster {
     if (ruleGroups.size()<2)  //handle the case of no actions
       agRules=aggregateByQ(ruleGroups.get(0), suggestMaxQDiff(rules),origRules,exData,minAccuracy,attrMinMax);
     else {
+      SwingWorker workers[]=new SwingWorker[ruleGroups.size()];
       for (int ig=0; ig<ruleGroups.size(); ig++) {
+        workers[ig]=null;
         ArrayList<UnitedRule> group=ruleGroups.get(ig);
         if (group.size()==1) {
           agRules.add(group.get(0));
           continue;
         }
-        /*
+        /**/
         final ArrayList<UnitedRule> finAgRules=agRules;
-        SwingWorker worker=new SwingWorker() {
+        workers[ig]=new SwingWorker() {
           @Override
           public Boolean doInBackground() {
             aggregateGroup(group, origRules, exData, minAccuracy, attrMinMax);
@@ -310,17 +312,36 @@ public class RuleMaster {
               listener.stateChanged(new ChangeEvent(finAgRules));
           }
         };
-        worker.execute();
-        */
+        workers[ig].execute();
+        /*
         aggregateGroup(group,origRules,exData,minAccuracy,attrMinMax);
         agRules.addAll(group);
         if (listener!=null)
           listener.stateChanged(new ChangeEvent(agRules));
-        /**/
+        */
       }
+      // Wait for all workers to finish
+      SwingWorker resultAggregator = new SwingWorker() {
+        @Override
+        protected Void doInBackground() throws Exception {
+          for (SwingWorker worker : workers) {
+            worker.get(); // Wait for each worker to finish
+          }
+          return null;
+        }
+
+        @Override
+        protected void done() {
+          if (listener!=null)
+            listener.stateChanged(new ChangeEvent("aggregation_finished"));
+        }
+      };
+      resultAggregator.execute();
     }
+    /*
     if (listener!=null)
       listener.stateChanged(new ChangeEvent("aggregation_finished"));
+    */
     return (agRules.size()<rules.size())?agRules:rules;
   }
   

@@ -82,6 +82,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    * The distances between the rules
    */
   protected double distanceMatrix[][]=null;
+  protected ClustererByOPTICS clOptics=null;
   
   protected JTable table=null;
   protected JLabel_Rule ruleRenderer=null;
@@ -117,6 +118,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (exList!=null && !exList.isEmpty() && exList.get(0).numId<0)
       for (int i=0; i<exList.size(); i++)
         exList.get(i).numId=i+1;
+    computeDistanceMatrix();
+    /*
     if (distanceMatrix==null && exList.size()<=1000) {
       System.out.println("Computing distance matrix...");
       distanceMatrix = CommonExplanation.computeDistances(exList, attrMinMax);
@@ -125,6 +128,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       else
         System.out.println("Distance matrix ready!");
     }
+    */
     ToolTipManager.sharedInstance().setDismissDelay(30000);
   }
   
@@ -205,29 +209,63 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   }
   
   public JFrame showRulesInTable() {
-    return showRulesInTable(exList,distanceMatrix,attrMinMax);
+    return showRulesInTable(exList,attrMinMax);
+  }
+
+  public void computeDistanceMatrix(){
+    if (distanceMatrix==null)  {
+      SwingWorker worker=new SwingWorker() {
+        @Override
+        public Boolean doInBackground() {
+          System.out.println("Computing distance matrix in background mode ...");
+          distanceMatrix = CommonExplanation.computeDistances(exList, attrMinMax);
+          return true;
+        }
+
+        @Override
+        protected void done() {
+          if (distanceMatrix == null)
+            System.out.println("Failed to compute a matrix of distances between the rules (explanations)!");
+          else {
+            System.out.println("Distance matrix ready!");
+            if (table!=null)
+              runOptics((ExListTableModel)table.getModel());
+          }
+        }
+      };
+      worker.execute();
+    }
+  }
+
+  public void runOptics(ChangeListener changeListener){
+    if (clOptics!=null)
+      return;
+    clOptics=(distanceMatrix!=null && distanceMatrix.length>5)?new ClustererByOPTICS():null;
+    if (clOptics!=null) {
+      boolean showOriginalRules=this.exList.equals(origRules);
+      SingleHighlightManager highlighter=(showOriginalRules)?origHighlighter:new SingleHighlightManager();
+      ItemSelectionManager selector=(showOriginalRules)?origSelector:new ItemSelectionManager();
+      clOptics.setDistanceMatrix(distanceMatrix);
+      clOptics.setHighlighter(highlighter);
+      clOptics.setSelector(selector);
+      clOptics.addChangeListener(changeListener);
+      System.out.println("Running OPTICS clustering in background mode ...");
+      clOptics.doClustering();
+    }
   }
   
   public JFrame showRulesInTable(ArrayList rules,
-                                 double distanceMatrix[][],
                                  Hashtable<String,float[]> attrMinMax) {
+
     boolean showOriginalRules=rules.equals(origRules);
     if (showOriginalRules && origHighlighter==null) {
       origHighlighter=new SingleHighlightManager();
       origSelector=new ItemSelectionManager();
     }
-    
+
     SingleHighlightManager highlighter=(showOriginalRules)?origHighlighter:new SingleHighlightManager();
     ItemSelectionManager selector=(showOriginalRules)?origSelector:new ItemSelectionManager();
-    
-    ClustererByOPTICS clOptics=(distanceMatrix!=null && distanceMatrix.length>5)?new ClustererByOPTICS():null;
-    if (clOptics!=null) {
-      clOptics.setDistanceMatrix(distanceMatrix);
-      clOptics.setHighlighter(highlighter);
-      clOptics.setSelector(selector);
-      clOptics.doClustering();
-    }
-    
+
     int minAction=Integer.MAX_VALUE, maxAction=Integer.MIN_VALUE;
     double minQValue=Double.NaN, maxQValue=Double.NaN;
     for (int i=0; i<origRules.size(); i++) {
@@ -250,7 +288,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       createdFiles=new ArrayList<File>(20);
 
     ExListTableModel eTblModel=new ExListTableModel(rules,attrMinMax);
-    if (clOptics!=null)
+    if (clOptics==null)
+      runOptics(eTblModel);
+    else
       clOptics.addChangeListener(eTblModel);
     
     table=new JTable(eTblModel){
@@ -520,6 +560,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           if (fr != null)
             fr.toFront();
         }
+        else
+          runOptics((ExListTableModel)table.getModel());
       }
     });
     
@@ -1025,6 +1067,12 @@ public class ShowRules implements RulesOrderer, ChangeListener {
                                double distanceMatrix[][],
                                SingleHighlightManager highlighter,
                                ItemSelectionManager selector){
+    if (distanceMatrix==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No distance matrix!",
+          "Error",JOptionPane.ERROR_MESSAGE);
+      return null;
+    }
     TSNE_Runner tsne=new TSNE_Runner();
     tsne.setFileRegister(createdFiles);
     String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
@@ -1047,7 +1095,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           "Error",JOptionPane.ERROR_MESSAGE);
       return null;
     }
-    
+
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
     pp.setExplanations(exList,origRules);
     pp.setDistanceMatrix(distanceMatrix);

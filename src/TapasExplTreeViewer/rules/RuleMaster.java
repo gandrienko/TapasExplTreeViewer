@@ -602,7 +602,7 @@ public class RuleMaster {
             }
           }
           if (!success) {
-            System.out.println("The union of "+i1+" and "+i2+" discarded due to low accuracy.");
+            //System.out.println("The union of "+i1+" and "+i2+" discarded due to low accuracy.");
             if (failed==null) {
               failed=new HashSet<Integer>(origSize*5);
               failedPairs.put(i1,failed);
@@ -610,7 +610,7 @@ public class RuleMaster {
             failed.add(i2);
             continue;
           }
-          System.out.println("Successfully united rules "+i1+" and "+i2+"!");
+          //System.out.println("Successfully united rules "+i1+" and "+i2+"!");
           excluded.add(i1);
           excluded.add(i2);
           nExcluded+=2;
@@ -666,7 +666,7 @@ public class RuleMaster {
         //System.out.println("Sorting "+pairs.size()+" pairs by distances");
         Collections.sort(pairs);
         //System.out.println("Sorted "+pairs.size()+" pairs!");
-        if (nUnions%1==0) {
+        if (nUnions%5==0) {
           System.out.println("Aggregation: made "+nUnions+" unions; excluded "+nExcluded+" rules; "+
               nRemain+" rules remain; current total number of rules = "+result.size());
         }

@@ -110,7 +110,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     listOfColumnNames.add("Id");
     if (maxTreeId>minTreeId)
       listOfColumnNames.add("Tree Id");
-    if (maxClass>minClass)
+    if (maxClass>minClass || minClass>=0)
       listOfColumnNames.add("Class");
     if (!Double.isNaN(qMin) && !Double.isNaN(qMax) && qMax>qMin) {
       listOfColumnNames.add((rulesHaveQIntervals)?"mean value":"value");

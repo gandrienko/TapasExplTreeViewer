@@ -1328,13 +1328,16 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         exSubset.add(exList.get(idx[nEx]));
         ++nEx;
       }
-    double distances[][] = new double[nEx][nEx];
-    for (int i = 0; i < nEx; i++) {
-      distances[i][i] = 0;
-      int ii = idx[i];
-      for (int j = i + 1; j < nEx; j++) {
-        int jj = idx[j];
-        distances[i][j] = distances[j][i] = distanceMatrix[ii][jj];
+    double distances[][] = null;
+    if (distanceMatrix!=null) {
+      distances=new double[nEx][nEx];
+      for (int i = 0; i < nEx; i++) {
+        distances[i][i] = 0;
+        int ii = idx[i];
+        for (int j = i + 1; j < nEx; j++) {
+          int jj = idx[j];
+          distances[i][j] = distances[j][i] = distanceMatrix[ii][jj];
+        }
       }
     }
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);

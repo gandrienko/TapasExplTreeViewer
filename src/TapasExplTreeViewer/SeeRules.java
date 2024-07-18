@@ -29,6 +29,7 @@ public class SeeRules {
       String line=null;
       String fieldNames[]=null;
       boolean realValued=false;
+      int fNRuleId=-1, fNTreeId=-1, fNResult=-1, fNRuleBody=-1;
 
       while ((line = br.readLine()) != null) {
         if (line==null || line.trim().length()<3)
@@ -38,14 +39,33 @@ public class SeeRules {
           continue;
         if (fieldNames==null) {
           fieldNames=fields;
-          String predictionType=fieldNames[2].toLowerCase();
+          for (int i=0; i<fieldNames.length; i++) {
+            fieldNames[i] = fieldNames[i].toLowerCase();
+            if (fieldNames[i].contains("tree"))
+              fNTreeId=i;
+            else
+            if (fieldNames[i].contains("rule"))
+              if (fieldNames[i].contains("id"))
+                fNRuleId=i;
+              else
+                fNRuleBody=i;
+          }
+          if (fNRuleBody<0) {
+            System.out.println("No field containing the rule body has been found!");
+            return;
+          }
+
+          fNResult=fieldNames.length-1; //we assume that the predicted value or class is in the last field
+          String predictionType=fieldNames[fNResult];
           realValued=predictionType.contains("num") || predictionType.contains("value");
         }
         else {
-          int ruleId=(fieldNames[0].toLowerCase().endsWith("id"))?Integer.parseInt(fields[0]):1+rules.size();
-          String ruleText=fields[1];
-          int predictedClass=(realValued)?-1:Integer.parseInt(fields[2]);
-          double predictedValue=(realValued)?Double.parseDouble(fields[2]):Double.NaN;
+          int ruleId=1+rules.size();
+          if (fNRuleId>=0)
+            ruleId=Integer.parseInt(fields[fNRuleId]);
+          String ruleText=fields[fNRuleBody];
+          int predictedClass=(realValued)?-1:Integer.parseInt(fields[fNResult]);
+          double predictedValue=(realValued)?Double.parseDouble(fields[fNResult]):Double.NaN;
   
           List<Condition> conditions=parseConditions(ruleText);
           if (conditions==null || conditions.isEmpty())
@@ -54,6 +74,8 @@ public class SeeRules {
             maxNConditions=conditions.size();
           Rule r=(realValued)?new Rule(ruleId, conditions, predictedValue):
                               new Rule(ruleId, conditions, predictedClass);
+          if (fNTreeId>=0)
+            r.treeId=Integer.parseInt(fields[fNTreeId]);
           int idx=rules.indexOf(r);
           if (idx<0)
             rules.add(r);
@@ -138,6 +160,7 @@ public class SeeRules {
     for (Rule rule:rules) {
       CommonExplanation ex=new CommonExplanation();
       ex.numId=rule.getId();
+      ex.treeId=rule.treeId;
       ex.nSame=rule.nSame;
       if (!Double.isNaN(rule.getPredictedValue()))
         ex.minQ=ex.maxQ=ex.meanQ=(float)rule.getPredictedValue();

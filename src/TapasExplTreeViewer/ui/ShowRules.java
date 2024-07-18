@@ -290,21 +290,22 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     
       /**/
       public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+        if (renderer==null)
+          return null;
         Component c = super.prepareRenderer(renderer, row, column);
         Color bkColor=(isRowSelected(row))?getSelectionBackground():getBackground();
         int rowIdx=convertRowIndexToModel(row), colIdx=convertColumnIndexToModel(column);
-        String colName=eTblModel.getColumnName(colIdx);
-        boolean isCluster=colName.equalsIgnoreCase("cluster");
+        boolean isCluster=eTblModel.isClusterColumn(colIdx);
         if (isCluster)
           bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,colIdx));
         boolean isAction=false, isQ=false;
         if (!isCluster && minA<maxA &&
-            (colName.equalsIgnoreCase("action") || colName.equalsIgnoreCase("class"))) {
+            eTblModel.isResultClassColumn(colIdx)) {
           bkColor = ExplanationsProjPlot2D.getColorForAction((Integer) eTblModel.getValueAt(rowIdx, colIdx),
               minA, maxA);
           isAction=true;
         }
-        if (!isCluster && minQ<maxQ && (colName.toUpperCase().contains(" Q") || colName.toUpperCase().contains("Q "))) {
+        if (!isCluster && minQ<maxQ && eTblModel.isResultValueColumn(colIdx)) {
           Object v=eTblModel.getValueAt(rowIdx, colIdx);
           if (v!=null)
           if (v instanceof Float) {
@@ -374,39 +375,46 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     table.setRowSelectionAllowed(true);
     table.setColumnSelectionAllowed(false);
 
-    for (int i=0; i<eTblModel.columnNames.length-1; i++) {
-      Class columnClass=eTblModel.getColumnClass(i);
-      if ((columnClass.equals(Integer.class) ||
-          columnClass.equals(Float.class) ||
-          columnClass.equals(Double.class)) &&
-          !eTblModel.getColumnName(i).equalsIgnoreCase("cluster")) {
-        float min=eTblModel.getColumnMin(i), max=eTblModel.getColumnMax(i);
-        RenderLabelBarChart rBar=new RenderLabelBarChart(min, max);
-        table.getColumnModel().getColumn(i).setCellRenderer(rBar);
+    for (int i=0; i<eTblModel.getColumnCount(); i++) {
+      if (eTblModel.isMinMaxColumn(i)) {
+        JLabel_Subinterval subIntRend = new JLabel_Subinterval();
+        subIntRend.setDrawTexts(true);
+        subIntRend.setPrecision(3);
+        table.getColumnModel().getColumn(i).setCellRenderer(subIntRend);
       }
       else
-        if (table.getColumnName(i).contains("min..max")) {
-          JLabel_Subinterval subIntRend=new JLabel_Subinterval();
-          subIntRend.setDrawTexts(true);
-          subIntRend.setPrecision(3);
-          table.getColumnModel().getColumn(i).setCellRenderer(subIntRend);
+      if (!eTblModel.isClusterColumn(i)) {
+        Class columnClass = eTblModel.getColumnClass(i);
+        if (columnClass==null)
+          continue;
+        if (columnClass.equals(Integer.class) ||
+            columnClass.equals(Float.class) ||
+            columnClass.equals(Double.class)) {
+          float min = eTblModel.getColumnMin(i), max = eTblModel.getColumnMax(i);
+          RenderLabelBarChart rBar = new RenderLabelBarChart(min, max);
+          table.getColumnModel().getColumn(i).setCellRenderer(rBar);
         }
+      }
     }
 
     ruleRenderer=new JLabel_Rule();
-    attrs=new Vector(eTblModel.getColumnCount()-eTblModel.columnNames.length);
-    minmax=new Vector<>(eTblModel.getColumnCount()-eTblModel.columnNames.length);
-    for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
-      String s=eTblModel.getColumnName(i);
+    attrs=new Vector(eTblModel.listOfFeatures.size());
+    minmax=new Vector<>(eTblModel.listOfFeatures.size());
+    for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
+      String s=eTblModel.listOfFeatures.get(i);
       attrs.add(s);
       minmax.add(attrMinMax.get(s));
     }
     ruleRenderer.setAttrs(attrs,minmax);
-    table.getColumnModel().getColumn(eTblModel.columnNames.length-1).setCellRenderer(ruleRenderer);
-    table.getColumnModel().getColumn(eTblModel.columnNames.length-1).setPreferredWidth(200);
+    int rIdx=eTblModel.getRuleColumnIdx();
+    if (rIdx>=0) {
+      table.getColumnModel().getColumn(rIdx).setCellRenderer(ruleRenderer);
+      table.getColumnModel().getColumn(rIdx).setPreferredWidth(200);
+    }
 
-    for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
-      table.getColumnModel().getColumn(i).setCellRenderer(new JLabel_Subinterval());
+    for (int i=0; i<eTblModel.listOfFeatures.size(); i++)
+      table.getColumnModel().getColumn(eTblModel.listOfColumnNames.size()+i).
+          setCellRenderer(new JLabel_Subinterval());
 
     /**/
     TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();
@@ -417,8 +425,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     /**/
 
     TableRowSorter sorter=(TableRowSorter)table.getRowSorter();
-    for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++)
-      sorter.setComparator(i, new Comparator<Object>() {
+    for (int i=0; i<eTblModel.listOfFeatures.size(); i++)
+      sorter.setComparator(eTblModel.listOfColumnNames.size()+i, new Comparator<Object>() {
         public int compare (Object o1, Object o2) {
           if (o1 instanceof double[]) {
             double d1=((double[])o1)[0], d2=((double[])o2)[0], d1r=((double[])o1)[1], d2r=((double[])o2)[1];
@@ -442,8 +450,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     cbmit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
-          TableCellRenderer tcr=table.getColumnModel().getColumn(i).getCellRenderer();
+        for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
+          TableCellRenderer tcr=table.getColumnModel().
+              getColumn(eTblModel.listOfColumnNames.size()+i).getCellRenderer();
           if (tcr instanceof JLabel_Subinterval) {
             ((JLabel_Subinterval)tcr).setDrawTexts(cbmit.getState());
           }
@@ -457,8 +466,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     cbmit1.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
-          TableCellRenderer tcr=table.getColumnModel().getColumn(i).getCellRenderer();
+        for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
+          TableCellRenderer tcr=table.getColumnModel().getColumn(
+              eTblModel.listOfColumnNames.size()+i).getCellRenderer();
           if (tcr instanceof JLabel_Subinterval) {
             ((JLabel_Subinterval)tcr).setDrawValues(cbmit1.getState());
           }
@@ -471,8 +481,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     cbmit2.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        for (int i=eTblModel.columnNames.length; i<eTblModel.getColumnCount(); i++) {
-          TableCellRenderer tcr=table.getColumnModel().getColumn(i).getCellRenderer();
+        for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
+          TableCellRenderer tcr=table.getColumnModel().
+              getColumn(eTblModel.listOfColumnNames.size()+i).getCellRenderer();
           if (tcr instanceof JLabel_Subinterval) {
             ((JLabel_Subinterval)tcr).setDrawStats(cbmit2.getState());
           }
@@ -504,9 +515,11 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        JFrame fr=clOptics.showPlot();
-        if (fr!=null)
-          fr.toFront();;
+        if (clOptics!=null) {
+          JFrame fr = clOptics.showPlot();
+          if (fr != null)
+            fr.toFront();
+        }
       }
     });
     
@@ -900,6 +913,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
             frames.remove(fr);
       }
     });
+    if (fr!=null)
+      fr.toFront();
     return fr;
   }
   

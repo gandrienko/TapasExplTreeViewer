@@ -3,10 +3,11 @@ package TapasExplTreeViewer.alt_rules;
 import java.util.List;
 
 public class Rule {
-  private int id=0;
-  private List<Condition> conditions=null;
-  private int predictedClass=-1;
-  private double predictedValue=Double.NaN;
+  public int id=0;
+  public int treeId=-1;
+  public List<Condition> conditions=null;
+  public int predictedClass=-1;
+  public double predictedValue=Double.NaN;
   /**
    * Number of duplicates of this rule (may occur in a decision forest)
    */
@@ -45,7 +46,8 @@ public class Rule {
 
   @Override
   public String toString() {
-    return "RuleID: " + id + ", Conditions: " + conditions +
+    return "Rule ID: " + id + ((treeId>=0)?", tree ID: "+treeId:"") +
+        ", Conditions: " + conditions +
                ((Double.isNaN(predictedValue))?", Class: " + predictedClass:", Value: "+predictedValue);
   }
 
@@ -60,6 +62,8 @@ public class Rule {
     if (obj==null || !(obj instanceof Rule))
       return false;
     Rule r=(Rule)obj;
+    if (treeId>=0 && treeId!=r.treeId)
+      return false;
     if (r.predictedClass!=predictedClass)
       return false;
     if (Double.isNaN(predictedValue))

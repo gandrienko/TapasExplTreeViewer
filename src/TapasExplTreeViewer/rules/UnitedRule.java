@@ -61,12 +61,16 @@ public class UnitedRule extends CommonExplanation {
       else
         txt+="Rule <b>"+numId+"</b>";
     txt += "<table border=0 cellmargin=3 cellpadding=3 cellspacing=3 align=center>";
-    txt+="<tr align=right><td>Action </td><td>"+action+
-             "</td><td>Mean Q</td><td>"+String.format("%.4f",meanQ)+"</td></tr>";
-    txt+="<tr align=right><td>N uses:</td><td>"+nUses+
-             "</td><td>Min Q</td><td>"+String.format("%.4f",minQ)+"</td></tr>";
-    txt+="<tr align=right><td>N distinct objects:</td><td>"+getUsesCount()+
-             "</td><td>Max Q</td><td>"+String.format("%.4f",maxQ)+"</td></tr>";
+    txt+="<tr align=right><td>Class </td><td>"+action+
+        ((Float.isNaN(meanQ))?"</td><td></td><td>":"</td><td>Mean Q</td><td>"+String.format("%.4f",meanQ))+
+        "</td></tr>";
+    if (nUses>0 || !Float.isNaN(minQ))
+      txt+="<tr align=right><td>N uses:</td><td>"+nUses+
+          ((Float.isNaN(minQ))?"</td><td></td><td>":"</td><td>Min Q</td><td>"+String.format("%.4f",minQ))+
+          "</td></tr>";
+    if (getUsesCount()>0 || !Float.isNaN(maxQ))
+      txt+="<tr align=right><td>N distinct objects:</td><td>"+getUsesCount()+
+          ((Float.isNaN(maxQ))?"</td><td></td><td>":"</td><td>Max Q</td><td>"+String.format("%.4f",maxQ))+"</td></tr>";
     txt += "<tr></tr></table>";
     if (nOrigRight+nOrigWrong>0 || nCasesRight+nCasesWrong>0 || fromRules!=null) {
       txt += "<table border=0 cellmargin=3 cellpadding=3 cellspacing=3 align=center>";
@@ -144,10 +148,15 @@ public class UnitedRule extends CommonExplanation {
     nUses+=rule.nUses;
     nOrigRight+=rule.nOrigRight;
     nOrigWrong+=rule.nOrigWrong;
-    minQ=Math.min(minQ,rule.minQ);
-    maxQ=Math.max(maxQ,rule.maxQ);
-    sumQ+=rule.sumQ;
-    meanQ=(float)sumQ/nUses;
+    if (!Float.isNaN(minQ)) {
+      minQ = Math.min(minQ, rule.minQ);
+      maxQ = Math.max(maxQ, rule.maxQ);
+      sumQ += rule.sumQ;
+      int count=nUses;
+      if (count<2)
+        count=countFromRules();
+      meanQ = (float) sumQ / count;
+    }
   }
   
   public ArrayList<UnitedRule> putHierarchyInList(ArrayList<UnitedRule> hList) {
@@ -173,7 +182,7 @@ public class UnitedRule extends CommonExplanation {
     rule.action=ex.action;
     rule.eItems=ex.eItems;
     rule.uses=ex.uses;
-    rule.nUses=ex.nUses;
+    rule.nUses=(ex.nUses>0)?ex.nUses:1;
     rule.minQ=ex.minQ;
     rule.maxQ=ex.maxQ;
     rule.meanQ=ex.meanQ;
@@ -366,15 +375,20 @@ public class UnitedRule extends CommonExplanation {
         rule.nUses-=n1+n2-rule.uses.size();
     }
     rule.nUses=r1.nUses+r2.nUses;
-    
-    rule.minQ=Math.min(r1.minQ,r2.minQ);
-    rule.maxQ=Math.max(r1.maxQ,r2.maxQ);
-    rule.sumQ=r1.sumQ+r2.sumQ;
-    rule.meanQ=(float)rule.sumQ/rule.nUses;
-    
+
     rule.fromRules=new ArrayList<UnitedRule>(10);
     rule.fromRules.add(r1);
     rule.fromRules.add(r2);
+
+    if (!Float.isNaN(r1.minQ)) {
+      rule.minQ = Math.min(r1.minQ, r2.minQ);
+      rule.maxQ = Math.max(r1.maxQ, r2.maxQ);
+      rule.sumQ = r1.sumQ + r2.sumQ;
+      int count=rule.nUses;
+      if (count<2)
+        count=rule.countFromRules();
+      rule.meanQ = (float) rule.sumQ / count;
+    }
     return rule;
   }
   

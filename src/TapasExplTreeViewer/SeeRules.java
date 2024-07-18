@@ -162,8 +162,10 @@ public class SeeRules {
       ex.numId=rule.getId();
       ex.treeId=rule.treeId;
       ex.nSame=rule.nSame;
-      if (!Double.isNaN(rule.getPredictedValue()))
-        ex.minQ=ex.maxQ=ex.meanQ=(float)rule.getPredictedValue();
+      if (!Double.isNaN(rule.getPredictedValue())) {
+        ex.minQ = ex.maxQ = ex.meanQ = (float) rule.getPredictedValue();
+        ex.sumQ=rule.getPredictedValue();
+      }
       ex.action=rule.getPredictedClass();
       ex.eItems=new ExplanationItem[rule.getConditionCount()];
       int i=0;
@@ -181,6 +183,7 @@ public class SeeRules {
         }
         ++i;
       }
+      ex.nUses=1;
       exList.add(ex);
     }
 

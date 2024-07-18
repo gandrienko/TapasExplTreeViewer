@@ -67,6 +67,15 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       if (hasMaxQ && !qEqualsAction)
         if (Double.isNaN(qMax) || qMax<cEx.maxQ)
           qMax=cEx.maxQ;
+      if (hasMinQ && hasMaxQ && Float.isNaN(cEx.meanQ))   {
+        if (!Double.isNaN(cEx.sumQ)) {
+          int count=(cEx instanceof UnitedRule)?((UnitedRule)cEx).countFromRules():cEx.getUsesCount();
+          if (count<1) count=1;
+          cEx.meanQ = (float) (cEx.sumQ / count);
+        }
+        else
+          cEx.meanQ=(cEx.minQ+cEx.maxQ)/2;
+      }
       rulesHaveQIntervals = rulesHaveQIntervals || (!qEqualsAction && hasMinQ && hasMaxQ && cEx.maxQ>cEx.minQ);
 
       if (maxNUses<cEx.getUsesCount())

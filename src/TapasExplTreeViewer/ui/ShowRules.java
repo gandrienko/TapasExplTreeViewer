@@ -1084,11 +1084,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       // Initialize the data structures for each key if not already initialized
       uniqueSortedValues.putIfAbsent(key, new TreeSet<>());
       allValues.putIfAbsent(key, new ArrayList<>());
+/*
       // Add values to the data structures
       for (int i=0; i<minmax.length; i++) {
         uniqueSortedValues.get(key).add(minmax[i]);
         allValues.get(key).add(minmax[i]);
       }
+*/
     }
     // processing rules
     for (CommonExplanation rule: exList)

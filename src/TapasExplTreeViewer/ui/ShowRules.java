@@ -1080,7 +1080,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     Map<String, List<Float>> allValues = new TreeMap<>();
     // processing sttrMinMax
     for (String key: attrMinMax.keySet()) {
-      float minmax[]=attrMinMax.get(key);
+      //float minmax[]=attrMinMax.get(key);
       // Initialize the data structures for each key if not already initialized
       uniqueSortedValues.putIfAbsent(key, new TreeSet<>());
       allValues.putIfAbsent(key, new ArrayList<>());

@@ -7,6 +7,9 @@ import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
 
 /**
@@ -765,5 +768,87 @@ public class RuleMaster {
       if (((CommonExplanation)rules.get(i)).numId==ruleId)
         return i;
     return -1;
+  }
+  
+  public static boolean exportRulesToFile(File file,
+                                          ArrayList<CommonExplanation> rules,
+                                          Hashtable<String,float[]> attrMinMax,
+                                          boolean isRegression) {
+    if (file==null) {
+      System.out.println("Rule export: no file!");
+      return false;
+    }
+    if (rules==null || rules.isEmpty()) {
+      System.out.println("Rule export: no rules!");
+      return false;
+    }
+    Hashtable<String, Integer> attrUses=new Hashtable<String, Integer>(50);
+    boolean hasUnitedRules=false;
+    int minClass=-1, maxClass=-1;
+    int maxNUses=0, maxRight=0, maxWrong=0, minTreeId=-1, maxTreeId=-1;
+    boolean rulesHaveQIntervals=false;
+    double qMin=Double.NaN, qMax=Double.NaN;
+  
+    for (int i=0; i<rules.size(); i++) {
+      CommonExplanation cEx=rules.get(i);
+      hasUnitedRules=hasUnitedRules || (cEx instanceof UnitedRule);
+      for (int j=0; j<cEx.eItems.length; j++) {
+        Integer count=attrUses.get(cEx.eItems[j].attr);
+        if (count==null)
+          attrUses.put(cEx.eItems[j].attr, 1);
+        else
+          attrUses.put(cEx.eItems[j].attr, count+1);
+      }
+      boolean qEqualsAction=false;
+      boolean hasMinQ=!Float.isNaN(cEx.minQ), hasMaxQ=!Float.isNaN(cEx.maxQ);
+      if (cEx.action >= 0) {
+        if (minClass<0 || minClass>cEx.action)
+          minClass=cEx.action;
+        if (maxClass<cEx.action)
+          maxClass=cEx.action;
+        qEqualsAction=hasMinQ && hasMaxQ && cEx.minQ==cEx.action && cEx.maxQ==cEx.action;
+      }
+      if (hasMinQ && !qEqualsAction)
+        if (Double.isNaN(qMin) || qMin>cEx.minQ)
+          qMin=cEx.minQ;
+      if (hasMaxQ && !qEqualsAction)
+        if (Double.isNaN(qMax) || qMax<cEx.maxQ)
+          qMax=cEx.maxQ;
+      if (hasMinQ && hasMaxQ && Float.isNaN(cEx.meanQ)) {
+        if (!Double.isNaN(cEx.sumQ)) {
+          int count=(cEx instanceof UnitedRule) ? ((UnitedRule) cEx).countFromRules() : cEx.getUsesCount();
+          if (count<1) count=1;
+          cEx.meanQ=(float) (cEx.sumQ/count);
+        }
+        else
+          cEx.meanQ=(cEx.minQ+cEx.maxQ)/2;
+      }
+      rulesHaveQIntervals=rulesHaveQIntervals || (!qEqualsAction && hasMinQ && hasMaxQ && cEx.maxQ>cEx.minQ);
+    }
+    ArrayList<String> usedFeatures=new ArrayList<String>(attrUses.size());
+    for (Map.Entry<String,Integer> entry:attrUses.entrySet()) {
+      String aName=entry.getKey();
+      if (usedFeatures.isEmpty())
+        usedFeatures.add(aName);
+      else {
+        int count=entry.getValue(), idx=-1;
+        for (int i=0; i<usedFeatures.size() && idx<0; i++)
+          if (count>attrUses.get(usedFeatures.get(i)))
+            idx=i;
+        if (idx<0)
+          usedFeatures.add(aName);
+        else
+          usedFeatures.add(idx,aName);
+      }
+    }
+    
+    boolean ok=false;
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+      //
+      ok=true;
+    } catch (Exception ex) {
+      //
+    }
+    return ok;
   }
 }

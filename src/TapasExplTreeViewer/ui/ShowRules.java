@@ -1113,6 +1113,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     for (Map.Entry<String, List<Float>> entry : allValues.entrySet()) {
       System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
     }
+    // Defining intervals for feature discretization
+    TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(exList,attrMinMax,uniqueSortedValues,allValues);
+    //
     return null;
   }
 

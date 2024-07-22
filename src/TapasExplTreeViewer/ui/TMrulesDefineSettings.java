@@ -3,8 +3,17 @@ package TapasExplTreeViewer.ui;
 import TapasDataReader.CommonExplanation;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.TableColumnModelEvent;
+import javax.swing.event.TableColumnModelListener;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
@@ -24,6 +33,8 @@ public class TMrulesDefineSettings {
 
 class AttributeRangeDialog extends JFrame {
 
+  private JLabel fileNameLabel;
+
   public AttributeRangeDialog(
           Map<String, float[]> attrMinMax,
           Map<String, TreeSet<Float>> uniqueSortedValues,
@@ -31,7 +42,7 @@ class AttributeRangeDialog extends JFrame {
 
     setTitle("Attribute Range Definition");
     setSize(800, 600);
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
     AttributeTableModel model = new AttributeTableModel(attrMinMax, uniqueSortedValues, allValues);
     JTable table = new JTable(model);
@@ -44,32 +55,78 @@ class AttributeRangeDialog extends JFrame {
     JTextField quantileField = new JTextField();
     table.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(quantileField));
 
+    // Disable editing quantile numbers when mode is distinct
+    table.getColumnModel().getColumn(6).setCellRenderer((table1, value, isSelected, hasFocus, row, column) -> {
+      JTextField textField = new JTextField(value != null ? value.toString() : "");
+      if (model.modeMap.get(model.attributes.get(row))) {
+        textField.setEditable(false);
+        textField.setBackground(Color.LIGHT_GRAY);
+      } else {
+        textField.setEditable(true);
+        textField.setBackground(Color.WHITE);
+      }
+      return textField;
+    });
+
+    // Adjust column widths proportionally initially and on resize
+    table.addComponentListener(new ComponentAdapter() {
+      @Override
+      public void componentResized(ComponentEvent e) {
+        adjustColumnWidths(table);
+      }
+    });
+
     // Set up JScrollPane
     JScrollPane scrollPane = new JScrollPane(table);
     add(scrollPane, BorderLayout.CENTER);
-  }
 
-  /*
-  public static void main(String[] args) {
-    // Example data
-    Map<String, float[]> attrMinMax = new HashMap<>();
-    attrMinMax.put("Attr1", new float[]{1.0f, 10.0f});
-    attrMinMax.put("Attr2", new float[]{0.5f, 5.5f});
-
-    Map<String, TreeSet<Float>> uniqueSortedValues = new HashMap<>();
-    uniqueSortedValues.put("Attr1", new TreeSet<>(Arrays.asList(1.0f, 2.0f, 3.0f, 10.0f)));
-    uniqueSortedValues.put("Attr2", new TreeSet<>(Arrays.asList(0.5f, 1.0f, 3.0f, 5.5f)));
-
-    Map<String, List<Float>> allValues = new HashMap<>();
-    allValues.put("Attr1", Arrays.asList(1.0f, 2.0f, 3.0f, 10.0f, 2.0f, 3.0f));
-    allValues.put("Attr2", Arrays.asList(0.5f, 1.0f, 3.0f, 5.5f, 1.0f, 3.0f));
-
-    SwingUtilities.invokeLater(() -> {
-      AttributeRangeDialog dialog = new AttributeRangeDialog(attrMinMax, uniqueSortedValues, allValues);
-      dialog.setVisible(true);
+    // Adjust column widths after the table is shown
+    addComponentListener(new ComponentAdapter() {
+      @Override
+      public void componentShown(ComponentEvent e) {
+        adjustColumnWidths(table);
+      }
     });
+
+    // Create and set up the panel for the button and file name label
+    JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+    JButton goButton = new JButton("Go");
+    fileNameLabel = new JLabel("");
+
+    // Add action listener to the button
+    goButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        fileNameLabel.setText("File: " + generateFileName());
+      }
+    });
+
+    bottomPanel.add(goButton);
+    bottomPanel.add(fileNameLabel);
+
+    // Add the panel to the frame
+    add(bottomPanel, BorderLayout.SOUTH);
   }
-  */
+
+  private void adjustColumnWidths(JTable table) {
+    int tableWidth = table.getWidth();
+    int intervalColumnWidth = (int) (tableWidth * 0.5);
+    int otherColumnWidth = (tableWidth - intervalColumnWidth) / (table.getColumnCount() - 1);
+
+    for (int i = 0; i < table.getColumnCount(); i++) {
+      if (i == 7) {
+        table.getColumnModel().getColumn(i).setPreferredWidth(intervalColumnWidth);
+      } else {
+        table.getColumnModel().getColumn(i).setPreferredWidth(otherColumnWidth);
+      }
+    }
+  }
+
+  private String generateFileName() {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd-HHmmss");
+    return "TM_" + sdf.format(new Date()) + ".csv";
+  }
+
 }
 
 class AttributeTableModel extends AbstractTableModel {
@@ -77,11 +134,11 @@ class AttributeTableModel extends AbstractTableModel {
           "Attribute", "Min", "Max", "Count of Distinct Values",
           "Count of All Values", "Mode", "Number of Quantiles", "Class Intervals"
   };
-  private final List<String> attributes;
+  public final List<String> attributes;
   private final Map<String, float[]> attrMinMax;
   private final Map<String, TreeSet<Float>> uniqueSortedValues;
   private final Map<String, List<Float>> allValues;
-  private final Map<String, Boolean> modeMap;
+  public final Map<String, Boolean> modeMap;
   private final Map<String, Integer> quantileMap;
   private final Map<String, List<Float>> intervalsMap;
 
@@ -137,7 +194,14 @@ class AttributeTableModel extends AbstractTableModel {
 
   @Override
   public boolean isCellEditable(int rowIndex, int columnIndex) {
-    return columnIndex == 5 || columnIndex == 6;
+    String attribute = attributes.get(rowIndex);
+    if (columnIndex == 5) {
+      return true;
+    }
+    if (columnIndex == 6) {
+      return !modeMap.get(attribute);
+    }
+    return false;
   }
 
   @Override
@@ -167,6 +231,10 @@ class AttributeTableModel extends AbstractTableModel {
     if (modeMap.get(attribute)) {
       intervalsMap.put(attribute, new ArrayList<>(uniqueSortedValues.get(attribute)));
     } else {
+      // Ensure quantileMap has an entry for the attribute
+      if (!quantileMap.containsKey(attribute)) {
+        quantileMap.put(attribute, 4); // Default quantiles
+      }
       // Calculate quantiles
       List<Float> values = new ArrayList<>(new HashSet<>(allValues.get(attribute))); // Remove duplicates
       Collections.sort(values);
@@ -181,6 +249,7 @@ class AttributeTableModel extends AbstractTableModel {
           quantiles.add(breakPoint);
         }
       }
+      quantileMap.put(attribute, quantiles.size() + 1); // Update the number of quantiles
       intervalsMap.put(attribute, quantiles);
     }
   }

@@ -2,6 +2,7 @@ package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
+import TapasDataReader.ExplanationItem;
 import TapasExplTreeViewer.MST.Edge;
 import TapasExplTreeViewer.MST.Prim;
 import TapasExplTreeViewer.MST.Vertex;
@@ -27,6 +28,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
 
 public class ShowRules implements RulesOrderer, ChangeListener {
   
@@ -551,6 +553,14 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       }
     });
 
+    menu.add(mit=new JMenuItem("Apply topic modelling"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        applyTopicModelling(rules, attrMinMax);
+      }
+    });
+
     menu.add(mit=new JMenuItem("Show the OPTICS reachability plot"));
     mit.addActionListener(new ActionListener() {
       @Override
@@ -572,7 +582,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         showProjection(rules,distanceMatrix,highlighter,selector);
       }
     });
-  
+
     menu.add(mit=new JMenuItem("Apply hierarchical clustering"));
     mit.addActionListener(new ActionListener() {
       @Override
@@ -1062,7 +1072,50 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     frames.add(plotFrame);
     return plotFrame;
   }
-  
+
+  public JFrame applyTopicModelling (ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
+    // TreeMap to maintain unique sorted values for each key
+    Map<String, TreeSet<Float>> uniqueSortedValues = new TreeMap<>();
+    // TreeMap to maintain all values for each key (for sorting later)
+    Map<String, List<Float>> allValues = new TreeMap<>();
+    // processing sttrMinMax
+    for (String key: attrMinMax.keySet()) {
+      //float minmax[]=attrMinMax.get(key);
+      // Initialize the data structures for each key if not already initialized
+      uniqueSortedValues.putIfAbsent(key, new TreeSet<>());
+      allValues.putIfAbsent(key, new ArrayList<>());
+/*
+      // Add values to the data structures
+      for (int i=0; i<minmax.length; i++) {
+        uniqueSortedValues.get(key).add(minmax[i]);
+        allValues.get(key).add(minmax[i]);
+      }
+*/
+    }
+    // processing rules
+    for (CommonExplanation rule: exList)
+      for (ExplanationItem cond: rule.eItems)
+        for (int i=0; i<cond.interval.length; i++)
+          if (Double.isFinite(cond.interval[i])) {
+            uniqueSortedValues.get(cond.attr).add((float)cond.interval[i]);
+            allValues.get(cond.attr).add((float)cond.interval[i]);
+          }
+
+    // Sort all values lists for each key
+    for (List<Float> valueList: allValues.values())
+      Collections.sort(valueList);
+    // Output the results
+    System.out.println("Unique Sorted Values by Key:");
+    for (Map.Entry<String, TreeSet<Float>> entry : uniqueSortedValues.entrySet()) {
+      System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
+    }
+    System.out.println("All Sorted Values by Key:");
+    for (Map.Entry<String, List<Float>> entry : allValues.entrySet()) {
+      System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
+    }
+    return null;
+  }
+
   public JFrame showProjection(ArrayList<CommonExplanation> exList,
                                double distanceMatrix[][],
                                SingleHighlightManager highlighter,
@@ -1260,7 +1313,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         }
       }
     });
-   return plotFrame;
+    return plotFrame;
   }
   
   public JFrame hierClustering (ArrayList<CommonExplanation> exList,

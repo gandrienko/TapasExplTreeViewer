@@ -272,20 +272,21 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       for (int j=0; j<values.length; j++)
         v[j]=values[j];
       int j=0;
-      for (String s:cEx.uses.keySet()) {
-        ArrayList<Explanation> aex=cEx.uses.get(s);
-        for (Explanation ex:aex) {
-          int attrIdx=-1;
-          for (int i=0; i<ex.eItems.length && attrIdx==-1; i++)
-            if (attrName.equals(ex.eItems[i].attr))
-              attrIdx=i;
-          if (attrIdx!=-1) {
-            float vv=ex.eItems[attrIdx].value;
-            v[values.length+j]=vv;
+      if (cEx.uses!=null && !cEx.uses.isEmpty())
+        for (String s:cEx.uses.keySet()) {
+          ArrayList<Explanation> aex=cEx.uses.get(s);
+          for (Explanation ex:aex) {
+            int attrIdx=-1;
+            for (int i=0; i<ex.eItems.length && attrIdx==-1; i++)
+              if (attrName.equals(ex.eItems[i].attr))
+                attrIdx=i;
+            if (attrIdx!=-1) {
+              float vv=ex.eItems[attrIdx].value;
+              v[values.length+j]=vv;
+            }
+            j++;
           }
-          j++;
         }
-      }
       return v;
     }
     else {

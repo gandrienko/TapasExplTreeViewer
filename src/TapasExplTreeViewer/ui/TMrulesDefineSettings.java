@@ -13,6 +13,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
@@ -24,7 +27,7 @@ public class TMrulesDefineSettings {
                                 Map<String, List<Float>> allValues)
   {
     SwingUtilities.invokeLater(() -> {
-      AttributeRangeDialog dialog = new AttributeRangeDialog(attrMinMax, uniqueSortedValues, allValues);
+      AttributeRangeDialog dialog = new AttributeRangeDialog(exList, attrMinMax, uniqueSortedValues, allValues);
       dialog.setVisible(true);
     });
   }
@@ -36,6 +39,7 @@ class AttributeRangeDialog extends JFrame {
   private JLabel fileNameLabel;
 
   public AttributeRangeDialog(
+          ArrayList<CommonExplanation> exList,
           Map<String, float[]> attrMinMax,
           Map<String, TreeSet<Float>> uniqueSortedValues,
           Map<String, List<Float>> allValues) {
@@ -97,7 +101,9 @@ class AttributeRangeDialog extends JFrame {
     goButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        fileNameLabel.setText("File: " + generateFileName());
+        String fname=generateFileName();
+        fileNameLabel.setText("File: " + fname);
+        //saveToFile(fname);
       }
     });
 
@@ -106,6 +112,16 @@ class AttributeRangeDialog extends JFrame {
 
     // Add the panel to the frame
     add(bottomPanel, BorderLayout.SOUTH);
+  }
+
+  private void saveToFile (String fname) {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(fname))) {
+      //writer.write(data);
+      System.out.println("Data written to file: " + fname);
+      writer.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   private void adjustColumnWidths(JTable table) {

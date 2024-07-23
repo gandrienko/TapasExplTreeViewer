@@ -802,8 +802,11 @@ public class RuleMaster {
             writer.write("; ");
           else
             first=false;
-          writer.write(e.attr + ":{" + ((Double.isInfinite(e.interval[0])) ? "-inf" : e.interval[0]) +
-              ":" + ((Double.isInfinite(e.interval[1])) ? "inf" : e.interval[1]) + "}");
+          String left=(Double.isInfinite(e.interval[0])) ? "-inf" :
+                          (e.isInteger)?String.format("%d",Math.round(e.interval[0])):Double.toString(e.interval[0]);
+          String right=(Double.isInfinite(e.interval[1])) ? "inf" :
+                          (e.isInteger)?String.format("%d",Math.round(e.interval[1])):Double.toString(e.interval[1]);
+          writer.write(e.attr + ":{" + left + ":" + right + "}");
         }
         if (isRegression) {
           writer.write("," + ce.meanQ);

@@ -35,7 +35,7 @@ public class SeeRules {
         if (line==null || line.trim().length()<3)
           continue;
         String[] fields = line.split(","); // Split line into 3 parts: RuleID, Rule, Class
-        if (fields==null || fields.length<3)
+        if (fields==null || fields.length<2)
           continue;
         if (fieldNames==null) {
           fieldNames=fields;

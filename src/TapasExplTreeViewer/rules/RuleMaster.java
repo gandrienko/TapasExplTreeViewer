@@ -2,6 +2,7 @@ package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
 import TapasDataReader.Explanation;
+import TapasDataReader.ExplanationItem;
 import TapasExplTreeViewer.clustering.ObjectWithMeasure;
 
 import javax.swing.*;
@@ -769,11 +770,61 @@ public class RuleMaster {
         return i;
     return -1;
   }
-  
+
   public static boolean exportRulesToFile(File file,
-                                          ArrayList<CommonExplanation> rules,
-                                          Hashtable<String,float[]> attrMinMax,
-                                          boolean isRegression) {
+                                          ArrayList<CommonExplanation> rules) {
+    if (file==null) {
+      System.out.println("Rule export: no file!");
+      return false;
+    }
+    if (rules==null || rules.isEmpty()) {
+      System.out.println("Rule export: no rules!");
+      return false;
+    }
+    boolean hasTreeId=rules.get((int)Math.floor(Math.random()*rules.size())).treeId>=0;
+    boolean isRegression=!Float.isNaN(rules.get((int)Math.floor(Math.random()*rules.size())).minQ);
+    boolean areUnited=rules.get(0) instanceof UnitedRule;
+
+    boolean ok=false;
+    String header="RuleID"+((hasTreeId)?",TreeID":"")+",Rule,"+
+        ((isRegression)?((areUnited)?"Mean value,Min value,Max value":"Value"):"Class");
+
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+      writer.write(header);
+      writer.newLine();
+      for (CommonExplanation ce:rules) {
+        writer.write(ce.numId+",");
+        if (hasTreeId)
+          writer.write(ce.treeId+",");
+        boolean first=true;
+        for (ExplanationItem e:ce.eItems) {
+          if (!first)
+            writer.write("; ");
+          else
+            first=false;
+          writer.write(e.attr + ":{" + ((Double.isInfinite(e.interval[0])) ? "-inf" : e.interval[0]) +
+              ":" + ((Double.isInfinite(e.interval[1])) ? "inf" : e.interval[1]) + "}");
+        }
+        if (isRegression) {
+          writer.write("," + ce.meanQ);
+          if (areUnited)
+            writer.write("," + ce.minQ + "," + ce.maxQ);
+        }
+        else
+          writer.write(","+ce.action);
+        writer.newLine();
+      }
+      ok=true;
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+    return ok;
+  }
+
+  
+  public static boolean exportRulesToTable(File file,
+                                           ArrayList<CommonExplanation> rules,
+                                           Hashtable<String,float[]> attrMinMax) {
     if (file==null) {
       System.out.println("Rule export: no file!");
       return false;

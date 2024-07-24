@@ -8,6 +8,7 @@ import TapasExplTreeViewer.ui.ShowRules;
 
 import javax.swing.*;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -189,6 +190,7 @@ public class SeeRules {
 
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     showRules.setOrigRules(exList);
+    showRules.dataFolder=new File(csvFile).getParent();
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");

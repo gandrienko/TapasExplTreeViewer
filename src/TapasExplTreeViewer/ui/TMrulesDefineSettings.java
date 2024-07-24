@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.ui;
 
 import TapasDataReader.CommonExplanation;
+import TapasDataReader.ExplanationItem;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -14,6 +15,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -24,10 +26,11 @@ public class TMrulesDefineSettings {
 
   public TMrulesDefineSettings (ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax,
                                 Map<String, TreeSet<Float>> uniqueSortedValues,
-                                Map<String, List<Float>> allValues)
+                                Map<String, List<Float>> allValues,
+                                String dataFolder)
   {
     SwingUtilities.invokeLater(() -> {
-      AttributeRangeDialog dialog = new AttributeRangeDialog(exList, attrMinMax, uniqueSortedValues, allValues);
+      AttributeRangeDialog dialog = new AttributeRangeDialog(exList, attrMinMax, uniqueSortedValues, allValues, dataFolder);
       dialog.setVisible(true);
     });
   }
@@ -38,11 +41,20 @@ class AttributeRangeDialog extends JFrame {
 
   private JLabel fileNameLabel;
 
+  ArrayList<CommonExplanation> exList;
+  Map<String, float[]> attrMinMax;
+  Map<String, TreeSet<Float>> uniqueSortedValues;
+
   public AttributeRangeDialog(
           ArrayList<CommonExplanation> exList,
           Map<String, float[]> attrMinMax,
           Map<String, TreeSet<Float>> uniqueSortedValues,
-          Map<String, List<Float>> allValues) {
+          Map<String, List<Float>> allValues,
+          String dataFolder) {
+
+    this.exList=exList;
+    this.attrMinMax=attrMinMax;
+    this.uniqueSortedValues=uniqueSortedValues;
 
     setTitle("Attribute Range Definition");
     setSize(800, 600);
@@ -101,9 +113,9 @@ class AttributeRangeDialog extends JFrame {
     goButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        String fname=generateFileName();
+        String fname=new File(dataFolder,generateFileName()).getPath();
         fileNameLabel.setText("File: " + fname);
-        //saveToFile(fname);
+        saveToFile(fname, model.modeMap, model.quantileMap);
       }
     });
 
@@ -114,15 +126,93 @@ class AttributeRangeDialog extends JFrame {
     add(bottomPanel, BorderLayout.SOUTH);
   }
 
-  private void saveToFile (String fname) {
+/*
+  private void saveToFile (ArrayList<CommonExplanation> exList, String fname) {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(fname))) {
-      //writer.write(data);
-      System.out.println("Data written to file: " + fname);
-      writer.close();
+      // Write header
+      writer.write("ruleNumber,outcome,conditions");
+      writer.newLine();
+
+      // Write each rule
+      for (int i = 0; i < exList.size(); i++) {
+        CommonExplanation rule = exList.get(i);
+        StringBuilder sb = new StringBuilder();
+        sb.append(i + 1).append(","); // ruleNumber (starting from 1)
+        sb.append(rule.action).append(","); // outcome
+        for (ExplanationItem item : rule.eItems) {
+          sb.append("[").append(item.interval[0]).append(" - ").append(item.interval[1]).append("] ");
+        }
+        // Remove the last space
+        sb.setLength(sb.length() - 1);
+        writer.write(sb.toString());
+        writer.newLine();
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
+*/
+
+  private void saveToFile(String fname, Map<String,Boolean> modeMap, Map<String,Integer> quantileMap) {
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(fname))) {
+      // Write header
+      writer.write("ruleNumber,outcome,conditions");
+      writer.newLine();
+
+      // Prepare interval mapping for each attribute
+      Map<String, List<String>> intervalMap = new HashMap<>();
+      for (String attribute : attrMinMax.keySet()) {
+        List<String> intervals = new ArrayList<>();
+        if (modeMap.get(attribute)) {
+          // Distinct mode
+          List<Float> values = new ArrayList<>(uniqueSortedValues.get(attribute));
+          for (int i = 0; i < values.size(); i++) {
+            intervals.add(attribute + "_" + i);
+          }
+        } else {
+          // Quantiles mode
+          int n = quantileMap.get(attribute);
+          float[] minMax = attrMinMax.get(attribute);
+          float min = minMax[0];
+          float max = minMax[1];
+          for (int i = 0; i < n; i++) {
+            intervals.add(attribute + "_" + i);
+          }
+        }
+        intervalMap.put(attribute, intervals);
+      }
+
+      // Write each rule
+      for (int i = 0; i < exList.size(); i++) {
+        CommonExplanation rule = exList.get(i);
+        StringBuilder sb = new StringBuilder();
+        sb.append(i + 1).append(","); // ruleNumber (starting from 1)
+        sb.append(rule.action).append(","); // outcome
+        for (ExplanationItem item : rule.eItems) {
+          String attribute = item.attr;
+          List<String> intervals = intervalMap.get(attribute);
+          double start = item.interval[0];
+          double end = item.interval[1];
+
+          for (int j = 0; j < intervals.size(); j++) {
+            double intervalStart = j == 0 ? -Double.MAX_VALUE : uniqueSortedValues.get(attribute).toArray(new Float[0])[j - 1];
+            double intervalEnd = j == intervals.size() - 1 ? Double.MAX_VALUE : uniqueSortedValues.get(attribute).toArray(new Float[0])[j];
+
+            if (start < intervalEnd && end > intervalStart) {
+              sb.append(intervals.get(j)).append(" ");
+            }
+          }
+        }
+        // Remove the last space
+        sb.setLength(sb.length() - 1);
+        writer.write(sb.toString());
+        writer.newLine();
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
 
   private void adjustColumnWidths(JTable table) {
     int tableWidth = table.getWidth();
@@ -155,7 +245,7 @@ class AttributeTableModel extends AbstractTableModel {
   private final Map<String, TreeSet<Float>> uniqueSortedValues;
   private final Map<String, List<Float>> allValues;
   public final Map<String, Boolean> modeMap;
-  private final Map<String, Integer> quantileMap;
+  public final Map<String, Integer> quantileMap;
   private final Map<String, List<Float>> intervalsMap;
 
   public AttributeTableModel (Map<String, float[]> attrMinMax,

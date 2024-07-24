@@ -90,6 +90,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   protected JLabel_Rule ruleRenderer=null;
   
   public String title=null;
+  public String dataFolder="";
   
   protected ArrayList<JFrame> frames=null;
   protected ArrayList<File> createdFiles=null;
@@ -1143,7 +1144,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
     }
     // Defining intervals for feature discretization
-    TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(exList,attrMinMax,uniqueSortedValues,allValues);
+    TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(exList,attrMinMax,uniqueSortedValues,allValues,dataFolder);
     //
     return null;
   }

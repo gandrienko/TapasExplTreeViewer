@@ -350,10 +350,18 @@ public class UnitedRule extends CommonExplanation {
         if (e1[i].attr.equals(e2[j].attr)) {
           double interval[]=uniteIntervals(e1[i].interval,e2[j].interval);
           if (interval!=null && (!Double.isInfinite(interval[0]) || !Double.isInfinite(interval[1]))) {
-            ExplanationItem ei=new ExplanationItem();
-            ei.attr=e1[i].attr;
-            ei.interval=interval;
-            eList.add(ei);
+            boolean wholeRange=false;
+            if (attrMinMax!=null) {
+              float minmax[]=attrMinMax.get(e1[i].attr);
+              if (minmax!=null)
+                wholeRange=interval[0]==minmax[0] && interval[1]==minmax[1];
+            }
+            if (!wholeRange) {
+              ExplanationItem ei = new ExplanationItem();
+              ei.attr = e1[i].attr;
+              ei.interval = interval;
+              eList.add(ei);
+            }
           }
         }
     if (eList.isEmpty())

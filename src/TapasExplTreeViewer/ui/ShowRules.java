@@ -1556,6 +1556,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable();
   }
+
+  private long aggrT0=-1;
   
   public void stateChanged(ChangeEvent e) {
     if (e.getSource() instanceof AggregationRunner) {
@@ -1576,6 +1578,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           return;
         }
       }
+
+      long tDiff=System.currentTimeMillis()-aggrT0;
+      aggrT0=-1;
+      System.out.println("Aggregation took "+(1.0*tDiff/60000)+" minutes.");
   
       ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
       aggEx.addAll(aggRules);
@@ -1718,7 +1724,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     }
 
     System.out.println("Trying to aggregate the rules...");
-  
+
     ArrayList<UnitedRule> rules=UnitedRule.getRules(exList);
     ArrayList<UnitedRule> aggRules=null;
     AbstractList<Explanation> data=(checkWithData)?dataInstances:null;
@@ -1759,45 +1765,12 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         accStep=0.1;
       }
       aggRunner.setIterationParameters(initAccuracy,accStep);
-      
-      /*
-      for (double acc=initAccuracy; acc>=minAccuracy; acc-=accStep) {
-        aggRules=(noActions)?
-                     RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,acc,attrMinMax):
-                     RuleMaster.aggregate(rules, origRules,data,acc,attrMinMax);
-        if (aggRules!=null && aggRules.size()<rules.size())
-          rules=aggRules;
-      }
-      aggRules=rules;
-      */
     }
-    /*
-    else
-      aggRules=(noActions)?
-                   RuleMaster.aggregateByQ(rules,maxQDiff,origRules,data,minAccuracy,attrMinMax):
-                   RuleMaster.aggregate(rules, origRules,data,minAccuracy,attrMinMax);
-    */
+
+    aggrT0=System.currentTimeMillis();
+
     aggRunner.aggregate(FocusManager.getCurrentManager().getActiveWindow());
     
-    /*
-    if (aggRules==null || aggRules.size()>=exList.size()) {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Failed to aggregate!",
-          "Fail",JOptionPane.WARNING_MESSAGE);
-      return;
-    }
-    
-    ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
-    aggEx.addAll(aggRules);
-    ShowRules showRules=createShowRulesInstance(aggEx);
-    showRules.setNonSubsumed(true);
-    showRules.setAggregated(true);
-    showRules.setAccThreshold(minAccuracy);
-    if (noActions)
-      showRules.setMaxQDiff(maxQDiff);
-    showRules.countRightAndWrongRuleApplications();
-    showRules.showRulesInTable();
-    */
   }
   
   public void showAggregationInProjection(ItemSelectionManager selector) {

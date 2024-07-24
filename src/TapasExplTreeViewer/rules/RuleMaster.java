@@ -836,20 +836,34 @@ public class RuleMaster {
       System.out.println("Rule export: no rules!");
       return false;
     }
-    Hashtable<String, Integer> attrUses=new Hashtable<String, Integer>(50);
+    Hashtable<String, Integer> attrUses=new Hashtable<String, Integer>(100);
+    ArrayList<String> intFeatures=new ArrayList<String>(100);
+
     boolean hasUnitedRules=false;
     int minClass=-1, maxClass=-1;
-    int maxNUses=0, maxRight=0, maxWrong=0, minTreeId=-1, maxTreeId=-1;
-    boolean rulesHaveQIntervals=false;
+    int maxRight=0, maxWrong=0;
+    boolean rulesHaveQIntervals=false, rulesHaveUses=false, rulesHaveTreeIds=false;
     double qMin=Double.NaN, qMax=Double.NaN;
   
     for (int i=0; i<rules.size(); i++) {
       CommonExplanation cEx=rules.get(i);
       hasUnitedRules=hasUnitedRules || (cEx instanceof UnitedRule);
+      rulesHaveUses=rulesHaveUses || (cEx.uses!=null && !cEx.uses.isEmpty());
+      rulesHaveTreeIds = rulesHaveTreeIds || cEx.treeId>=0;
+
+      if (cEx instanceof UnitedRule) {
+        UnitedRule r=(UnitedRule)cEx;
+        if (maxRight<r.nOrigRight) maxRight=r.nOrigRight;
+        if (maxWrong<r.nOrigWrong) maxWrong=r.nOrigWrong;
+      }
+
       for (int j=0; j<cEx.eItems.length; j++) {
         Integer count=attrUses.get(cEx.eItems[j].attr);
-        if (count==null)
+        if (count==null) {
           attrUses.put(cEx.eItems[j].attr, 1);
+          if (cEx.eItems[j].isInteger)
+            intFeatures.add(cEx.eItems[j].attr);
+        }
         else
           attrUses.put(cEx.eItems[j].attr, count+1);
       }
@@ -880,6 +894,8 @@ public class RuleMaster {
       rulesHaveQIntervals=rulesHaveQIntervals || (!qEqualsAction && hasMinQ && hasMaxQ && cEx.maxQ>cEx.minQ);
     }
     ArrayList<String> usedFeatures=new ArrayList<String>(attrUses.size());
+    ArrayList<String> binaryFeatures=(intFeatures.isEmpty())?null:new ArrayList<String>(intFeatures.size());
+
     for (Map.Entry<String,Integer> entry:attrUses.entrySet()) {
       String aName=entry.getKey();
       if (usedFeatures.isEmpty())
@@ -893,8 +909,16 @@ public class RuleMaster {
           usedFeatures.add(aName);
         else
           usedFeatures.add(idx,aName);
+        if (intFeatures.contains(aName) && attrMinMax!=null) {
+          float minmax[]=attrMinMax.get(aName);
+          if (Math.round(minmax[1]-minmax[0])==1)
+            binaryFeatures.add(aName);
+        }
       }
     }
+
+    ArrayList<String> fieldNames=new ArrayList<String>(25+usedFeatures.size());
+    fieldNames.add("RuleID");
     
     boolean ok=false;
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {

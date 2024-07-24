@@ -705,6 +705,33 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         }
       }
     });
+    menu.add(mit=new JMenuItem("Export rules to file in structured (table) format"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        boolean applyToSelection=
+            selector.hasSelection() &&
+                JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                    "Apply the operation to the selected subset?",
+                    "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
+                    ==JOptionPane.YES_OPTION;
+        ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+        // Select file to save
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Specify a file to save the table");
+        int userSelection = fileChooser.showSaveDialog(null);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+          File fileToSave = fileChooser.getSelectedFile();
+          boolean ok=RuleMaster.exportRulesToTable(fileToSave, rules,attrMinMax);
+          if (ok)
+            JOptionPane.showMessageDialog(null, "Rules exported successfully!");
+          else
+            JOptionPane.showMessageDialog(null, "Failed to export rules.",
+                "Error", JOptionPane.ERROR_MESSAGE);
+        }
+      }
+    });
 
     menu.addSeparator();
     menu.add(mit=new JMenuItem("Quit"));

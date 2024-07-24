@@ -901,28 +901,170 @@ public class RuleMaster {
       if (usedFeatures.isEmpty())
         usedFeatures.add(aName);
       else {
-        int count=entry.getValue(), idx=-1;
-        for (int i=0; i<usedFeatures.size() && idx<0; i++)
-          if (count>attrUses.get(usedFeatures.get(i)))
-            idx=i;
-        if (idx<0)
+        int count = entry.getValue(), idx = -1;
+        for (int i = 0; i < usedFeatures.size() && idx < 0; i++)
+          if (count > attrUses.get(usedFeatures.get(i)))
+            idx = i;
+        if (idx < 0)
           usedFeatures.add(aName);
         else
-          usedFeatures.add(idx,aName);
-        if (intFeatures.contains(aName) && attrMinMax!=null) {
-          float minmax[]=attrMinMax.get(aName);
-          if (Math.round(minmax[1]-minmax[0])==1)
-            binaryFeatures.add(aName);
-        }
+          usedFeatures.add(idx, aName);
+      }
+      if (intFeatures.contains(aName) && attrMinMax!=null) {
+        float minmax[]=attrMinMax.get(aName);
+        if (Math.round(minmax[1]-minmax[0])==1)
+          binaryFeatures.add(aName);
+        else
+          System.out.println("Feature "+aName+": ["+minmax[0]+".."+minmax[1]+"]");
       }
     }
 
     ArrayList<String> fieldNames=new ArrayList<String>(25+usedFeatures.size());
     fieldNames.add("RuleID");
-    
+    if (rulesHaveTreeIds)
+      fieldNames.add("TreeID");
+    if (maxClass>minClass || minClass>=0)
+      fieldNames.add("Class");
+    if (rulesHaveQIntervals) {
+      fieldNames.add("Mean value");
+      fieldNames.add("Min value");
+      fieldNames.add("Max value");
+      fieldNames.add("Range width");
+    }
+    else
+      if (!Double.isNaN(qMin) && qMin<qMax)
+        fieldNames.add("Value");
+    if (rulesHaveUses)
+      fieldNames.add("N uses");
+    if (maxRight>0)
+      fieldNames.add("N right covered");
+    if (maxWrong>0) {
+      fieldNames.add("N wrong covered");
+      fieldNames.add("% coherence");
+    }
+    if (hasUnitedRules) {
+      fieldNames.add("N united");
+      fieldNames.add("Depth of hierarchy");
+    }
+    fieldNames.add("N conditions");
+
+    int fIdx0=fieldNames.size();
+
+    if (binaryFeatures!=null && !binaryFeatures.isEmpty())
+      for (int i=0; i<usedFeatures.size(); i++)
+        if (binaryFeatures.contains(usedFeatures.get(i)))
+          fieldNames.add(usedFeatures.get(i));
+
+    int nBinary=fieldNames.size()-fIdx0;
+    if (usedFeatures.size()>nBinary)
+      for (int i=0; i<usedFeatures.size(); i++)
+        if (nBinary<1 || !binaryFeatures.contains(usedFeatures.get(i))) {
+          fieldNames.add(usedFeatures.get(i) + ": min");
+          fieldNames.add(usedFeatures.get(i) + ": max");
+        }
+
     boolean ok=false;
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-      //
+      writer.write(fieldNames.get(0));
+      for (int i=1; i<fieldNames.size(); i++)
+        writer.write(","+fieldNames.get(i));
+      writer.newLine();
+      for (int rIdx=0; rIdx<rules.size(); rIdx++) {
+        CommonExplanation cEx=rules.get(rIdx);
+        UnitedRule rule=(hasUnitedRules)?(UnitedRule)cEx:null;
+        writer.write(Integer.toString(cEx.numId));
+        for (int i=1; i<fIdx0; i++) {
+          writer.write(",");
+          String fName=fieldNames.get(i);
+          if (fName.equals("TreeID"))
+            writer.write(Integer.toString(cEx.treeId));
+          else
+          if (fName.equals("Class"))
+            writer.write(Integer.toString(cEx.action));
+          else
+          if (fName.equals("Value") || fName.equals("Mean value"))
+            writer.write(String.format("%.6f",cEx.meanQ));
+          else
+          if (fName.equals("Min value"))
+            writer.write(String.format("%.6f",cEx.minQ));
+          else
+          if (fName.equals("Max value"))
+            writer.write(String.format("%.6f",cEx.maxQ));
+          else
+          if (fName.equals("Range width"))
+            writer.write(String.format("%.6f",cEx.maxQ-cEx.minQ));
+          else
+          if (fName.equals("N uses"))
+            writer.write((cEx.uses==null)?"0":Integer.toString(cEx.uses.size()));
+          else
+          if (fName.equals("N right covered"))
+            writer.write(Integer.toString(rule.nOrigRight));
+          else
+          if (fName.equals("N wrong covered"))
+            writer.write(Integer.toString(rule.nOrigWrong));
+          else
+          if (fName.equals("% coherence"))
+            writer.write(String.format("%.2f", 100.0*rule.nOrigRight/(rule.nOrigWrong+rule.nOrigRight)));
+          else
+          if (fName.equals("N united"))
+            writer.write((rule.fromRules==null)?"0":Integer.toString(rule.fromRules.size()));
+          else
+          if (fName.equals("Depth of hierarchy"))
+            writer.write(Integer.toString(rule.getHierarchyDepth()));
+          else
+          if (fName.equals("N conditions"))
+            writer.write(Integer.toString(cEx.eItems.length));
+          else
+            writer.write(""); //unrecognised field name (???)
+        }
+        for (int i=fIdx0; i<fIdx0+nBinary; i++) {
+          writer.write(",");
+          double minmax[] = cEx.getFeatureInterval(fieldNames.get(i));
+          if (minmax == null)
+            continue;
+          if (Double.isInfinite(minmax[0]))
+            if (Double.isInfinite(minmax[1]))
+              continue;
+            else
+              writer.write((minmax[1]<1)?"0":"1");
+          else
+            if (Double.isInfinite(minmax[1]))
+              writer.write((minmax[0]>0)?"1":"0");
+            else
+              if (Math.round(minmax[1]-minmax[0])>=1)
+                continue;
+              else
+                writer.write((minmax[1]<1)?"0":"1");
+        }
+        for (int i=fIdx0+nBinary; i<fieldNames.size(); i+=2) {
+          writer.write(",");
+          String fName=fieldNames.get(i);
+          int idx=fName.lastIndexOf(": min");
+          if (idx>0)
+            fName=fName.substring(0,idx);
+          double minmax[] = cEx.getFeatureInterval(fName);
+          if (minmax == null || (Double.isInfinite(minmax[0]) && Double.isInfinite(minmax[1]))) {
+            writer.write(",");
+            continue;
+          }
+          if (attrMinMax!=null) {
+            float absMM[]=attrMinMax.get(fName);
+            if (Double.isInfinite(minmax[0]))
+              minmax[0]=absMM[0];
+            if (Double.isInfinite(minmax[1]))
+              minmax[1]=absMM[1];
+            if (minmax[0]<=absMM[0] && minmax[1]>=absMM[1]) { //whole range
+              writer.write(",");
+              continue;
+            }
+          }
+          if (intFeatures.contains(fName))
+            writer.write(Math.round(minmax[0])+","+Math.round(minmax[1]));
+          else
+            writer.write(String.format("%.6f,%.6f",minmax[0],minmax[1]));
+        }
+        writer.newLine();
+      }
       ok=true;
     } catch (Exception ex) {
       //

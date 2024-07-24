@@ -115,7 +115,7 @@ class AttributeRangeDialog extends JFrame {
       public void actionPerformed(ActionEvent e) {
         String fname=new File(dataFolder,generateFileName()).getPath();
         fileNameLabel.setText("File: " + fname);
-        saveToFile(fname, model.modeMap, model.quantileMap);
+        saveToFile(fname, model.modeMap, model.intervalsMap);
       }
     });
 
@@ -153,33 +153,48 @@ class AttributeRangeDialog extends JFrame {
   }
 */
 
-  private void saveToFile(String fname, Map<String,Boolean> modeMap, Map<String,Integer> quantileMap) {
+  private void saveToFile(String fname, Map<String,Boolean> modeMap, Map<String, List<Float>> intervalsMap) {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(fname))) {
       // Write header
-      writer.write("ruleNumber,outcome,conditions");
+      writer.write("ruleNumber,ruleAsText,outcome,conditions");
       writer.newLine();
 
       // Prepare interval mapping for each attribute
-      Map<String, List<String>> intervalMap = new HashMap<>();
+      Map<String, List<String>> labelsMap = new HashMap<>();
+      Map<String, List<Double>> breaksMap = new HashMap<>();
+
       for (String attribute : attrMinMax.keySet()) {
-        List<String> intervals = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        List<Double> breaks = new ArrayList<>();
+
         if (modeMap.get(attribute)) {
           // Distinct mode
           List<Float> values = new ArrayList<>(uniqueSortedValues.get(attribute));
+          int numIntervals = values.size();
+          int numDigits = String.valueOf(numIntervals).length();
           for (int i = 0; i < values.size(); i++) {
-            intervals.add(attribute + "_" + i);
+            labels.add(attribute + "_" + String.format("%0" + numDigits + "d", i));
+            breaks.add((double) values.get(i));
           }
+          breaks.add(Double.MAX_VALUE); // Add max value for the last interval
         } else {
           // Quantiles mode
-          int n = quantileMap.get(attribute);
+          int n=intervalsMap.get(attribute).size();
           float[] minMax = attrMinMax.get(attribute);
           float min = minMax[0];
           float max = minMax[1];
+          breaks.add((double) min);
           for (int i = 0; i < n; i++) {
-            intervals.add(attribute + "_" + i);
+            breaks.add((double)intervalsMap.get(attribute).get(i));
+          }
+          breaks.add((double) max);
+          int numDigits = String.valueOf(n+1).length();
+          for (int i = 0; i < n; i++) {
+            labels.add(attribute + "_" + String.format("%0" + numDigits + "d", i));
           }
         }
-        intervalMap.put(attribute, intervals);
+        labelsMap.put(attribute, labels);
+        breaksMap.put(attribute, breaks);
       }
 
       // Write each rule
@@ -187,24 +202,29 @@ class AttributeRangeDialog extends JFrame {
         CommonExplanation rule = exList.get(i);
         StringBuilder sb = new StringBuilder();
         sb.append(i + 1).append(","); // ruleNumber (starting from 1)
+        sb.append(ruleToPlainString(rule)).append(",");
         sb.append(rule.action).append(","); // outcome
+
         for (ExplanationItem item : rule.eItems) {
           String attribute = item.attr;
-          List<String> intervals = intervalMap.get(attribute);
+          List<String> intervals = labelsMap.get(attribute);
+          List<Double> breaks = breaksMap.get(attribute);
           double start = item.interval[0];
           double end = item.interval[1];
-
+          if (Double.isInfinite(end))
+            end=attrMinMax.get(attribute)[1];
           for (int j = 0; j < intervals.size(); j++) {
-            double intervalStart = j == 0 ? -Double.MAX_VALUE : uniqueSortedValues.get(attribute).toArray(new Float[0])[j - 1];
-            double intervalEnd = j == intervals.size() - 1 ? Double.MAX_VALUE : uniqueSortedValues.get(attribute).toArray(new Float[0])[j];
-
-            if (start < intervalEnd && end > intervalStart) {
+            double intervalStart = breaks.get(j);
+            double intervalEnd = breaks.get(j + 1);
+            if (start < intervalEnd && end >= intervalStart)
               sb.append(intervals.get(j)).append(" ");
-            }
           }
         }
+
         // Remove the last space
-        sb.setLength(sb.length() - 1);
+        if (sb.length() > 0 && sb.charAt(sb.length() - 1) == ' ')
+          sb.setLength(sb.length() - 1);
+
         writer.write(sb.toString());
         writer.newLine();
       }
@@ -213,6 +233,13 @@ class AttributeRangeDialog extends JFrame {
     }
   }
 
+  private String ruleToPlainString(CommonExplanation rule) {
+    StringBuilder sb = new StringBuilder();
+    for (ExplanationItem item : rule.eItems)
+      sb.append(item.attr+" [").append(item.interval[0]).append(" .. ").append(item.interval[1]).append("] ");
+    sb.append("=> ").append(rule.action).append("\n");
+    return sb.toString();
+  }
 
   private void adjustColumnWidths(JTable table) {
     int tableWidth = table.getWidth();
@@ -245,8 +272,8 @@ class AttributeTableModel extends AbstractTableModel {
   private final Map<String, TreeSet<Float>> uniqueSortedValues;
   private final Map<String, List<Float>> allValues;
   public final Map<String, Boolean> modeMap;
-  public final Map<String, Integer> quantileMap;
-  private final Map<String, List<Float>> intervalsMap;
+  private final Map<String, Integer> quantileMap;
+  public final Map<String, List<Float>> intervalsMap;
 
   public AttributeTableModel (Map<String, float[]> attrMinMax,
                               Map<String, TreeSet<Float>> uniqueSortedValues,

@@ -209,7 +209,7 @@ class AttributeRangeDialog extends JFrame {
         StringBuilder sb = new StringBuilder();
         sb.append(i + 1).append(","); // ruleNumber (starting from 1)
         sb.append(ruleToPlainString(rule)).append(",");
-        sb.append(rule.action).append(","); // outcome
+        sb.append((Double.isNaN(rule.meanQ))?rule.action:rule.minQ+".."+rule.maxQ).append(","); // outcome
 
         for (String attribute: listOfFeatures)
         for (ExplanationItem item : rule.eItems)
@@ -247,7 +247,7 @@ class AttributeRangeDialog extends JFrame {
       for (ExplanationItem item : rule.eItems)
         if (attr.equals(item.attr))
           sb.append(item.attr+":[").append(item.interval[0]).append("..").append(item.interval[1]).append("] ");
-    sb.append("=> ").append(rule.action);
+    sb.append("=> ").append((Double.isNaN(rule.meanQ))?rule.action:rule.minQ+".."+rule.maxQ);
     return sb.toString();
   }
 

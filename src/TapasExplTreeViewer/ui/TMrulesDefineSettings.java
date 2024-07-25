@@ -161,7 +161,10 @@ class AttributeRangeDialog extends JFrame {
   private void saveToFile(String fname, Map<String,Boolean> modeMap, Map<String, List<Float>> intervalsMap) {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(fname))) {
       // Write header
-      writer.write("ruleNumber,ruleAsText,outcome,conditions");
+      if (Float.isNaN(exList.get(0).meanQ))
+        writer.write("ruleNumber,ruleAsText,outcome,conditions");
+      else
+        writer.write("ruleNumber,ruleAsText,outcome_min,outcome_avg,outcome_max,conditions");
       writer.newLine();
 
       // Prepare interval mapping for each attribute
@@ -209,25 +212,29 @@ class AttributeRangeDialog extends JFrame {
         StringBuilder sb = new StringBuilder();
         sb.append(i + 1).append(","); // ruleNumber (starting from 1)
         sb.append(ruleToPlainString(rule)).append(",");
-        sb.append((Double.isNaN(rule.meanQ))?rule.action:rule.minQ+".."+rule.maxQ).append(","); // outcome
+        //sb.append((Double.isNaN(rule.meanQ))?rule.action:rule.minQ+".."+rule.maxQ).append(","); // outcome
+        if (Double.isNaN(rule.meanQ))
+          sb.append(rule.action);
+        else
+          sb.append(rule.minQ+","+rule.meanQ+","+rule.maxQ);
+        sb.append(",");
 
         for (String attribute: listOfFeatures)
-        for (ExplanationItem item : rule.eItems)
-        if (attribute.equals(item.attr)) {
-          //String attribute = item.attr;
-          List<String> intervals = labelsMap.get(attribute);
-          List<Double> breaks = breaksMap.get(attribute);
-          double start = item.interval[0];
-          double end = item.interval[1];
-          if (Double.isInfinite(end))
-            end=attrMinMax.get(attribute)[1];
-          for (int j = 0; j < intervals.size(); j++) {
-            double intervalStart = breaks.get(j);
-            double intervalEnd = breaks.get(j + 1);
-            if (start < intervalEnd && end >= intervalStart)
-              sb.append(intervals.get(j)).append(" ");
-          }
-        }
+          for (ExplanationItem item : rule.eItems)
+            if (attribute.equals(item.attr)) {
+              List<String> intervals = labelsMap.get(attribute);
+              List<Double> breaks = breaksMap.get(attribute);
+              double start = item.interval[0];
+              double end = item.interval[1];
+              if (Double.isInfinite(end))
+                end=attrMinMax.get(attribute)[1];
+              for (int j = 0; j < intervals.size(); j++) {
+                double intervalStart = breaks.get(j);
+                double intervalEnd = breaks.get(j + 1);
+                if (start < intervalEnd && end >= intervalStart)
+                  sb.append(intervals.get(j)).append(" ");
+              }
+            }
 
         // Remove the last space
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == ' ')
@@ -247,7 +254,7 @@ class AttributeRangeDialog extends JFrame {
       for (ExplanationItem item : rule.eItems)
         if (attr.equals(item.attr))
           sb.append(item.attr+":[").append(item.interval[0]).append("..").append(item.interval[1]).append("] ");
-    sb.append("=> ").append((Double.isNaN(rule.meanQ))?rule.action:rule.minQ+".."+rule.maxQ);
+    sb.append("=> ").append((Double.isNaN(rule.meanQ))?rule.action:rule.meanQ+"("+rule.minQ+".."+rule.maxQ+")");
     return sb.toString();
   }
 

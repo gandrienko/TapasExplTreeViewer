@@ -188,7 +188,8 @@ class AttributeRangeDialog extends JFrame {
             breaks.add((double)intervalsMap.get(attribute).get(i));
           }
           breaks.add((double) max);
-          int numDigits = String.valueOf(n+1).length();
+          n+=1;
+          int numDigits = String.valueOf(n).length();
           for (int i = 0; i < n; i++) {
             labels.add(attribute + "_" + String.format("%0" + numDigits + "d", i));
           }
@@ -214,6 +215,7 @@ class AttributeRangeDialog extends JFrame {
           if (Double.isInfinite(end))
             end=attrMinMax.get(attribute)[1];
           for (int j = 0; j < intervals.size(); j++) {
+            //if (j<breaks.size()-1) {
             double intervalStart = breaks.get(j);
             double intervalEnd = breaks.get(j + 1);
             if (start < intervalEnd && end >= intervalStart)
@@ -236,7 +238,7 @@ class AttributeRangeDialog extends JFrame {
   private String ruleToPlainString(CommonExplanation rule) {
     StringBuilder sb = new StringBuilder();
     for (ExplanationItem item : rule.eItems)
-      sb.append(item.attr+" [").append(item.interval[0]).append(" .. ").append(item.interval[1]).append("] ");
+      sb.append(item.attr+":[").append(item.interval[0]).append("..").append(item.interval[1]).append("] ");
     sb.append("=> ").append(rule.action).append("\n");
     return sb.toString();
   }

@@ -118,7 +118,7 @@ class AttributeRangeDialog extends JFrame {
     goButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        String fname=new File(dataFolder,generateFileName()).getPath();
+        String fname=new File(ShowRules.RULES_FOLDER,generateFileName()).getPath();
         fileNameLabel.setText("File: " + fname);
         saveToFile(fname, model.modeMap, model.intervalsMap);
       }

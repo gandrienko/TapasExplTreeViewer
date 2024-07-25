@@ -707,6 +707,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
 
         if (userSelection == JFileChooser.APPROVE_OPTION) {
           File fileToSave = fileChooser.getSelectedFile();
+          String fName=fileToSave.getName().toLowerCase();
+          if (!fName.endsWith(".txt") && !fName.endsWith(".csv"))
+            fileToSave = new File(fileToSave.getAbsolutePath() + ".txt");
           boolean ok=RuleMaster.exportRulesToFile(fileToSave, rules);
           if (ok)
             JOptionPane.showMessageDialog(null, "Rules exported successfully!");
@@ -738,6 +741,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
 
         if (userSelection == JFileChooser.APPROVE_OPTION) {
           File fileToSave = fileChooser.getSelectedFile();
+          String fName=fileToSave.getName().toLowerCase();
+          if (!fName.endsWith(".csv"))
+            fileToSave = new File(fileToSave.getAbsolutePath() + ".csv");
           boolean ok=RuleMaster.exportRulesToTable(fileToSave, rules,attrMinMax);
           if (ok)
             JOptionPane.showMessageDialog(null, "Rules exported successfully!");
@@ -1680,7 +1686,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     pDialog.add(new JLabel("with decreasing the coherence threshold in each step.", JLabel.CENTER));
     /**/
     pDialog.add(Box.createVerticalStrut(5)); // a spacer
-    JCheckBox cbIterative=new JCheckBox("Do step-wise aggregation",true);
+    JCheckBox cbIterative=new JCheckBox("Do step-wise aggregation",false);
     pDialog.add(cbIterative);
     JTextField tfAcc0=new JTextField("1.00",5);
     pp=new JPanel(new BorderLayout(10,0));

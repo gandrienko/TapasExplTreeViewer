@@ -956,12 +956,16 @@ public class RuleMaster {
           fieldNames.add(usedFeatures.get(i));
 
     int nBinary=fieldNames.size()-fIdx0;
-    if (usedFeatures.size()>nBinary)
-      for (int i=0; i<usedFeatures.size(); i++)
-        if (nBinary<1 || !binaryFeatures.contains(usedFeatures.get(i))) {
+    int paramIdx0=-1, paramIdxLast=-1;
+    if (usedFeatures.size()>nBinary) {
+      paramIdx0=fieldNames.size();
+      for (int i = 0; i < usedFeatures.size(); i++)
+        if (nBinary < 1 || !binaryFeatures.contains(usedFeatures.get(i))) {
           fieldNames.add(usedFeatures.get(i) + ": min");
           fieldNames.add(usedFeatures.get(i) + ": max");
         }
+      paramIdxLast=fieldNames.size();
+    }
 
     boolean ok=false;
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
@@ -1067,7 +1071,31 @@ public class RuleMaster {
       }
       ok=true;
     } catch (Exception ex) {
-      //
+      ex.printStackTrace();
+    }
+    if (ok && paramIdx0>0 && paramIdxLast>paramIdx0) { //generate parameter descriptor
+      String descrFName=file.getAbsolutePath()+".descr";
+      File descrFile=new File(descrFName);
+      try (BufferedWriter writer = new BufferedWriter(new FileWriter(descrFile))) {
+        writer.write("<CaptionParameter>");
+        writer.newLine();
+        writer.write("param_name=\"bound\"");
+        writer.newLine();
+        writer.write("values=\"min\",\"max\"");
+        writer.newLine();
+        for (int i=paramIdx0; i<paramIdxLast; i+=2) {
+          String fName=fieldNames.get(i);
+          int idx=fName.lastIndexOf(": min");
+          if (idx>0)
+            fName=fName.substring(0,idx);
+          writer.write("\""+fName+"\"="+(i+1)+","+(i+2));
+          writer.newLine();
+        }
+        writer.write("</CaptionParameter>");
+        writer.newLine();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
     return ok;
   }

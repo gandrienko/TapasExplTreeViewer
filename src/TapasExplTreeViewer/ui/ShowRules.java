@@ -20,6 +20,7 @@ import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
@@ -700,6 +701,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Specify a file to save");
         fileChooser.setCurrentDirectory(new File(RULES_FOLDER));
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Text file", "txt");
+        fileChooser.setFileFilter(filter);
         int userSelection = fileChooser.showSaveDialog(null);
 
         if (userSelection == JFileChooser.APPROVE_OPTION) {
@@ -728,6 +731,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Specify a file to save the table");
         fileChooser.setCurrentDirectory(new File(RULES_FOLDER));
+        // Set the file extension filter
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("CSV file", "csv");
+        fileChooser.setFileFilter(filter);
         int userSelection = fileChooser.showSaveDialog(null);
 
         if (userSelection == JFileChooser.APPROVE_OPTION) {

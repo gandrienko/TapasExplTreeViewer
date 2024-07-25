@@ -17,8 +17,33 @@ import java.util.List;
 import java.util.Map;
 
 public class SeeRules {
+  public static String pathToRules="c:\\CommonGISprojects\\Lamarr\\model_rules\\";
+
   public static void main(String[] args) {
-    String csvFile = args[0];
+    File file=null;
+    if (args!=null && args.length>0) {
+      String csvFile = args[0];
+      file =new File(csvFile);
+    }
+    else {
+      // Select file with rules
+      JFileChooser fileChooser = new JFileChooser();
+      fileChooser.setDialogTitle("Specify a file with rules");
+      if (pathToRules!=null)
+        fileChooser.setCurrentDirectory(new File(pathToRules));
+      else {
+        String workingDirectory = System.getProperty("user.dir");
+        if (workingDirectory != null)
+          fileChooser.setCurrentDirectory(new File(workingDirectory));
+      }
+      int userSelection = fileChooser.showOpenDialog(null);
+
+      if (userSelection == JFileChooser.APPROVE_OPTION)
+        file = fileChooser.getSelectedFile();
+    }
+    if (file==null)
+      return;
+
     List<Rule> rules = new ArrayList<>();
     int maxNConditions=0;
 
@@ -26,7 +51,10 @@ public class SeeRules {
     if (args.length>1 && args[1].startsWith("feature_type="))
       featureType=args[1].substring(13).toLowerCase();
 
-    try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
+    if (featureType==null)
+      featureType=askFeatureType();
+
+    try (BufferedReader br = new BufferedReader(new FileReader(file))) {
       String line=null;
       String fieldNames[]=null;
       boolean realValued=false;
@@ -91,13 +119,6 @@ public class SeeRules {
       System.out.println("No rules found!");
       return;
     }
-
-    /*
-    // Output the rules for verification
-    for (Rule rule : rules) {
-      System.out.println(rule);
-    }
-    */
 
     Hashtable<String,Integer> features=new Hashtable<String,Integer>(100);
     Hashtable<String,float[]> attrMinMax=new Hashtable<String,float[]>(100);
@@ -188,14 +209,56 @@ public class SeeRules {
       exList.add(ex);
     }
 
+    ShowRules.RULES_FOLDER=file.getParent();
+
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     showRules.setOrigRules(exList);
-    showRules.dataFolder=new File(csvFile).getParent();
+    showRules.dataFolder=ShowRules.RULES_FOLDER;
     JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);
     }
+  }
+
+  public static String askFeatureType () {
+    JRadioButton binaryButton = new JRadioButton("binary");
+    JRadioButton integerButton = new JRadioButton("integer");
+    JRadioButton realValuedButton = new JRadioButton("real-valued");
+
+    // Group the radio buttons
+    ButtonGroup group = new ButtonGroup();
+    group.add(binaryButton);
+    group.add(integerButton);
+    group.add(realValuedButton);
+
+    // Set default selection
+    integerButton.setSelected(true);
+
+    // Create a panel to hold the radio buttons
+    JPanel panel = new JPanel();
+    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    panel.add(new JLabel("Select a feature type:"));
+    panel.add(binaryButton);
+    panel.add(integerButton);
+    panel.add(realValuedButton);
+
+    // Show the dialog with the radio buttons
+    int result = JOptionPane.showConfirmDialog(null, panel, "Feature Type Selection", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+    // Handle the user's selection
+    if (result == JOptionPane.OK_OPTION) {
+      String selectedFeatureType = null;
+      if (binaryButton.isSelected()) {
+        selectedFeatureType = "binary";
+      } else if (integerButton.isSelected()) {
+        selectedFeatureType = "integer";
+      } else if (realValuedButton.isSelected()) {
+        selectedFeatureType = "real-valued";
+      }
+      return selectedFeatureType;
+    }
+    return null;
   }
 
   private static List<Condition> parseConditions(String ruleText) {

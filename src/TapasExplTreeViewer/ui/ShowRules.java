@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.List;
 
 public class ShowRules implements RulesOrderer, ChangeListener {
+  public static String RULES_FOLDER=null;
   
   public static Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
   /**
@@ -698,6 +699,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         // Select file to save
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Specify a file to save");
+        fileChooser.setCurrentDirectory(new File(RULES_FOLDER));
         int userSelection = fileChooser.showSaveDialog(null);
 
         if (userSelection == JFileChooser.APPROVE_OPTION) {
@@ -725,6 +727,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         // Select file to save
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Specify a file to save the table");
+        fileChooser.setCurrentDirectory(new File(RULES_FOLDER));
         int userSelection = fileChooser.showSaveDialog(null);
 
         if (userSelection == JFileChooser.APPROVE_OPTION) {

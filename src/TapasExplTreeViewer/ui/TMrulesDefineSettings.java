@@ -24,13 +24,15 @@ import java.util.List;
 
 public class TMrulesDefineSettings {
 
-  public TMrulesDefineSettings (ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax,
+  public TMrulesDefineSettings (ArrayList<CommonExplanation> exList,
+                                ArrayList<String> listOfFeatures,
+                                Hashtable<String,float[]> attrMinMax,
                                 Map<String, TreeSet<Float>> uniqueSortedValues,
                                 Map<String, List<Float>> allValues,
                                 String dataFolder)
   {
     SwingUtilities.invokeLater(() -> {
-      AttributeRangeDialog dialog = new AttributeRangeDialog(exList, attrMinMax, uniqueSortedValues, allValues, dataFolder);
+      AttributeRangeDialog dialog = new AttributeRangeDialog(exList, listOfFeatures, attrMinMax, uniqueSortedValues, allValues, dataFolder);
       dialog.setVisible(true);
     });
   }
@@ -42,17 +44,20 @@ class AttributeRangeDialog extends JFrame {
   private JLabel fileNameLabel;
 
   ArrayList<CommonExplanation> exList;
+  ArrayList<String> listOfFeatures;
   Map<String, float[]> attrMinMax;
   Map<String, TreeSet<Float>> uniqueSortedValues;
 
   public AttributeRangeDialog(
           ArrayList<CommonExplanation> exList,
+          ArrayList<String> listOfFeatures,
           Map<String, float[]> attrMinMax,
           Map<String, TreeSet<Float>> uniqueSortedValues,
           Map<String, List<Float>> allValues,
-          String dataFolder) {
-
+          String dataFolder)
+  {
     this.exList=exList;
+    this.listOfFeatures=listOfFeatures;
     this.attrMinMax=attrMinMax;
     this.uniqueSortedValues=uniqueSortedValues;
 
@@ -60,7 +65,7 @@ class AttributeRangeDialog extends JFrame {
     setSize(800, 600);
     setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-    AttributeTableModel model = new AttributeTableModel(attrMinMax, uniqueSortedValues, allValues);
+    AttributeTableModel model = new AttributeTableModel(listOfFeatures, attrMinMax, uniqueSortedValues, allValues);
     JTable table = new JTable(model);
 
     // Set up JComboBox for mode selection
@@ -206,8 +211,10 @@ class AttributeRangeDialog extends JFrame {
         sb.append(ruleToPlainString(rule)).append(",");
         sb.append(rule.action).append(","); // outcome
 
-        for (ExplanationItem item : rule.eItems) {
-          String attribute = item.attr;
+        for (String attribute: listOfFeatures)
+        for (ExplanationItem item : rule.eItems)
+        if (attribute.equals(item.attr)) {
+          //String attribute = item.attr;
           List<String> intervals = labelsMap.get(attribute);
           List<Double> breaks = breaksMap.get(attribute);
           double start = item.interval[0];
@@ -215,7 +222,6 @@ class AttributeRangeDialog extends JFrame {
           if (Double.isInfinite(end))
             end=attrMinMax.get(attribute)[1];
           for (int j = 0; j < intervals.size(); j++) {
-            //if (j<breaks.size()-1) {
             double intervalStart = breaks.get(j);
             double intervalEnd = breaks.get(j + 1);
             if (start < intervalEnd && end >= intervalStart)
@@ -237,9 +243,11 @@ class AttributeRangeDialog extends JFrame {
 
   private String ruleToPlainString(CommonExplanation rule) {
     StringBuilder sb = new StringBuilder();
-    for (ExplanationItem item : rule.eItems)
-      sb.append(item.attr+":[").append(item.interval[0]).append("..").append(item.interval[1]).append("] ");
-    sb.append("=> ").append(rule.action).append("\n");
+    for (String attr: listOfFeatures)
+      for (ExplanationItem item : rule.eItems)
+        if (attr.equals(item.attr))
+          sb.append(item.attr+":[").append(item.interval[0]).append("..").append(item.interval[1]).append("] ");
+    sb.append("=> ").append(rule.action);
     return sb.toString();
   }
 
@@ -269,6 +277,7 @@ class AttributeTableModel extends AbstractTableModel {
           "Attribute", "Min", "Max", "Count of Distinct Values",
           "Count of All Values", "Mode", "Number of Quantiles", "Class Intervals"
   };
+
   public final List<String> attributes;
   private final Map<String, float[]> attrMinMax;
   private final Map<String, TreeSet<Float>> uniqueSortedValues;
@@ -277,11 +286,12 @@ class AttributeTableModel extends AbstractTableModel {
   private final Map<String, Integer> quantileMap;
   public final Map<String, List<Float>> intervalsMap;
 
-  public AttributeTableModel (Map<String, float[]> attrMinMax,
+  public AttributeTableModel (ArrayList<String> listOfFeatures,
+                              Map<String, float[]> attrMinMax,
                               Map<String, TreeSet<Float>> uniqueSortedValues,
                               Map<String, List<Float>> allValues)
   {
-    this.attributes = new ArrayList<>(attrMinMax.keySet());
+    this.attributes = listOfFeatures; // new ArrayList<>(attrMinMax.keySet());
     this.attrMinMax = attrMinMax;
     this.uniqueSortedValues = uniqueSortedValues;
     this.allValues = allValues;

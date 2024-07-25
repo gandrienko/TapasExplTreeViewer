@@ -112,6 +112,11 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    */
   Vector<String> attrs=null;
   Vector<float[]> minmax=null;
+
+  /**
+   * list of features sorted by frequency
+   */
+  ArrayList<String> listOfFeatures=null;
   
   public ShowRules(ArrayList<CommonExplanation> exList,
                    Hashtable<String,float[]> attrMinMax,
@@ -295,6 +300,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       runOptics(eTblModel);
     else
       clOptics.addChangeListener(eTblModel);
+    listOfFeatures=eTblModel.listOfFeatures;
     
     table=new JTable(eTblModel){
       public String getToolTipText(MouseEvent e) {
@@ -1171,7 +1177,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
     }
     // Defining intervals for feature discretization
-    TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(exList,attrMinMax,uniqueSortedValues,allValues,dataFolder);
+    TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(exList,listOfFeatures,attrMinMax,uniqueSortedValues,allValues,dataFolder);
     //
     return null;
   }

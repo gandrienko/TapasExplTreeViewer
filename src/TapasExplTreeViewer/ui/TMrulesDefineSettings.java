@@ -291,7 +291,7 @@ class AttributeRangeDialog extends JFrame {
               }
             }
           if (mask.length()>0)
-            sb.append(attribute).append("_").append(mask).append(" ");
+            sb.append(attribute).append("__").append(mask).append(" ");
         }
 
         writer.write(sb.toString().trim());

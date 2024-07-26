@@ -161,10 +161,13 @@ class AttributeRangeDialog extends JFrame {
   private void saveToFile(String fname, Map<String,Boolean> modeMap, Map<String, List<Float>> intervalsMap) {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(fname))) {
       // Write header
+      writer.write("ruleNumber,ruleAsText,");
+      for (String attribute: listOfFeatures)
+        writer.write(attribute+",");
       if (Float.isNaN(exList.get(0).meanQ))
-        writer.write("ruleNumber,ruleAsText,outcome,conditions");
+        writer.write("outcome,conditions");
       else
-        writer.write("ruleNumber,ruleAsText,outcome_min,outcome_avg,outcome_max,conditions");
+        writer.write("outcome_min,outcome_avg,outcome_max,conditions");
       writer.newLine();
 
       // Prepare interval mapping for each attribute
@@ -211,14 +214,41 @@ class AttributeRangeDialog extends JFrame {
         CommonExplanation rule = exList.get(i);
         StringBuilder sb = new StringBuilder();
         sb.append(i + 1).append(","); // ruleNumber (starting from 1)
+        // write rule as text
         sb.append(ruleToPlainString(rule)).append(",");
         //sb.append((Double.isNaN(rule.meanQ))?rule.action:rule.minQ+".."+rule.maxQ).append(","); // outcome
+
+        // write masks for all attributes
+        for (String attribute: listOfFeatures) {
+          String mask="";
+          for (ExplanationItem item : rule.eItems)
+            if (attribute.equals(item.attr)) {
+              List<String> intervals = labelsMap.get(attribute);
+              List<Double> breaks = breaksMap.get(attribute);
+              double start = item.interval[0];
+              double end = item.interval[1];
+              if (Double.isInfinite(end))
+                end=attrMinMax.get(attribute)[1];
+              for (int j = 0; j < intervals.size(); j++) {
+                double intervalStart = breaks.get(j);
+                double intervalEnd = breaks.get(j + 1);
+                if (start < intervalEnd && end >= intervalStart)
+                  mask+="1";
+                else
+                  mask+="0";
+              }
+            }
+          sb.append(mask).append(",");
+        }
+
+        // write outcome
         if (Double.isNaN(rule.meanQ))
           sb.append(rule.action);
         else
           sb.append(rule.minQ+","+rule.meanQ+","+rule.maxQ);
         sb.append(",");
 
+        // write conditions as texts for topic modelling
         for (String attribute: listOfFeatures)
           for (ExplanationItem item : rule.eItems)
             if (attribute.equals(item.attr)) {

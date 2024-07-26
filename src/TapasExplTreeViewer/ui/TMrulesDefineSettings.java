@@ -165,9 +165,9 @@ class AttributeRangeDialog extends JFrame {
       for (String attribute: listOfFeatures)
         writer.write(attribute+",");
       if (Float.isNaN(exList.get(0).meanQ))
-        writer.write("outcome,conditions");
+        writer.write("outcome,conditions,conditionsAsMasks");
       else
-        writer.write("outcome_min,outcome_avg,outcome_max,conditions");
+        writer.write("outcome_min,outcome_avg,outcome_max,conditions,conditionsAsMasks");
       writer.newLine();
 
       // Prepare interval mapping for each attribute
@@ -265,12 +265,36 @@ class AttributeRangeDialog extends JFrame {
                   sb.append(intervals.get(j)).append(" ");
               }
             }
-
         // Remove the last space
         if (sb.length() > 0 && sb.charAt(sb.length() - 1) == ' ')
           sb.setLength(sb.length() - 1);
 
-        writer.write(sb.toString());
+        sb.append(",");
+        // write conditions as masks for topic modelling
+        for (String attribute: listOfFeatures) {
+          String mask="";
+          for (ExplanationItem item : rule.eItems)
+            if (attribute.equals(item.attr)) {
+              List<String> intervals = labelsMap.get(attribute);
+              List<Double> breaks = breaksMap.get(attribute);
+              double start = item.interval[0];
+              double end = item.interval[1];
+              if (Double.isInfinite(end))
+                end=attrMinMax.get(attribute)[1];
+              for (int j = 0; j < intervals.size(); j++) {
+                double intervalStart = breaks.get(j);
+                double intervalEnd = breaks.get(j + 1);
+                if (start < intervalEnd && end >= intervalStart)
+                  mask+="1";
+                else
+                  mask+="0";
+              }
+            }
+          if (mask.length()>0)
+            sb.append(attribute).append("_").append(mask).append(" ");
+        }
+
+        writer.write(sb.toString().trim());
         writer.newLine();
       }
     } catch (IOException e) {

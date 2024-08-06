@@ -156,9 +156,9 @@ public class SeeRules {
           attrMinMax.put(feature,minmax);
         }
         else {
-          if (!Float.isInfinite(minmax[0]) && minmax[0]>min)
+          if (!Float.isInfinite(min) && (Float.isInfinite(minmax[0]) || minmax[0]>min))
             minmax[0]=min;
-          if (!Float.isInfinite(minmax[1]) && minmax[1]<max)
+          if (!Float.isInfinite(max) && (Float.isInfinite(minmax[1]) || minmax[1]<max))
             minmax[1]=max;
         }
       }

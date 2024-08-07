@@ -656,6 +656,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     
     if (!expanded) {
       menu.addSeparator();
+      menu.add(mit = new JMenuItem("Remove contradictory rules"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          removeContradictory(exList);
+        }
+      });
       menu.add(mit = new JMenuItem("Extract the non-subsumed rules to a separate view"));
       mit.addActionListener(new ActionListener() {
         @Override
@@ -1565,7 +1572,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     double maxQDiff=Double.NaN;
     if (noActions) {
       String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "The rules do not differ in actions (decisions) and can be aggregated by closeness of " +
+          "The rules do not differ in actions (decisions) and can be compared by closeness of " +
               "the Q values. Enter a threshold for the difference in Q :",
           String.format("%.5f",RuleMaster.suggestMaxQDiff(exList)));
       if (value==null)
@@ -1597,6 +1604,53 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Did not manage to reduce the set of explanations!",
           "Fail",JOptionPane.WARNING_MESSAGE);
+      return;
+    }
+    ShowRules showRules=createShowRulesInstance(exList2);
+    showRules.setNonSubsumed(true);
+    showRules.setAggregated(true);
+    showRules.countRightAndWrongRuleApplications();
+    showRules.showRulesInTable();
+  }
+
+  public void removeContradictory (ArrayList<CommonExplanation> exList) {
+    if (exList==null || exList.size()<2)
+      return;
+    boolean noActions=RuleMaster.noActionDifference(exList);
+    double maxQDiff=Double.NaN;
+    if (noActions) {
+      String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "The rules do not differ in actions (decisions) and can be compared by closeness of " +
+              "the Q values. Enter a threshold for the difference in Q :",
+          String.format("%.5f",RuleMaster.suggestMaxQDiff(exList)));
+      if (value==null)
+        return;
+      try {
+        maxQDiff=Double.parseDouble(value);
+        if (maxQDiff<0) {
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Illegal threshold value for the Q difference; must be >=0!",
+              "Error",JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+      } catch (Exception ex) {
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Illegal threshold value for the Q difference!",
+            "Error",JOptionPane.ERROR_MESSAGE);
+      }
+    }
+    System.out.println("Trying to find and remove contradictory rules...");
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeContradictory(exList,noActions,maxQDiff);
+    if (exList2.size()<exList.size()) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "The removal of contradictory rules has reduced the number of explanations from " +
+              exList.size() + " to " + exList2.size(),
+          "Removed contradictions!",JOptionPane.INFORMATION_MESSAGE);
+    }
+    else {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Did not find any contradictory rules!",
+          "No contradictions!",JOptionPane.INFORMATION_MESSAGE);
       return;
     }
     ShowRules showRules=createShowRulesInstance(exList2);

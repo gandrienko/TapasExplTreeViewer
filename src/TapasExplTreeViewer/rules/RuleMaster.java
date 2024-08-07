@@ -75,7 +75,64 @@ public class RuleMaster {
 
     return rule;
   }
-  
+
+  /**
+   * Removes contradictory rules, i.e., rules whose conditions cover conditions of at least one rule
+   * with a different outcome. That is, the more general of the two rules is removed.
+   * If two rules have coinciding conditions but different outcomes, both are removed.
+   */
+  public static ArrayList<CommonExplanation> removeContradictory(ArrayList<CommonExplanation> origRules,
+                                                                 boolean useQ, double maxQDiff) {
+    if (origRules==null || origRules.size()<2)
+      return origRules;
+    ArrayList<CommonExplanation> rules=new ArrayList<CommonExplanation>(origRules.size());
+    rules.addAll(origRules);
+    boolean removed;
+    do {
+      removed=false;
+      int prevSize=rules.size();
+      for (int i=0; i<rules.size()-1 && !removed; i++) {
+        CommonExplanation r1=rules.get(i);
+        for (int j = rules.size()-1; j>i && !removed; j--) {
+          CommonExplanation r2=rules.get(j);
+          boolean sameResult=(useQ)?Math.abs(r1.minQ-r2.minQ)<maxQDiff && Math.abs(r1.maxQ-r2.maxQ)<maxQDiff:
+              r1.action==r2.action;
+          if (sameResult) {
+            if (CommonExplanation.sameExplanations(r1,r2))
+              rules.remove(j);
+          }
+          else
+          if (CommonExplanation.sameExplanations(r1,r2)) {
+            rules.remove(j); rules.remove(i); removed=true;
+          }
+          else
+          if (r1.subsumes(r2,false)) {
+            rules.remove(i); removed=true;
+          }
+          else
+          if (r2.subsumes(r1,false)) {
+            rules.remove(j); removed=true;
+          }
+        }
+      }
+      if (removed) {
+        System.out.println("Removed "+(prevSize-rules.size())+" rules in one step, "+
+            (origRules.size()-rules.size())+" rules removed in total.");
+      }
+    } while (removed);
+    if (rules.size()==origRules.size())
+      return origRules;
+    for (int i=0; i<rules.size(); i++) {
+      UnitedRule r=UnitedRule.getRule(rules.get(i));
+      rules.set(i,r);
+      if (useQ)
+        r.countRightAndWrongCoveragesByQ(rules);
+      else
+        r.countRightAndWrongCoverages(rules);
+    }
+    return rules;
+  }
+
   /**
    * Removes explanations (or rules) covered by other rules with the same actions
    * whose conditions are more general.

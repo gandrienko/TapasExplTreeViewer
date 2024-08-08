@@ -811,7 +811,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
             });
           }
         }
-        if (expanded || aggregated) {
+        if (exList.get(realRowIndex) instanceof UnitedRule) {
           UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
           if (origRules!=null) {
             //selMenu = new JPopupMenu();
@@ -1654,10 +1654,30 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       return;
     }
     ShowRules showRules=createShowRulesInstance(exList2);
-    showRules.setNonSubsumed(true);
-    showRules.setAggregated(true);
+    showRules.setOrigRules(exList2);
+    showRules.setNonSubsumed(false);
+    showRules.setAggregated(false);
     showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable();
+
+    ArrayList<UnitedRule> excluded=new ArrayList<UnitedRule>(exList.size()-exList2.size());
+    for (CommonExplanation ce:exList)
+      if (!exList2.contains(ce)) {
+        UnitedRule r=UnitedRule.getRule(ce);
+        if (noActions)
+          r.countRightAndWrongCoveragesByQ(exList2);
+        else
+          r.countRightAndWrongCoverages(exList2);
+        excluded.add(r);
+      }
+
+    showRules=createShowRulesInstance(excluded);
+    showRules.setOrigRules(exList2);
+    showRules.setNonSubsumed(false);
+    showRules.setAggregated(false);
+    showRules.countRightAndWrongRuleApplications();
+    JFrame frame=showRules.showRulesInTable();
+    frame.setTitle("Excluded contradictory rules");
   }
 
   private long aggrT0=-1;

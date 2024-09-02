@@ -774,6 +774,28 @@ public class RuleMaster {
     }
     return 1.0*rule.nOrigRight/(rule.nOrigRight+rule.nOrigWrong);
   }
+
+  /**
+   * Finds rules predicting the same class or nearly same real values and having
+   * overlapping conditions (i.e., include the same combinations of features whose
+   * value intervals substantially overlap) and unites these rules obtaining the
+   * feature value intervals in the resulting rule as unions of the intervals from the
+   * original rules.
+   * @param rules
+   * @param minOverlap - the minimal fraction (from 0 to 1) of the length of the shorter
+   *                   interval covered by the longer interval that allows making a union
+   * @param byQ - whether the rules need to be compared by the predicted real values
+   * @param maxQDiff - maximal allowed difference between the predicted values of two rules
+   *                 with which they can be united
+   * @return the set of resulting rules
+   */
+  public ArrayList<UnitedRule> uniteRulesWithOverlappingConditions
+                                   (ArrayList<UnitedRule> rules,
+                                    double minOverlap,
+                                    boolean byQ,
+                                    double maxQDiff) {
+    return rules;
+  }
   
   public static boolean hasRuleHierarchies(ArrayList<UnitedRule> rules) {
     if (rules==null || rules.isEmpty())

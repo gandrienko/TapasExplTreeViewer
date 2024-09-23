@@ -1,6 +1,5 @@
 package TapasExplTreeViewer;
 import TapasDataReader.CommonExplanation;
-import TapasDataReader.Explanation;
 import TapasDataReader.ExplanationItem;
 import TapasExplTreeViewer.alt_rules.Condition;
 import TapasExplTreeViewer.alt_rules.Rule;
@@ -58,12 +57,12 @@ public class SeeRules {
       String line=null;
       String fieldNames[]=null;
       boolean realValued=false;
-      int fNRuleId=-1, fNTreeId=-1, fNResult=-1, fNRuleBody=-1;
+      int fNRuleId=-1, fNTreeId=-1, fNCluster=-1, fNResult=-1, fNRuleBody=-1;
 
       while ((line = br.readLine()) != null) {
-        if (line==null || line.trim().length()<3)
+        if (line==null || line.trim().length()<2)
           continue;
-        String[] fields = line.split(","); // Split line into 3 parts: RuleID, Rule, Class
+        String[] fields = line.split(",");
         if (fields==null || fields.length<2)
           continue;
         if (fieldNames==null) {
@@ -72,6 +71,9 @@ public class SeeRules {
             fieldNames[i] = fieldNames[i].toLowerCase();
             if (fieldNames[i].contains("tree"))
               fNTreeId=i;
+            else
+            if (fieldNames[i].contains("cluster"))
+              fNCluster=i;
             else
             if (fieldNames[i].contains("rule"))
               if (fieldNames[i].contains("id"))
@@ -105,6 +107,8 @@ public class SeeRules {
                               new Rule(ruleId, conditions, predictedClass);
           if (fNTreeId>=0)
             r.treeId=Integer.parseInt(fields[fNTreeId]);
+          if (fNCluster>=0)
+            r.treeCluster =Integer.parseInt(fields[fNCluster]);
           int idx=rules.indexOf(r);
           if (idx<0)
             rules.add(r);
@@ -183,6 +187,7 @@ public class SeeRules {
       CommonExplanation ex=new CommonExplanation();
       ex.numId=rule.getId();
       ex.treeId=rule.treeId;
+      ex.treeCluster=rule.treeCluster;
       ex.nSame=rule.nSame;
       if (!Double.isNaN(rule.getPredictedValue())) {
         ex.minQ = ex.maxQ = ex.meanQ = (float) rule.getPredictedValue();

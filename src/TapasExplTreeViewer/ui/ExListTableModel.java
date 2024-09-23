@@ -40,7 +40,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
     boolean hasUnitedRules=false;
     int minClass=-1, maxClass=-1;
-    int maxNUses=0, maxRight=0, maxWrong=0, minTreeId=-1, maxTreeId=-1;
+    int maxNUses=0, maxRight=0, maxWrong=0, minTreeId=-1, maxTreeId=-1, minTreeCluster=-1, maxTreeCluster=-1;
     boolean rulesHaveQIntervals=false;
     for (int i=0; i<exList.size(); i++) {
       CommonExplanation cEx = exList.get(i);
@@ -91,6 +91,12 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         if (maxTreeId < cEx.treeId)
           maxTreeId = cEx.treeId;
       }
+      if (cEx.treeCluster>=0) {
+        if (minTreeCluster<0 || minTreeCluster>cEx.treeCluster)
+          minTreeCluster=cEx.treeCluster;
+        if (maxTreeCluster<cEx.treeCluster)
+          maxTreeCluster=cEx.treeCluster;
+      }
     }
     boolean toShowUpperId=false;
     if (hasUnitedRules) {
@@ -119,6 +125,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     listOfColumnNames.add("Id");
     if (maxTreeId>minTreeId)
       listOfColumnNames.add("Tree Id");
+    if (maxTreeCluster>minTreeCluster)
+      listOfColumnNames.add("Tree cluster");
     if (maxClass>minClass || minClass>=0)
       listOfColumnNames.add("Class");
     if (!Double.isNaN(qMin) && !Double.isNaN(qMax) && qMax>qMin) {
@@ -299,6 +307,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         return new Integer(cEx.upperId);
       if (colName.equals("tree id"))
         return new Integer(cEx.treeId);
+      if (colName.equals("tree cluster"))
+        return new Integer(cEx.treeCluster);
       if (colName.equals("class"))
         return new Integer(cEx.action);
       if (colName.equals("value") || colName.equals("q") || colName.contains("mean"))

@@ -4,7 +4,7 @@ import java.util.List;
 
 public class Rule {
   public int id=0;
-  public int treeId=-1;
+  public int treeId=-1, treeCluster =-1;
   public List<Condition> conditions=null;
   public int predictedClass=-1;
   public double predictedValue=Double.NaN;

@@ -49,6 +49,8 @@ public class RuleMaster {
     rule.nUses=ex1.nUses+ex2.nUses;
     if (ex1.treeId==ex2.treeId)
       rule.treeId=ex1.treeId;
+    if (ex1.treeCluster==ex2.treeCluster)
+      rule.treeCluster=ex1.treeCluster;
     if (ex1.uses!=null || ex2.uses!=null) {
       int n1=(ex1.uses!=null)?ex1.uses.size():0, n2=(ex2.uses!=null)?ex2.uses.size():0;
       rule.uses = new Hashtable<String, ArrayList<Explanation>>(n1+n2);

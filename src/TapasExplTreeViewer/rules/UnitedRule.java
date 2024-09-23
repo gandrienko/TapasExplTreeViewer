@@ -33,6 +33,7 @@ public class UnitedRule extends CommonExplanation {
     if (copyUpperId)
       rule.upperId=this.upperId;
     rule.treeId=this.treeId;
+    rule.treeCluster=this.treeCluster;
     rule.action=this.action;
     rule.eItems=this.eItems;
     rule.uses=this.uses;
@@ -181,6 +182,7 @@ public class UnitedRule extends CommonExplanation {
     rule.numId=ex.numId;
     rule.upperId=ex.upperId;
     rule.treeId=ex.treeId;
+    rule.treeCluster=ex.treeCluster;
     rule.action=ex.action;
     rule.eItems=ex.eItems;
     rule.uses=ex.uses;
@@ -310,6 +312,7 @@ public class UnitedRule extends CommonExplanation {
     rule.numId=r.numId;
     rule.action=r.action;
     rule.treeId=r.treeId;
+    rule.treeCluster=r.treeCluster;
     rule.eItems=items.toArray(new ExplanationItem[items.size()]);
     rule.uses=r.uses;
     rule.nUses=r.nUses;
@@ -376,6 +379,8 @@ public class UnitedRule extends CommonExplanation {
     rule.action=r1.action;
     if (r1.treeId==r2.treeId)
       rule.treeId=r1.treeId;
+    if (r1.treeCluster==r2.treeCluster)
+      rule.treeCluster=r1.treeCluster;
     rule.eItems=e;
     if (r1.uses!=null || r1.uses!=null) {
       int n1=(r1.uses!=null)?r1.uses.size():0, n2=(r2.uses!=null)?r2.uses.size():0;

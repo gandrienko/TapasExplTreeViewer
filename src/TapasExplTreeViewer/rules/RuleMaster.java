@@ -145,8 +145,7 @@ public class RuleMaster {
   public static ArrayList<CommonExplanation> removeLessGeneral(ArrayList<CommonExplanation> rules,
                                                                ArrayList<CommonExplanation> origRules,
                                                                Hashtable<String,float[]> attrMinMax,
-                                                               boolean useQ, double maxQDiff,
-                                                               boolean listSubsumedRules) {
+                                                               boolean useQ, double maxQDiff) {
     if (rules==null || rules.size()<2)
       return rules;
     if (attrMinMax!=null) {
@@ -256,7 +255,47 @@ public class RuleMaster {
         ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoverages((origRules!=null)?origRules:rules);
     return  moreGeneral;
   }
-  
+
+  /**
+   * Selects the rules satisfying query conditions. For integers, -1 means that the limit is not set.
+   * For doubles, Double.NaN means that the condition is not set.
+   */
+  public static ArrayList<CommonExplanation> selectByQuery(ArrayList<CommonExplanation> rules,
+                                                            int minAction, int maxAction,
+                                                            double minValue, double maxValue,
+                                                            int minTreeId, int maxTreeId,
+                                                            int minTreeCluster, int maxTreeCluster) {
+    if (rules==null || rules.isEmpty())
+      return rules;
+    if (minAction<0 && maxAction<0 &&
+        minTreeId<0 && maxTreeId<0 && minTreeCluster<0 && maxTreeCluster<0 &&
+        Double.isNaN(minValue) && Double.isNaN(maxValue))
+      return rules; //no query conditions
+    ArrayList<CommonExplanation> subset=null;
+    for (CommonExplanation r:rules) {
+      if (minAction>=0 && r.action<minAction)
+          continue;
+      if (maxAction>=0 && r.action>maxAction)
+        continue;
+      if (!Double.isNaN(minValue) && r.maxQ<minValue)
+        continue;
+      if (!Double.isNaN(maxValue) && r.minQ>maxValue)
+        continue;
+      if (minTreeId>=0 && r.treeId<minTreeId)
+        continue;
+      if (maxTreeId>=0 && r.treeId>maxTreeId)
+        continue;
+      if (minTreeCluster>=0 && r.treeCluster<minTreeCluster)
+        continue;
+      if (maxTreeCluster>=0 && r.treeCluster>maxTreeCluster)
+        continue;
+      if (subset==null)
+        subset=new ArrayList<CommonExplanation>(rules.size()/10);
+      subset.add(r);
+    }
+    return subset;
+  }
+
   public static boolean noActionDifference(ArrayList rules) {
     if (rules==null || rules.size()<2 || !(rules.get(0) instanceof CommonExplanation))
       return true;
@@ -750,7 +789,7 @@ public class RuleMaster {
       return rules;
     ArrayList<CommonExplanation> aEx=new ArrayList<CommonExplanation>(result.size());
     aEx.addAll(result);
-    aEx = removeLessGeneral(aEx, origRules, attrMinMax, true, maxQDiff, false);
+    aEx = removeLessGeneral(aEx, origRules, attrMinMax, true, maxQDiff);
     if (aEx.size()<result.size()) {
       result.clear();
       for (int i=0; i<aEx.size(); i++)
@@ -777,28 +816,6 @@ public class RuleMaster {
     return 1.0*rule.nOrigRight/(rule.nOrigRight+rule.nOrigWrong);
   }
 
-  /**
-   * Finds rules predicting the same class or nearly same real values and having
-   * overlapping conditions (i.e., include the same combinations of features whose
-   * value intervals substantially overlap) and unites these rules obtaining the
-   * feature value intervals in the resulting rule as unions of the intervals from the
-   * original rules.
-   * @param rules
-   * @param minOverlap - the minimal fraction (from 0 to 1) of the length of the shorter
-   *                   interval covered by the longer interval that allows making a union
-   * @param byQ - whether the rules need to be compared by the predicted real values
-   * @param maxQDiff - maximal allowed difference between the predicted values of two rules
-   *                 with which they can be united
-   * @return the set of resulting rules
-   */
-  public ArrayList<UnitedRule> uniteRulesWithOverlappingConditions
-                                   (ArrayList<UnitedRule> rules,
-                                    double minOverlap,
-                                    boolean byQ,
-                                    double maxQDiff) {
-    return rules;
-  }
-  
   public static boolean hasRuleHierarchies(ArrayList<UnitedRule> rules) {
     if (rules==null || rules.isEmpty())
       return false;

@@ -104,6 +104,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    * are erased.
    */
   protected static ArrayList<JFrame> topFrames=null;
+
+  protected RuleSelector ruleSelector=null;
   /**
    * Whether this instance of ShowRules has already created its top frame
    */
@@ -670,7 +672,21 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           getNonSubsumed(exList, attrMinMax);
         }
       });
-  
+      menu.add(mit = new JMenuItem("Extract rule subset through a query"));
+      ChangeListener changeListener=this;
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          if (ruleSelector!=null && ruleSelector.isRunning)
+            ruleSelector.toFront();
+          else {
+            ruleSelector=new RuleSelector();
+            if (!ruleSelector.makeQueryInterface(exList,changeListener))
+              ruleSelector=null;
+          }
+        }
+      });
+
       menu.addSeparator();
       menu.add(mit = new JMenuItem("Aggregate and generalise rules"));
       mit.addActionListener(new ActionListener() {
@@ -1063,8 +1079,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     showRules.setOrigSelector(origSelector);
     showRules.setCreatedFileRegister(createdFiles);
     showRules.setAccThreshold(getAccThreshold());
+    showRules.setNonSubsumed(nonSubsumed);
+    showRules.setAggregated(aggregated);
     if (!Double.isNaN(maxQDiff))
       showRules.setMaxQDiff(maxQDiff);
+    showRules.setExpanded(expanded);
+    showRules.setCreatedFileRegister(createdFiles);
+    //showRules.showRulesInTable();
     return showRules;
   }
   
@@ -1593,7 +1614,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     }
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
     ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,
-        noActions,maxQDiff,true);
+        noActions,maxQDiff);
     if (exList2.size()<exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Reduced the number of explanations from " +
@@ -1717,6 +1738,19 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       showRules.countRightAndWrongRuleApplications();
       showRules.showRulesInTable();
     }
+    else
+    if (e.getSource().equals(ruleSelector))  {
+      if (!ruleSelector.isRunning)
+        ruleSelector=null;
+      else {
+        ArrayList<CommonExplanation> selRules=ruleSelector.getSelectedRules();
+        if (selRules!=null) {
+          ShowRules showRules=createShowRulesInstance(selRules);
+          showRules.setTitle("Subset by query "+ruleSelector.queryStr);
+          showRules.showRulesInTable();
+        }
+      }
+    }
   }
   
   public void aggregate(ArrayList<CommonExplanation> exList,
@@ -1835,7 +1869,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     dialog.setVisible(true);
 
     ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,
-      noActions,maxQDiff,true);
+      noActions,maxQDiff);
     dialog.dispose();
 
     if (exList2.size()<exList.size()) {

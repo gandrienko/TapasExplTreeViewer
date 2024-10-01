@@ -255,6 +255,39 @@ public class RuleMaster {
         ((UnitedRule)moreGeneral.get(i)).countRightAndWrongCoverages((origRules!=null)?origRules:rules);
     return  moreGeneral;
   }
+  
+  public static String[] getListOfFeatures (ArrayList<CommonExplanation> rules) {
+    Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
+    for (int i=0; i<rules.size(); i++) {
+      CommonExplanation cEx=rules.get(i);
+      for (int j = 0; j < cEx.eItems.length; j++) {
+        Integer count=attrUses.get(cEx.eItems[j].attr);
+        if (count==null)
+          attrUses.put(cEx.eItems[j].attr,1);
+        else
+          attrUses.put(cEx.eItems[j].attr,count+1);
+      }
+    }
+    if (attrUses.isEmpty())
+      return null;
+    ArrayList<String> listOfFeatures=new ArrayList<String>(attrUses.size());
+    for (Map.Entry<String,Integer> entry:attrUses.entrySet()) {
+      String aName=entry.getKey();
+      if (listOfFeatures.isEmpty())
+        listOfFeatures.add(aName);
+      else {
+        int count=entry.getValue(), idx=-1;
+        for (int i=0; i<listOfFeatures.size() && idx<0; i++)
+          if (count>attrUses.get(listOfFeatures.get(i)))
+            idx=i;
+        if (idx<0)
+          listOfFeatures.add(aName);
+        else
+          listOfFeatures.add(idx,aName);
+      }
+    }
+    return listOfFeatures.toArray(new String[listOfFeatures.size()]);
+  }
 
   /**
    * Selects the rules satisfying query conditions. For integers, -1 means that the limit is not set.

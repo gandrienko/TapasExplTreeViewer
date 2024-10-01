@@ -116,13 +116,17 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   /**
    * used for rendering rules in tooltips
    */
-  Vector<String> attrs=null;
-  Vector<float[]> minmax=null;
+  protected Vector<String> attrs=null;
+  protected Vector<float[]> minmax=null;
 
   /**
    * list of features sorted by frequency
    */
-  ArrayList<String> listOfFeatures=null;
+  public ArrayList<String> listOfFeatures=null;
+  /**
+   * Which features are to be used in computing distances between rules
+   */
+  public boolean toUseFeature[]=null;
   
   public ShowRules(ArrayList<CommonExplanation> exList,
                    Hashtable<String,float[]> attrMinMax,

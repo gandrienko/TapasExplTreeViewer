@@ -86,6 +86,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    * The distances between the rules
    */
   protected double distanceMatrix[][]=null;
+  protected boolean orderingInProgress=false;
+  
   protected ClustererByOPTICS clOptics=null;
   
   protected JTable table=null;
@@ -130,7 +132,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (exList!=null && !exList.isEmpty() && exList.get(0).numId<0)
       for (int i=0; i<exList.size(); i++)
         exList.get(i).numId=i+1;
-    computeDistanceMatrix();
+    if (distances==null && exList.size()<500)
+      computeDistanceMatrix();
     /*
     if (distanceMatrix==null && exList.size()<=1000) {
       System.out.println("Computing distance matrix...");
@@ -229,6 +232,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       SwingWorker worker=new SwingWorker() {
         @Override
         public Boolean doInBackground() {
+          orderingInProgress=true;
           System.out.println("Computing distance matrix in background mode ...");
           distanceMatrix = CommonExplanation.computeDistances(exList, attrMinMax);
           return true;
@@ -236,8 +240,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
 
         @Override
         protected void done() {
-          if (distanceMatrix == null)
+          orderingInProgress=false;
+          if (distanceMatrix == null) {
             System.out.println("Failed to compute a matrix of distances between the rules (explanations)!");
+          }
           else {
             System.out.println("Distance matrix ready!");
             if (table!=null)
@@ -250,7 +256,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   }
 
   public void runOptics(ChangeListener changeListener){
-    if (clOptics!=null)
+    if (orderingInProgress || clOptics!=null)
       return;
     clOptics=(distanceMatrix!=null && distanceMatrix.length>5)?new ClustererByOPTICS():null;
     if (clOptics!=null) {
@@ -261,7 +267,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       clOptics.setHighlighter(highlighter);
       clOptics.setSelector(selector);
       clOptics.addChangeListener(changeListener);
+      clOptics.addChangeListener(this);
       System.out.println("Running OPTICS clustering in background mode ...");
+      orderingInProgress=true;
       clOptics.doClustering();
     }
   }
@@ -576,13 +584,24 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
+        if (orderingInProgress) {
+          JOptionPane.showMessageDialog(null, "Ordering is in progress.",
+              "Wait...", JOptionPane.WARNING_MESSAGE);
+          return;
+        }
         if (clOptics!=null) {
           JFrame fr = clOptics.showPlot();
           if (fr != null)
             fr.toFront();
         }
-        else
-          runOptics((ExListTableModel)table.getModel());
+        else {
+          if (distanceMatrix==null)
+            computeDistanceMatrix();
+          else
+            runOptics((ExListTableModel) table.getModel());
+          if (clOptics!=null)
+            clOptics.showPlot();
+        }
       }
     });
     
@@ -1704,6 +1723,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   private long aggrT0=-1;
   
   public void stateChanged(ChangeEvent e) {
+    if (e.getSource() instanceof ClustersAssignments) {
+      if (orderingInProgress) {
+        orderingInProgress=false;
+        clOptics.removeChangeListener(this);
+      }
+    }
+    else
     if (e.getSource() instanceof AggregationRunner) {
       AggregationRunner aRun=(AggregationRunner)e.getSource();
       ArrayList<UnitedRule> aggRules=aRun.aggRules;
@@ -1960,10 +1986,17 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           Vertex v=graph.get(j1);
           for (int j2 = j1 + 1; j2 < ruleGroup.size(); j2++) {
             double d = UnitedRule.distance(ruleGroup.get(j1), ruleGroup.get(j2), attrMinMax);
-            Edge e=new Edge((float)d);
-            Vertex v2=graph.get(j2);
-            v.addEdge(v2,e);
-            v2.addEdge(v,e);
+            if (Double.isNaN(d)) {
+              System.out.println("!!! NaN distance value !!!");
+              System.out.println(ruleGroup.get(j1).toString());
+              System.out.println(ruleGroup.get(j2).toString());
+            }
+            else {
+              Edge e=new Edge((float) d);
+              Vertex v2=graph.get(j2);
+              v.addEdge(v2, e);
+              v2.addEdge(v, e);
+            }
           }
         }
         Prim prim=new Prim(graph);

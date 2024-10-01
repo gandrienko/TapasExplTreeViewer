@@ -36,6 +36,10 @@ public class Vertex {
       this.edges.put(vertex, edge);
     }
   }
+  
+  public boolean hasEdges() {
+    return edges!=null && !edges.isEmpty();
+  }
 
   public boolean isVisited() {
     return isVisited;
@@ -46,6 +50,8 @@ public class Vertex {
   }
 
   public Pair<Vertex, Edge> nextMinimum(){
+    if (edges==null || edges.isEmpty())
+      return null;
     Edge nextMinimum = new Edge(Integer.MAX_VALUE);
     Vertex nextVertex = this;
     Iterator<Map.Entry<Vertex,Edge>> it = edges.entrySet().iterator();

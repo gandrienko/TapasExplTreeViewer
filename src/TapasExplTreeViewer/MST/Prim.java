@@ -23,21 +23,28 @@ public class Prim {
   public void run(){
     if (graph.size() > 0){
       graph.get(0).setVisited(true);
+      for (Vertex vertex:graph)
+        if (!vertex.hasEdges())
+          vertex.setVisited(true);
     }
     while (isDisconnected()){
-      Edge nextMinimum = new Edge(Integer.MAX_VALUE);
+      Edge nextMinimum = null;
       Vertex nextVertex = graph.get(0);
       for (Vertex vertex : graph){
         if (vertex.isVisited()){
           Pair<Vertex, Edge> candidate = vertex.nextMinimum();
-          if (candidate.getValue().getWeight() < nextMinimum.getWeight()){
+          if (candidate==null)
+            continue;
+          if (nextMinimum==null || candidate.getValue().getWeight() < nextMinimum.getWeight()){
             nextMinimum = candidate.getValue();
             nextVertex = candidate.getKey();
           }
         }
       }
-      nextMinimum.setIncluded(true);
-      nextVertex.setVisited(true);
+      if (nextMinimum!=null) {
+        nextMinimum.setIncluded(true);
+        nextVertex.setVisited(true);
+      }
     }
   }
 

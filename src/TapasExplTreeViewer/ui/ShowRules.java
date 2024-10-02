@@ -779,7 +779,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
             ruleSelector.toFront();
           else {
             ruleSelector=new RuleSelector();
-            if (!ruleSelector.makeQueryInterface(exList,changeListener))
+            if (!ruleSelector.makeQueryInterface(exList,listOfFeatures,featuresInDistances,changeListener))
               ruleSelector=null;
           }
         }

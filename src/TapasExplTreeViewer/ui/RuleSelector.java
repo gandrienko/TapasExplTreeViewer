@@ -7,24 +7,35 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public class RuleSelector {
   protected ArrayList<CommonExplanation> origRules =null, selectedRules=null;
   protected ChangeListener changeListener=null;
+  /**
+   * Features that were used in computing the distances
+   */
+  public ArrayList<String> features=null;
+  public HashSet<String> selectedFeatures =null;
+
   protected JDialog queryDialog=null;
   protected boolean isRunning=false, queryExecuting=false;
   public String queryStr=null;
+  public FeatureSelector feaSel=null;
+  public JCheckBox cbMust=null, cbNot=null;
+  public JRadioButton rbAll=null, rbAny=null;
 
   public boolean makeQueryInterface(ArrayList<CommonExplanation> rules,
+                                    ArrayList<String> features,
+                                    HashSet<String> selectedFeatures,
                                     ChangeListener changeListener) {
     if (rules==null || rules.isEmpty())
       return false;
-    this.origRules =rules; this.changeListener=changeListener;
+    this.origRules =rules;
+    this.features=features; this.selectedFeatures =selectedFeatures;
+    this.changeListener=changeListener;
     
     int minClass=-1, maxClass=-1, minTreeId=-1, maxTreeId=-1, minTreeCluster=-1, maxTreeCluster=-1;
     double minValue=Double.NaN, maxValue=Double.NaN;
@@ -57,8 +68,8 @@ public class RuleSelector {
           maxTreeCluster=r.treeCluster;
       }
     }
-    JPanel mainP=new JPanel();
-    mainP.setLayout(new GridLayout(0,1));
+    JPanel topP=new JPanel();
+    topP.setLayout(new GridLayout(0,1));
     JCheckBox cb[]=new JCheckBox[4];
     JTextField tfMin[]=new JTextField[4], tfMax[]=new JTextField[4];
     for (int i=0; i<4; i++) {
@@ -75,7 +86,7 @@ public class RuleSelector {
       p.add(new JLabel("to",JLabel.RIGHT));
       tfMax[0]=new JTextField(Integer.toString(maxClass),2);
       p.add(tfMax[0]);
-      mainP.add(p);
+      topP.add(p);
     }
     if (minValue<maxValue) {
       JPanel p=new JPanel();
@@ -87,7 +98,7 @@ public class RuleSelector {
       p.add(new JLabel("to",JLabel.RIGHT));
       tfMax[1]=new JTextField(String.format("%.5f",maxValue),10);
       p.add(tfMax[1]);
-      mainP.add(p);
+      topP.add(p);
     }
     if (minTreeId<maxTreeId) {
       JPanel p=new JPanel();
@@ -99,7 +110,7 @@ public class RuleSelector {
       p.add(new JLabel("to",JLabel.RIGHT));
       tfMax[2]=new JTextField(Integer.toString(maxTreeId),2);
       p.add(tfMax[2]);
-      mainP.add(p);
+      topP.add(p);
     }
     if (minTreeCluster<maxTreeCluster) {
       JPanel p=new JPanel();
@@ -111,11 +122,55 @@ public class RuleSelector {
       p.add(new JLabel("to",JLabel.RIGHT));
       tfMax[3]=new JTextField(Integer.toString(maxTreeCluster),2);
       p.add(tfMax[3]);
-      mainP.add(p);
+      topP.add(p);
     }
 
-    if (mainP.getComponentCount()<1)
+    if (topP.getComponentCount()<1)
+      topP=null;
+
+    JPanel fp=null;
+    ButtonGroup rbg=null;
+
+    if (features!=null && !features.isEmpty()) {
+      feaSel=new FeatureSelector(features,selectedFeatures);
+      fp=new JPanel();
+      fp.setLayout(new BorderLayout());
+      fp.add(feaSel,BorderLayout.CENTER);
+      JPanel cp=new JPanel();
+      fp.add(cp,BorderLayout.NORTH);
+      cp.setLayout(new FlowLayout());
+      cp.add(new JLabel("Selected rules"));
+      cbMust=new JCheckBox("must",false);
+      cp.add(cbMust);
+      cbNot=new JCheckBox("not",false);
+      cp.add(cbNot);
+      cp.add(new JLabel("involve"));
+      rbAll=new JRadioButton("all",false);
+      rbAny=new JRadioButton("any",false);
+      cp.add(rbAll);
+      cp.add(rbAny);
+      cp.add(new JLabel("of the selected features:"));
+      rbg=new ButtonGroup();
+      rbg.add(rbAll);
+      rbg.add(rbAny);
+      cbMust.addItemListener(new ItemListener() {
+        @Override
+        public void itemStateChanged(ItemEvent e) {
+          if (cbMust.isSelected() && !rbAll.isSelected() && !rbAny.isSelected())
+            rbAll.setSelected(true);
+        }
+      });
+    }
+
+    if (topP==null && feaSel==null)
       return false;
+
+    JPanel mainP=new JPanel();
+    mainP.setLayout(new BorderLayout());
+    if (topP!=null)
+      mainP.add(topP, BorderLayout.NORTH);
+    if (fp!=null)
+      mainP.add(fp,BorderLayout.CENTER);
 
     JPanel bp=new JPanel();
     bp.setLayout(new FlowLayout(FlowLayout.CENTER,10,5));
@@ -125,9 +180,9 @@ public class RuleSelector {
     Window owner=FocusManager.getCurrentManager().getActiveWindow();
     queryDialog=new JDialog(owner, "Select rules", Dialog.ModalityType.MODELESS);
     queryDialog.setLayout(new BorderLayout());
-    queryDialog.getContentPane().add(mainP, BorderLayout.CENTER);
     queryDialog.getContentPane().add(new JLabel("Set conditions for selecting rules:",JLabel.CENTER),
         BorderLayout.NORTH);
+    queryDialog.getContentPane().add(mainP,BorderLayout.CENTER);
     queryDialog.getContentPane().add(bp,BorderLayout.SOUTH);
     queryDialog.pack();
     queryDialog.setLocationRelativeTo(owner);
@@ -186,6 +241,19 @@ public class RuleSelector {
           if (minTreeCluster>=0 && maxTreeCluster>=minTreeCluster)
             queryStr+="Tree cluster in ["+minTreeCluster+","+maxTreeCluster+"]; ";
         }
+        HashSet selFeatures=null;
+        if (feaSel!=null && cbMust.isSelected()) {
+          selFeatures=feaSel.getSelection();
+          if (selFeatures!=null && !selFeatures.isEmpty()) {
+            queryStr+="; must ";
+            if (cbNot.isSelected()) queryStr+="NOT ";
+            queryStr+="involve "+((rbAll.isSelected())?"all":"any")+" of ";
+            for (int i=0; i<features.size(); i++)
+              if (selFeatures.contains(features.get(i)))
+                selFeatures.add(features.get(i)+", ");
+            queryStr=queryStr.substring(0,queryStr.length()-2);
+          }
+        }
         if (queryStr.length()<3) {
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
               "The query conditions are not set properly!",
@@ -196,7 +264,8 @@ public class RuleSelector {
           queryStr=queryStr.substring(0,queryStr.length()-2);
 
         selectRulesByQuery(minClass,maxClass,minValue,maxValue,
-            minTreeId,maxTreeId,minTreeCluster,maxTreeCluster);
+            minTreeId,maxTreeId,minTreeCluster,maxTreeCluster,
+            selFeatures,(cbNot==null)?false:cbNot.isSelected(),(rbAll==null)?false:rbAll.isSelected());
       }
     });
 
@@ -216,7 +285,8 @@ public class RuleSelector {
   public void selectRulesByQuery(int minClass, int maxClass,
                                  double minValue, double maxValue,
                                  int minTreeId, int maxTreeId,
-                                 int minTreeCluster, int maxTreeCluster) {
+                                 int minTreeCluster, int maxTreeCluster,
+                                 HashSet<String> selectedFeatures, boolean mustNot, boolean all) {
     Object source=this;
     SwingWorker worker=new SwingWorker() {
       @Override

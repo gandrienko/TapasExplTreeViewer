@@ -256,7 +256,7 @@ public class RuleMaster {
     return  moreGeneral;
   }
   
-  public static String[] getListOfFeatures (ArrayList<CommonExplanation> rules) {
+  public static ArrayList<String> getListOfFeatures (ArrayList<CommonExplanation> rules) {
     Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
     for (int i=0; i<rules.size(); i++) {
       CommonExplanation cEx=rules.get(i);
@@ -286,7 +286,7 @@ public class RuleMaster {
           listOfFeatures.add(idx,aName);
       }
     }
-    return listOfFeatures.toArray(new String[listOfFeatures.size()]);
+    return listOfFeatures;
   }
 
   /**

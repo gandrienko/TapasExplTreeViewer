@@ -96,6 +96,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   public String title=null;
   public String dataFolder="";
   
+  protected JFrame mainFrame=null;
   protected ArrayList<JFrame> frames=null;
   protected ArrayList<File> createdFiles=null;
   /**
@@ -126,7 +127,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   /**
    * Which features are to be used in computing distances between rules
    */
-  public boolean toUseFeature[]=null;
+  public HashSet featuresInDistances=null;
   
   public ShowRules(ArrayList<CommonExplanation> exList,
                    Hashtable<String,float[]> attrMinMax,
@@ -231,6 +232,71 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     return showRulesInTable(exList,attrMinMax);
   }
 
+  protected JDialog selectFeaturesDialog=null;
+  protected FeatureSelector featureSelector=null;
+
+  public void selectFeaturesToComputeDistances() {
+    if (selectFeaturesDialog!=null) {
+      selectFeaturesDialog.toFront();
+      return;
+    }
+    if (exList==null || exList.size()<3)
+      return;
+    if (listOfFeatures==null)
+      listOfFeatures=RuleMaster.getListOfFeatures(exList);
+    if (listOfFeatures==null || listOfFeatures.size()<2) {
+      JOptionPane.showMessageDialog(null, "Found "+
+              ((listOfFeatures==null)?"0":listOfFeatures.size())+" features!",
+          "Error", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+
+    Window win=(mainFrame!=null)?mainFrame:FocusManager.getCurrentManager().getActiveWindow();
+    selectFeaturesDialog=new JDialog(win, "Select features",
+        Dialog.ModalityType.MODELESS);
+    selectFeaturesDialog.setLayout(new BorderLayout());
+    selectFeaturesDialog.add(new JLabel("Select features to use in computing distances:"),
+        BorderLayout.NORTH);
+    featureSelector=new FeatureSelector(listOfFeatures,featuresInDistances);
+    selectFeaturesDialog.getContentPane().add(featureSelector, BorderLayout.CENTER);
+    JPanel bp=new JPanel(new FlowLayout(FlowLayout.CENTER, 5,5));
+    selectFeaturesDialog.add(bp,BorderLayout.SOUTH);
+    JButton b=new JButton("Apply");
+    bp.add(b);
+    b.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        featuresInDistances=featureSelector.getSelection();
+        distanceMatrix=null;
+        clOptics=null;
+        if (JOptionPane.showConfirmDialog(featureSelector,"Re-compute distances and ordering?",
+            "Re-compute?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)==JOptionPane.YES_OPTION)
+          computeDistanceMatrix();
+      }
+    });
+    selectFeaturesDialog.pack();
+    selectFeaturesDialog.setLocationRelativeTo(win);
+    selectFeaturesDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+    selectFeaturesDialog.setVisible(true);
+    selectFeaturesDialog.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosed(WindowEvent e) {
+        super.windowClosed(e);
+        selectFeaturesDialog=null;
+      }
+    });
+  }
+
+  public ArrayList<String> getSelectedFeatures(){
+    if (featuresInDistances==null || featuresInDistances.isEmpty())
+      return listOfFeatures;
+    ArrayList<String> selected=new ArrayList<String>(featuresInDistances.size());
+    for (int i=0; i<listOfFeatures.size(); i++)
+      if (featuresInDistances.contains(listOfFeatures.get(i)))
+        selected.add(listOfFeatures.get(i));
+    return selected;
+  }
+
   public void computeDistanceMatrix(){
     if (distanceMatrix==null)  {
       SwingWorker worker=new SwingWorker() {
@@ -238,7 +304,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         public Boolean doInBackground() {
           orderingInProgress=true;
           System.out.println("Computing distance matrix in background mode ...");
-          distanceMatrix = CommonExplanation.computeDistances(exList, attrMinMax);
+          distanceMatrix = CommonExplanation.computeDistances(exList, featuresInDistances, attrMinMax);
           return true;
         }
 
@@ -251,7 +317,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           else {
             System.out.println("Distance matrix ready!");
             if (table!=null)
-              runOptics((ExListTableModel)table.getModel());
+              runOptics((ExListTableModel) table.getModel());
           }
         }
       };
@@ -581,6 +647,15 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       @Override
       public void actionPerformed(ActionEvent e) {
         applyTopicModelling(rules, attrMinMax);
+      }
+    });
+
+    menu.addSeparator();
+    menu.add(mit=new JMenuItem("Select feature subset for computing distances"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        selectFeaturesToComputeDistances();
       }
     });
 
@@ -1091,6 +1166,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     });
     if (fr!=null)
       fr.toFront();
+    if (mainFrame==null)
+      mainFrame=fr;
     return fr;
   }
   
@@ -1284,6 +1361,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
     pp.setExplanations(exList,origRules);
     pp.setDistanceMatrix(distanceMatrix);
+    pp.setFeatures(getSelectedFeatures());
     pp.setProjectionProvider(tsne);
     pp.setHighlighter(highlighter);
     pp.setSelector(selector);
@@ -2038,11 +2116,12 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       return;
     }
     
-    double d[][]=CommonExplanation.computeDistances(origList,attrMinMax);
+    double d[][]=CommonExplanation.computeDistances(origList,featuresInDistances,attrMinMax);
   
     ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
     pp.setExplanations(origList,origRules);
     pp.setDistanceMatrix(d);
+    pp.setFeatures(getSelectedFeatures());
     pp.setGraphs(graphs);
     int uIds[]=new int[unionIds.size()];
     for (int j=0; j<unionIds.size(); j++)

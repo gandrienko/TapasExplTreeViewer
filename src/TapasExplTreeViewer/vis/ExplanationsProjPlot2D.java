@@ -23,8 +23,12 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
   public ArrayList<CommonExplanation> explanations = null;
   public ArrayList<CommonExplanation> fullSet = null;
   public Hashtable<String,float[]> attrMinMax=null;
-  Vector<String> attrs=null;
-  Vector<float[]> minmax=null;
+  public Vector<String> attrs=null;
+  public Vector<float[]> minmax=null;
+  /**
+   * Features that were used in computing the distances
+   */
+  public ArrayList<String> features=null;
 
   /**
    * The graphs represent connections between rules when they are aggregated.
@@ -96,7 +100,20 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     if (isShowing())
       repaint();
   }
-  
+
+  /**
+   * Features that were used in computing the distances
+   */
+  public ArrayList<String> getFeatures() {
+    return features;
+  }
+  /**
+   * Features that were used in computing the distances
+   */
+  public void setFeatures(ArrayList<String> features) {
+    this.features = features;
+  }
+
   public HashSet<ArrayList<Vertex>> getGraphs() {
     return graphs;
   }
@@ -213,8 +230,16 @@ public class ExplanationsProjPlot2D extends ProjectionPlot2D {
     if (me.getButton() != MouseEvent.NOBUTTON)
       return null;
     int idx=getPointIndexAtPosition(me.getX(),me.getY(),dotRadius);
-    if (idx<0)
-      return null;
+    if (idx<0) {
+      if (features==null || features.isEmpty())
+        return null;
+      String txt="<html><body style=background-color:rgb(255,255,204)>";
+      txt+="<p align=center><b>Features used in computing distances:</b></p> ";
+      for (int i=0; i<features.size(); i++)
+        txt+=features.get(i)+"<br> ";
+      txt+="</body></html>";
+      return txt;
+    }
     CommonExplanation ce=explanations.get(idx);
     Vector<CommonExplanation> vce=null;
     if (selected!=null && selected.size()>0) {

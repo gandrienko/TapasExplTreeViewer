@@ -114,7 +114,7 @@ public class SeeExList {
     //showRules.setDataInstances(dataInstances,actionsDiffer);
     showRules.countRightAndWrongRuleApplications();
     
-    JFrame fr=showRules.showRulesInTable();
+    JFrame fr=showRules.showRulesInTable(null);
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);
@@ -218,7 +218,7 @@ public class SeeExList {
     showRules.setDataInstances(vex,actionsDiffer);
     showRules.countRightAndWrongRuleApplications();
     
-    JFrame fr=showRules.showRulesInTable();
+    JFrame fr=showRules.showRulesInTable(null);
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);

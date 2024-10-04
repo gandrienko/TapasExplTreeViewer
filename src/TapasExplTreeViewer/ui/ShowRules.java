@@ -234,8 +234,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     this.title = title;
   }
   
-  public JFrame showRulesInTable() {
-    return showRulesInTable(exList,attrMinMax);
+  public JFrame showRulesInTable(String infoText) {
+    return showRulesInTable(exList,attrMinMax,infoText);
   }
 
   protected JDialog selectFeaturesDialog=null;
@@ -350,7 +350,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   }
   
   public JFrame showRulesInTable(ArrayList rules,
-                                 Hashtable<String,float[]> attrMinMax) {
+                                 Hashtable<String,float[]> attrMinMax,
+                                 String infoText) {
 
     boolean showOriginalRules=rules.equals(origRules);
     if (showOriginalRules && origHighlighter==null) {
@@ -737,7 +738,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
             showRules.setExpanded(true);
             showRules.setCreatedFileRegister(createdFiles);
             showRules.countRightAndWrongRuleApplications();
-            showRules.showRulesInTable();
+            showRules.showRulesInTable(ex.size()+" rules obtained by expanded hierarchies of "+
+                rules.size()+((applyToSelection)?" selected":"")+" aggregated rules");
           }
         }
       });
@@ -968,7 +970,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
                 all.add(0,rule);
                 ShowRules showRules=createShowRulesInstance(all);
                 showRules.setTitle("All coverages of rule # "+rule.numId);
-                showRules.showRulesInTable();
+                showRules.showRulesInTable("All coverages of rule # "+rule.numId);
               }
             });
             selMenu.add(selItem = new JMenuItem("Extract invalid coverages of rule " + rule.numId));
@@ -986,7 +988,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
                 wrong.add(0,rule);
                 ShowRules showRules=createShowRulesInstance(wrong);
                 showRules.setTitle("Invalid coverages of rule # "+rule.numId);
-                showRules.showRulesInTable();
+                showRules.showRulesInTable("Invalid coverages of rule # "+rule.numId);
               }
             });
             selMenu.add(selItem = new JMenuItem("Extract valid coverages of rule " + rule.numId));
@@ -1004,7 +1006,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
                 valid.add(0,rule);
                 ShowRules showRules=createShowRulesInstance(valid);
                 showRules.setTitle("Valid coverages of rule # "+rule.numId);
-                showRules.showRulesInTable();
+                showRules.showRulesInTable("Valid coverages of rule # "+rule.numId);
               }
             });
           }
@@ -1134,12 +1136,21 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       if (maxQDiff > 0)
         title += " and max Q difference " + String.format("%.5f", maxQDiff);
     }
-  
+
+    if (infoText==null)
+      infoText=title;
+
+    JTextArea textArea = new JTextArea(infoText);
+    textArea.setLineWrap(true);
+    textArea.setWrapStyleWord(true);
+    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, textArea);
+
     JFrame fr = new JFrame(title);
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
+    fr.getContentPane().add(splitPane, BorderLayout.CENTER);
     //Display the window.
     fr.pack();
+    splitPane.setDividerLocation(0.95);
     int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
     fr.setLocation(30+nFrames*30, 30+nFrames*15);
     fr.setVisible(true);
@@ -1692,7 +1703,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     showRules.setMaxQDiff(maxQDiff);
     showRules.setExpanded(expanded);
     showRules.setCreatedFileRegister(createdFiles);
-    showRules.showRulesInTable();
+    showRules.showRulesInTable("Subset with "+exSubset.size()+" rules selected from the set of "+
+        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"));
   }
   
   /**
@@ -1745,7 +1757,8 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     showRules.setNonSubsumed(true);
     showRules.setAggregated(true);
     showRules.countRightAndWrongRuleApplications();
-    showRules.showRulesInTable();
+    showRules.showRulesInTable(exList2.size()+" non-subsumed rules selected from the set of "+
+        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"));
   }
 
   public void removeContradictory (ArrayList<CommonExplanation> exList) {
@@ -1789,11 +1802,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       return;
     }
     ShowRules showRules=createShowRulesInstance(exList2);
-    showRules.setOrigRules(exList2);
+    showRules.setOrigRules(exList);
     showRules.setNonSubsumed(false);
     showRules.setAggregated(false);
     showRules.countRightAndWrongRuleApplications();
-    showRules.showRulesInTable();
+    showRules.showRulesInTable(exList2.size()+" from the "+
+        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules")+
+        " remaining after removal of "+(exList.size()-exList2.size())+" contradictory rules.");
 
     ArrayList<UnitedRule> excluded=new ArrayList<UnitedRule>(exList.size()-exList2.size());
     for (CommonExplanation ce:exList)
@@ -1807,11 +1822,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       }
 
     showRules=createShowRulesInstance(excluded);
-    showRules.setOrigRules(exList2);
+    showRules.setOrigRules(exList);
     showRules.setNonSubsumed(false);
     showRules.setAggregated(false);
     showRules.countRightAndWrongRuleApplications();
-    JFrame frame=showRules.showRulesInTable();
+    JFrame frame=showRules.showRulesInTable(excluded.size()+
+        " contradictory rules extracted and removed from the set of "+
+        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"));
     frame.setTitle("Excluded contradictory rules");
   }
 
@@ -1857,7 +1874,12 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       if (aRun.aggregateByQ)
         showRules.setMaxQDiff(aRun.maxQDiff);
       showRules.countRightAndWrongRuleApplications();
-      showRules.showRulesInTable();
+      showRules.showRulesInTable(aggEx.size()+" aggregated and generalized rules obtained from the set of "+
+          exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules")+
+          " using the following parameter settings: min coherence = "+String.format("%.3f",aRun.minAccuracy)+
+          ((aRun.aggregateByQ)?String.format(", max value difference = %.5f",aRun.maxQDiff):"")+
+          (!Double.isNaN(aRun.accStep)?String.format("; stepwise aggregation starting from %.3f with step %.3f",
+              aRun.initAccuracy,aRun.accStep):""));
     }
     else
     if (e.getSource().equals(ruleSelector))  {
@@ -1869,7 +1891,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           if (ruleSelector.mustExtract()) {
             ShowRules showRules=createShowRulesInstance(selRules);
             showRules.setTitle("Subset by query "+ruleSelector.queryStr);
-            showRules.showRulesInTable();
+            showRules.showRulesInTable("Subset with "+selRules.size()+" rules selected from the set of "+
+                exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules")+
+                " by the following query: "+ruleSelector.queryStr);
           }
           else {
             //select the rules by highlighting

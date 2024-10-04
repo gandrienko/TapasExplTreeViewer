@@ -219,7 +219,7 @@ public class SeeRules {
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     showRules.setOrigRules(exList);
     showRules.dataFolder=ShowRules.RULES_FOLDER;
-    JFrame fr=showRules.showRulesInTable();
+    JFrame fr=showRules.showRulesInTable(null);
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);

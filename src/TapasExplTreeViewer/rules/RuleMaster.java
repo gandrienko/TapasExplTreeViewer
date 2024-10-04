@@ -1232,4 +1232,49 @@ public class RuleMaster {
     }
     return ok;
   }
+
+  public static int[] getAllTreeIds(ArrayList<CommonExplanation> rules) {
+    if (rules==null || rules.isEmpty())
+      return null;
+    HashSet<Integer> treeIds=new HashSet<Integer>(250);
+    for (CommonExplanation rule:rules)
+      if (rule.treeId>=0 && !treeIds.contains(rule.treeId))
+        treeIds.add(rule.treeId);
+    if (treeIds.isEmpty())
+      return null;
+    int idArray[]=new int[treeIds.size()];
+    int k=0;
+    for (Integer n:treeIds)
+      idArray[k++]=n;
+    Arrays.sort(idArray);
+    return idArray;
+  }
+
+  public static double[][] computeDistancesBetweenTrees (ArrayList<CommonExplanation> rules,
+                                                         int treeIds[],
+                                                         HashSet<String> featuresToUse,
+                                                         Hashtable<String,float[]> attrMinMaxValues) {
+    if (rules==null || rules.isEmpty() || treeIds==null || treeIds.length<2)
+      return null;
+    int nTrees=treeIds.length;
+    ArrayList<CommonExplanation> treeRules[]=new ArrayList[nTrees];
+    for (int i=0; i<nTrees; i++)
+      treeRules[i]=new ArrayList<CommonExplanation>(rules.size()/nTrees*2);
+    for (CommonExplanation rule:rules)
+      if (rule.treeId>=0)
+        for (int i=0; i<nTrees; i++)
+          if (rule.treeId==treeIds[i]) {
+            treeRules[i].add(rule);
+            break;
+          }
+    double d[][]=new double[nTrees][nTrees];
+    for (int i=0; i<nTrees; i++) {
+      d[i][i]=0;
+      for (int j=i+1; j<nTrees; j++) {
+        ArrayList<CommonExplanation> rt1=(treeRules[i].size()>treeRules[j].size())?treeRules[i]:treeRules[j];
+        ArrayList<CommonExplanation> rt2=(treeRules[i].size()>treeRules[j].size())?treeRules[j]:treeRules[i];
+      }
+    }
+    return d;
+  }
 }

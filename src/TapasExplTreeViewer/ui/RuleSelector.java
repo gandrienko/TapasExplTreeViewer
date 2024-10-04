@@ -23,6 +23,9 @@ public class RuleSelector {
   protected JDialog queryDialog=null;
   protected boolean isRunning=false, queryExecuting=false;
   public String queryStr=null;
+
+  public JRadioButton rbHighlight=null, rbExtract=null;
+
   public FeatureSelector feaSel=null;
   public JCheckBox cbMust=null, cbNot=null;
   public JRadioButton rbAll=null, rbAny=null;
@@ -129,7 +132,6 @@ public class RuleSelector {
       topP=null;
 
     JPanel fp=null;
-    ButtonGroup rbg=null;
 
     if (features!=null && !features.isEmpty()) {
       feaSel=new FeatureSelector(features,selectedFeatures);
@@ -150,7 +152,7 @@ public class RuleSelector {
       cp.add(rbAll);
       cp.add(rbAny);
       cp.add(new JLabel("of the selected features:"));
-      rbg=new ButtonGroup();
+      ButtonGroup rbg=new ButtonGroup();
       rbg.add(rbAll);
       rbg.add(rbAny);
       cbMust.addItemListener(new ItemListener() {
@@ -173,9 +175,15 @@ public class RuleSelector {
       mainP.add(fp,BorderLayout.CENTER);
 
     JPanel bp=new JPanel();
-    bp.setLayout(new FlowLayout(FlowLayout.CENTER,10,5));
+    bp.setLayout(new FlowLayout(FlowLayout.CENTER,20,5));
     JButton b=new JButton("Select");
     bp.add(b);
+    rbHighlight=new JRadioButton("highlight",false);
+    rbExtract=new JRadioButton("extract",true);
+    ButtonGroup rbg=new ButtonGroup();
+    rbg.add(rbHighlight); rbg.add(rbExtract);
+    bp.add(rbHighlight);
+    bp.add(rbExtract);
 
     Window owner=FocusManager.getCurrentManager().getActiveWindow();
     queryDialog=new JDialog(owner, "Select rules", Dialog.ModalityType.MODELESS);
@@ -241,16 +249,15 @@ public class RuleSelector {
           if (minTreeCluster>=0 && maxTreeCluster>=minTreeCluster)
             queryStr+="Tree cluster in ["+minTreeCluster+","+maxTreeCluster+"]; ";
         }
-        HashSet selFeatures=null;
+        HashSet<String> selFeatures=null;
         if (feaSel!=null && cbMust.isSelected()) {
           selFeatures=feaSel.getSelection();
           if (selFeatures!=null && !selFeatures.isEmpty()) {
             queryStr+="; must ";
             if (cbNot.isSelected()) queryStr+="NOT ";
             queryStr+="involve "+((rbAll.isSelected())?"all":"any")+" of ";
-            for (int i=0; i<features.size(); i++)
-              if (selFeatures.contains(features.get(i)))
-                selFeatures.add(features.get(i)+", ");
+            for (String featureName:selFeatures)
+              queryStr+=featureName+"; ";
             queryStr=queryStr.substring(0,queryStr.length()-2);
           }
         }
@@ -286,7 +293,7 @@ public class RuleSelector {
                                  double minValue, double maxValue,
                                  int minTreeId, int maxTreeId,
                                  int minTreeCluster, int maxTreeCluster,
-                                 HashSet<String> selectedFeatures, boolean mustNot, boolean all) {
+                                 HashSet<String> selectedFeatures, boolean mustNot, boolean allFeatures) {
     Object source=this;
     SwingWorker worker=new SwingWorker() {
       @Override
@@ -295,6 +302,26 @@ public class RuleSelector {
         selectedRules=null;
         selectedRules= RuleMaster.selectByQuery(origRules,minClass,maxClass,minValue,maxValue,
             minTreeId,maxTreeId,minTreeCluster,maxTreeCluster);
+        if (selectedFeatures!=null && selectedRules!=null && !selectedRules.isEmpty()) {
+          selectedRules=(ArrayList<CommonExplanation>)selectedRules.clone();
+          for (int i=selectedRules.size()-1; i>=0; i--) {
+            CommonExplanation rule=selectedRules.get(i);
+            int nContained=0;
+            for (String featureName:selectedFeatures)
+              if (rule.hasFeature(featureName)) {
+                ++nContained;
+                if (!allFeatures)
+                  break;
+              }
+            if (nContained==0 || (allFeatures && nContained<selectedFeatures.size()))
+              if (!mustNot)
+                selectedRules.remove(i);
+              else;
+            else
+              if (mustNot)
+                selectedRules.remove(i);
+          }
+        }
         return true;
       }
 
@@ -313,6 +340,10 @@ public class RuleSelector {
     };
     System.out.println("Running rule selection in background");
     worker.execute();
+  }
+
+  public boolean mustExtract() {
+    return rbExtract.isSelected();
   }
 
   public void toFront() {

@@ -47,7 +47,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    * The highlighter and selector for the original rule set
    */
   public SingleHighlightManager origHighlighter=null;
-  public ItemSelectionManager origSelector=null;
+  public ItemSelectionManager origSelector=null, localSelector=null;
   
   /**
    * The rules or explanations to be visualized
@@ -185,6 +185,12 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   
   public void setOrigSelector(ItemSelectionManager origSelector) {
     this.origSelector = origSelector;
+  }
+
+  public ItemSelectionManager getLocalSelector(boolean showOriginalRules) {
+    if (localSelector==null)
+      localSelector=(showOriginalRules)?origSelector:new ItemSelectionManager();
+    return localSelector;
   }
   
   public void setCreatedFileRegister(ArrayList<File> createdFiles) {
@@ -332,10 +338,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (clOptics!=null) {
       boolean showOriginalRules=this.exList.equals(origRules);
       SingleHighlightManager highlighter=(showOriginalRules)?origHighlighter:new SingleHighlightManager();
-      ItemSelectionManager selector=(showOriginalRules)?origSelector:new ItemSelectionManager();
       clOptics.setDistanceMatrix(distanceMatrix);
       clOptics.setHighlighter(highlighter);
-      clOptics.setSelector(selector);
+      clOptics.setSelector(getLocalSelector(showOriginalRules));
       clOptics.addChangeListener(changeListener);
       clOptics.addChangeListener(this);
       System.out.println("Running OPTICS clustering in background mode ...");
@@ -354,7 +359,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     }
 
     SingleHighlightManager highlighter=(showOriginalRules)?origHighlighter:new SingleHighlightManager();
-    ItemSelectionManager selector=(showOriginalRules)?origSelector:new ItemSelectionManager();
+    ItemSelectionManager selector=getLocalSelector(showOriginalRules);
 
     int minAction=Integer.MAX_VALUE, maxAction=Integer.MIN_VALUE;
     double minQValue=Double.NaN, maxQValue=Double.NaN;
@@ -753,6 +758,14 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         extractSubset(selector,rules,distanceMatrix,attrMinMax);
       }
     });
+
+    menu.add(mit=new JMenuItem("Clear selection"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        selector.deselectAll();
+      }
+    });
     
     if (!expanded) {
       menu.addSeparator();
@@ -770,7 +783,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           getNonSubsumed(exList, attrMinMax);
         }
       });
-      menu.add(mit = new JMenuItem("Extract rule subset through a query"));
+      menu.add(mit = new JMenuItem("Select or extract rule subset through a query"));
       ChangeListener changeListener=this;
       mit.addActionListener(new ActionListener() {
         @Override
@@ -1852,11 +1865,22 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         ruleSelector=null;
       else {
         ArrayList<CommonExplanation> selRules=ruleSelector.getSelectedRules();
-        if (selRules!=null) {
-          ShowRules showRules=createShowRulesInstance(selRules);
-          showRules.setTitle("Subset by query "+ruleSelector.queryStr);
-          showRules.showRulesInTable();
-        }
+        if (selRules!=null)
+          if (ruleSelector.mustExtract()) {
+            ShowRules showRules=createShowRulesInstance(selRules);
+            showRules.setTitle("Subset by query "+ruleSelector.queryStr);
+            showRules.showRulesInTable();
+          }
+          else {
+            //select the rules by highlighting
+            if (localSelector==null)
+              return;
+            ArrayList<Integer> selIndexes=new ArrayList<Integer>(selRules.size());
+            for (int i=0; i<exList.size(); i++)
+              if (selRules.contains(exList.get(i)))
+                selIndexes.add(i);
+            localSelector.select(selIndexes);
+          }
       }
     }
   }

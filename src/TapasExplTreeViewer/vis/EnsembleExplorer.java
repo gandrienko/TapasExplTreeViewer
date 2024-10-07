@@ -2,9 +2,15 @@ package TapasExplTreeViewer.vis;
 
 import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.rules.RuleMaster;
+import TapasExplTreeViewer.util.MatrixWriter;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -17,7 +23,15 @@ public class EnsembleExplorer {
   public int treeIds[]=null;
   public double treeDistances[][]=null;
   public JPanel uiPanel=null, mainPanel=null;
-  
+  /**
+   * When a file is created, it is registered in this list, to be deleted afterwards
+   */
+  public ArrayList<File> createdFiles=null;
+
+  public void setFileRegister(ArrayList<File> createdFiles) {
+    this.createdFiles=createdFiles;
+  }
+
   public JPanel startEnsembleExplorer (ArrayList<CommonExplanation> rules, String rulesInfoText,
                            Hashtable<String,float[]> attrMinMaxValues, HashSet<String> featuresToUse) {
     if (rules==null || rules.size()<5)
@@ -80,8 +94,68 @@ public class EnsembleExplorer {
           //mainPanel.add(new JLabel("Successfully computed the distances between the trees!!!",JLabel.CENTER),
               //BorderLayout.CENTER);
           System.out.println("Successfully computed the distances between the trees!!!");
-          MatrixPainter matrixPainter=new MatrixPainter(treeDistances);
-          mainPanel.add(matrixPainter,BorderLayout.CENTER);
+          //MatrixPainter matrixPainter=new MatrixPainter(treeDistances);
+          //mainPanel.add(matrixPainter,BorderLayout.CENTER);
+          TSNE_Runner tsne=new TSNE_Runner();
+          tsne.setFileRegister(createdFiles);
+          tsne.setPerplexity(10);
+          ProjectionPlot2D pp=new ProjectionPlot2D();
+          pp.setDistanceMatrix(treeDistances);
+          pp.setProjectionProvider(tsne);
+          pp.setToChangeFrameTitle(false);
+          String labels[]=new String[treeIds.length];
+          for (int i=0; i<treeIds.length; i++)
+            labels[i]=Integer.toString(treeIds[i]);
+          pp.setLabels(labels);
+          mainPanel.add(pp,BorderLayout.CENTER);
+          JPopupMenu menu=new JPopupMenu();
+          JMenuItem mit=new JMenuItem("Export the distance matrix to a file");
+          menu.add(mit);
+          menu.add(mit);
+          mit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              MatrixWriter.writeMatrixToFile(treeDistances,"treeDistances.csv",true);
+            }
+          });
+
+          mit=new JMenuItem("Re-run t-SNE with another perplexity setting");
+          menu.add(mit);
+          mit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                  "Perplexity (integer; suggested range from 5 to 50) :",
+                  tsne.getPerplexity());
+              if (value==null)
+                return;
+              try {
+                int p=Integer.parseInt(value);
+                if (p<5 || p>100) {
+                  JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                      "Illegal perplexity: "+p,
+                      "Error",JOptionPane.ERROR_MESSAGE);
+                  return;
+                }
+                tsne.setPerplexity(p);
+                tsne.runAlgorithm();
+              } catch (Exception ex) {
+                JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                    "Illegal perplexity: "+value,
+                    "Error",JOptionPane.ERROR_MESSAGE);
+                return;
+              }
+            }
+          });
+          pp.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+              super.mousePressed(e);
+              if (e.getButton()>MouseEvent.BUTTON1) {
+                menu.show(pp,e.getX(),e.getY());
+              }
+            }
+          });
         }
         mainPanel.invalidate();
         mainPanel.validate();

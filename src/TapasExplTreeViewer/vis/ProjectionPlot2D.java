@@ -15,11 +15,12 @@ import java.util.ArrayList;
 
 public class ProjectionPlot2D extends JPanel
     implements ChangeListener, MouseListener, MouseMotionListener {
-  public static Color dotColor=new Color(50,50,50,90),
+  public static Color dotColor=new Color(50,50,50,160),
+      labelColor=new Color(50,50,50,80),
       highlightColor=new Color(255,0,0,160),
       highlightFillColor=new Color(255,255,0,100),
       selectColor=new Color(0,0,0,200);
-  public static int dotRadius=4, dotDiameter=dotRadius*2;
+  public static int dotRadius=3, dotDiameter=dotRadius*2;
   /**
    * Matrix of distances between the objects to project and show
    */
@@ -28,6 +29,10 @@ public class ProjectionPlot2D extends JPanel
    * Creates a projection based on the distance matrix
    */
   protected ProjectionProvider projectionProvider=null;
+
+  public boolean toChangeFrameTitle=true;
+
+  public String labels[]=null;
   /**
    * The projection obtained (updated iteratively)
    */
@@ -72,7 +77,15 @@ public class ProjectionPlot2D extends JPanel
     this();
     proj=coords;
   }
-  
+
+  public void setToChangeFrameTitle(boolean toChangeFrameTitle) {
+    this.toChangeFrameTitle = toChangeFrameTitle;
+  }
+
+  public void setLabels(String[] labels) {
+    this.labels = labels;
+  }
+
   public SingleHighlightManager getHighlighter(){
     return highlighter;
   }
@@ -136,16 +149,18 @@ public class ProjectionPlot2D extends JPanel
         //System.out.println("Projection plot: updating the 2D projection");
         off_Valid=false; off_selected_Valid=false;
         repaint();
-        JFrame fr=null;
-        Component c=this;
-        while (fr==null && c!=null) {
-          if (c instanceof JFrame)
-            fr=(JFrame)c;
-          else
-            c=c.getParent();
+        if (toChangeFrameTitle) {
+          JFrame fr = null;
+          Component c = this;
+          while (fr == null && c != null) {
+            if (c instanceof JFrame)
+              fr = (JFrame) c;
+            else
+              c = c.getParent();
+          }
+          if (fr != null)
+            fr.setTitle(projectionProvider.getProjectionTitle());
         }
-        if (fr!=null)
-          fr.setTitle(projectionProvider.getProjectionTitle());
       }
     }
     else
@@ -332,6 +347,11 @@ public class ProjectionPlot2D extends JPanel
       px[i]=xMarg+(int)Math.round((proj[i][0]-xMin)*scale);
       py[i]=yMarg+(int)Math.round((proj[i][1]-yMin)*scale);
       drawPoint(g,i,px[i],py[i],false,false);
+      if (labels!=null) {
+        g.setColor(labelColor);
+        g.drawString(labels[i], px[i] + 2+dotRadius, py[i] + 10+dotRadius);
+        g.setColor(dotColor);
+      }
     }
   }
   

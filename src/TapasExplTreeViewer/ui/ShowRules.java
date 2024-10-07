@@ -2331,6 +2331,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (exList==null || exList.isEmpty() || !RuleMaster.hasDistinctTreeIds(exList))
       return;
     EnsembleExplorer eEx=new EnsembleExplorer();
+    eEx.setFileRegister(createdFiles);
     JPanel eExPanel=eEx.startEnsembleExplorer(exList,infoArea.getText(),attrMinMax,featuresInDistances);
     if (eExPanel==null)
       return;

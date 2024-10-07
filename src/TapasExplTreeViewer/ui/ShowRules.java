@@ -92,6 +92,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   
   protected JTable table=null;
   protected JLabel_Rule ruleRenderer=null;
+  protected JTextArea infoArea=null;
   
   public String title=null;
   public String dataFolder="";
@@ -664,6 +665,15 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         selectFeaturesToComputeDistances();
       }
     });
+    if (RuleMaster.hasDistinctTreeIds(exList)) {
+      menu.add(mit = new JMenuItem("Explore similarities and distances between the trees"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          openTreeExplorer();
+        }
+      });
+    }
 
     menu.add(mit=new JMenuItem("Show the OPTICS reachability plot"));
     mit.addActionListener(new ActionListener() {
@@ -1140,10 +1150,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (infoText==null)
       infoText=title;
 
-    JTextArea textArea = new JTextArea(infoText);
-    textArea.setLineWrap(true);
-    textArea.setWrapStyleWord(true);
-    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, textArea);
+    infoArea = new JTextArea(infoText);
+    infoArea.setLineWrap(true);
+    infoArea.setWrapStyleWord(true);
+    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
 
     JFrame fr = new JFrame(title);
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -2315,5 +2325,24 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     Translator trans=new Translator();
     trans.setPairs(pairs);
     return trans;
+  }
+
+  public void openTreeExplorer() {
+    if (exList==null || exList.isEmpty() || !RuleMaster.hasDistinctTreeIds(exList))
+      return;
+    EnsembleExplorer eEx=new EnsembleExplorer();
+    JPanel eExPanel=eEx.startEnsembleExplorer(exList,infoArea.getText(),attrMinMax,featuresInDistances);
+    if (eExPanel==null)
+      return;
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    JFrame plotFrame=new JFrame("Distances between trees");
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add(eExPanel);
+    plotFrame.setSize(500,500);
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, 100);
+    plotFrame.setVisible(true);
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
+    frames.add(plotFrame);
   }
 }

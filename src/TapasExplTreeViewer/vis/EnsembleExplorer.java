@@ -44,6 +44,8 @@ public class EnsembleExplorer {
     uiPanel.setLayout(new BorderLayout());
     JTextArea textArea=new JTextArea((rulesInfoText!=null && rulesInfoText.length()>5)?rulesInfoText:
                                          "Set of "+rules.size()+" rules");
+    textArea.setLineWrap(true);
+    textArea.setWrapStyleWord(true);
     textArea.append("\nNumber of distinct trees: "+treeIds.length);
     if (featuresToUse!=null && !featuresToUse.isEmpty()) {
       textArea.append("\n"+featuresToUse.size()+" features are used in computing distances: ");
@@ -56,7 +58,8 @@ public class EnsembleExplorer {
     uiPanel.add(textArea,BorderLayout.NORTH);
     mainPanel=new JPanel();
     mainPanel.setLayout(new BorderLayout());
-    mainPanel.add(new JLabel("Computing distances between the trees ...",Label.CENTER),BorderLayout.CENTER);
+    mainPanel.add(new JLabel("Computing distances between the trees ...",JLabel.CENTER),BorderLayout.CENTER);
+    System.out.println("Computing distances between the trees in background mode...");
     uiPanel.add(mainPanel,BorderLayout.CENTER);
     
     SwingWorker worker=new SwingWorker() {
@@ -69,13 +72,19 @@ public class EnsembleExplorer {
       protected void done() {
         mainPanel.removeAll();
         if (treeDistances==null) {
-          mainPanel.add(new JLabel("Failed to computing distances between the trees!!!",Label.CENTER),
+          mainPanel.add(new JLabel("Failed to compute distances between the trees!!!",JLabel.CENTER),
               BorderLayout.CENTER);
+          System.out.println("Failed to compute distances between the trees!!!");
         }
         else {
-          mainPanel.add(new JLabel("Successfully computed the distances between the trees!!!",Label.CENTER),
-              BorderLayout.CENTER);
+          //mainPanel.add(new JLabel("Successfully computed the distances between the trees!!!",JLabel.CENTER),
+              //BorderLayout.CENTER);
+          System.out.println("Successfully computed the distances between the trees!!!");
+          MatrixPainter matrixPainter=new MatrixPainter(treeDistances);
+          mainPanel.add(matrixPainter,BorderLayout.CENTER);
         }
+        mainPanel.invalidate();
+        mainPanel.validate();
       };
     };
     worker.execute();

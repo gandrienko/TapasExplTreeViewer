@@ -1232,6 +1232,19 @@ public class RuleMaster {
     }
     return ok;
   }
+  
+  public static boolean hasDistinctTreeIds(ArrayList<CommonExplanation> rules) {
+    if (rules==null || rules.isEmpty())
+      return false;
+    int id1=-1;
+    for (CommonExplanation rule:rules)
+      if (rule.treeId>=0)
+        if (id1<0) id1=rule.treeId;
+        else
+          if (id1!=rule.treeId)
+            return true;
+    return false;
+  }
 
   public static int[] getAllTreeIds(ArrayList<CommonExplanation> rules) {
     if (rules==null || rules.isEmpty())
@@ -1271,8 +1284,22 @@ public class RuleMaster {
     for (int i=0; i<nTrees; i++) {
       d[i][i]=0;
       for (int j=i+1; j<nTrees; j++) {
-        ArrayList<CommonExplanation> rt1=(treeRules[i].size()>treeRules[j].size())?treeRules[i]:treeRules[j];
-        ArrayList<CommonExplanation> rt2=(treeRules[i].size()>treeRules[j].size())?treeRules[j]:treeRules[i];
+        int nPairs=0;
+        double sumDist=0;
+        for (CommonExplanation rule1:treeRules[i]) {
+          double minDist=Double.NaN;
+          for (CommonExplanation rule2:treeRules[j]) {
+            double dist=CommonExplanation.distance(rule1.eItems,rule2.eItems,featuresToUse,attrMinMaxValues);
+            if (!Double.isNaN(dist))
+              if (Double.isNaN(minDist) || minDist>dist)
+                minDist=dist;
+          }
+          if (!Double.isNaN(minDist)) {
+            sumDist+=minDist; ++nPairs;
+          }
+        }
+        if (nPairs>0)
+          d[i][j]=d[j][i]=sumDist/nPairs;
       }
     }
     return d;

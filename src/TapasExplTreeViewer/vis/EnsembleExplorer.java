@@ -15,6 +15,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 
@@ -59,6 +60,8 @@ public class EnsembleExplorer implements ChangeListener {
           JOptionPane.INFORMATION_MESSAGE);
       return null;
     }
+    HashMap<Integer,Integer> treeClusters=RuleMaster.getTreeClusterIds(rules);
+
     uiPanel=new JPanel();
     uiPanel.setLayout(new BorderLayout());
     JTextArea textArea=new JTextArea((rulesInfoText!=null && rulesInfoText.length()>5)?rulesInfoText:
@@ -114,6 +117,16 @@ public class EnsembleExplorer implements ChangeListener {
           for (int i=0; i<treeIds.length; i++)
             labels[i]=Integer.toString(treeIds[i]);
           pp.setLabels(labels);
+          if (treeClusters!=null) {
+            Color colors[]=new Color[treeIds.length];
+            for (int i=0; i<treeIds.length; i++) {
+              int clusterId=treeClusters.get(treeIds[i]);
+              colors[i] = MyColors.getNiceColorExt(clusterId);
+              labels[i]+="/"+clusterId;
+            }
+            pp.setColors(colors);
+          }
+
           selector=pp.getSelector();
           selector.addChangeListener(changeListener);
           mainPanel.add(pp,BorderLayout.CENTER);

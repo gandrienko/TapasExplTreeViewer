@@ -1263,6 +1263,22 @@ public class RuleMaster {
     return idArray;
   }
 
+  public static HashMap<Integer,Integer> getTreeClusterIds(ArrayList<CommonExplanation> rules) {
+    if (rules==null || rules.isEmpty())
+      return null;
+    HashMap<Integer,Integer> treeClusters=new HashMap<Integer,Integer>(250);
+    HashSet<Integer> clusterIds=new HashSet<Integer>(20);
+    for (CommonExplanation rule:rules)
+      if (rule.treeId>=0 && rule.treeCluster>=0 && !treeClusters.containsKey(rule.treeId)) {
+        treeClusters.put(rule.treeId, rule.treeCluster);
+        if (!clusterIds.contains(rule.treeCluster))
+          clusterIds.add(rule.treeCluster);
+      }
+    if (clusterIds.size()<2)
+      return null;
+    return treeClusters;
+  }
+
   public static double[][] computeDistancesBetweenTrees (ArrayList<CommonExplanation> rules,
                                                          int treeIds[],
                                                          HashSet<String> featuresToUse,

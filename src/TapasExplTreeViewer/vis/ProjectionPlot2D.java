@@ -31,6 +31,7 @@ public class ProjectionPlot2D extends JPanel
   public boolean toChangeFrameTitle=true;
 
   public String labels[]=null;
+  public Color colors[]=null;
   /**
    * The projection obtained (updated iteratively)
    */
@@ -94,6 +95,10 @@ public class ProjectionPlot2D extends JPanel
 
   public void setLabels(String[] labels) {
     this.labels = labels;
+  }
+
+  public void setColors(Color[] colors) {
+    this.colors = colors;
   }
 
   public SingleHighlightManager getHighlighter(){
@@ -234,14 +239,17 @@ public class ProjectionPlot2D extends JPanel
   protected Stroke strokeSelected=new BasicStroke(2);
   
   public void drawPoint(Graphics2D g, int pIdx, int x, int y, boolean highlighted, boolean selected) {
+    Color currColor=g.getColor();
     if (highlighted) {
       g.setColor(highlightFillColor);
       g.fillOval(x-dotRadius-1,y-dotRadius-1,dotDiameter+2,dotDiameter+2);
     }
+    if (!currColor.equals(dotColor))
+      g.fillOval(x-dotRadius,y-dotRadius,dotDiameter,dotDiameter);
     Stroke origStr=(selected || highlighted)?g.getStroke():null;
     if (selected || highlighted)
       g.setStroke(strokeSelected);
-    g.setColor((highlighted)?highlightColor:(selected)?selectColor:dotColor);
+    g.setColor((highlighted)?highlightColor:(selected)?selectColor:currColor);
     g.drawOval(x-dotRadius,y-dotRadius,dotDiameter,dotDiameter);
     if (origStr!=null)
       g.setStroke(origStr);
@@ -363,13 +371,12 @@ public class ProjectionPlot2D extends JPanel
   }
 
   public void drawPoints(Graphics2D g) {
-    g.setColor(dotColor);
     for (int i=0; i<proj.length; i++) {
+      g.setColor((colors==null)?dotColor:colors[i]);
       drawPoint(g,i,px[i],py[i],false,false);
       if (labels!=null) {
         g.setColor(labelColor);
         g.drawString(labels[i], px[i] + 2+dotRadius, py[i] + 10+dotRadius);
-        g.setColor(dotColor);
       }
     }
   }

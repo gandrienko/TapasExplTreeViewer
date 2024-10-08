@@ -7,9 +7,7 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
@@ -42,6 +40,12 @@ public class ProjectionPlot2D extends JPanel
    */
   public double xMin=Double.NaN, xMax=xMin, yMin=xMin, yMax=xMin,
       xDiff=Double.NaN, yDiff=Double.NaN;
+  /**
+   * For zooming: minimal and maximal x- and y-coordinates of the
+   * projection area to show
+   */
+  public double viewX1=Double.NaN, viewX2=Double.NaN, viewY1=Double.NaN, viewY2=Double.NaN;
+
   public int xMarg=10, yMarg=10;
   public double scale=Double.NaN;
   
@@ -71,6 +75,12 @@ public class ProjectionPlot2D extends JPanel
     
     addMouseMotionListener(this);
     addMouseListener(this);
+    addMouseWheelListener(new MouseWheelListener() {
+      @Override
+      public void mouseWheelMoved(MouseWheelEvent e) {
+        zoom(e.getWheelRotation());
+      }
+    });
   }
   
   public ProjectionPlot2D(double coords[][]) {
@@ -145,6 +155,7 @@ public class ProjectionPlot2D extends JPanel
       proj =projectionProvider.getProjection();
       if (proj != null && proj[0].length==2) {
         xMin=xMax=yMin=yMax=xDiff=yDiff=Double.NaN;
+        viewX1=viewX2=viewY1=viewY2=Double.NaN;
         scale=Double.NaN;
         //System.out.println("Projection plot: updating the 2D projection");
         off_Valid=false; off_selected_Valid=false;
@@ -316,14 +327,17 @@ public class ProjectionPlot2D extends JPanel
           if (yMax < proj[i][1])
             yMax = proj[i][1];
       }
-      xDiff = xMax - xMin;
-      yDiff = yMax - yMin;
+      viewX1=xMin; viewX2=xMax; viewY1=yMin; viewY2=yMax;
     }
-    
+
+    xDiff = viewX2 - viewX1;
+    yDiff = viewY2 - viewY1;
     scale=Math.min((w-10)/xDiff,(h-10)/yDiff);
     xMarg=(int)Math.round((w-scale*xDiff)/2);
     yMarg=(int)Math.round((h-scale*yDiff)/2);
-  
+
+    setPointCoordinates();
+
     RenderingHints rh = new RenderingHints(
         RenderingHints.KEY_ANTIALIASING,
         RenderingHints.VALUE_ANTIALIAS_ON);
@@ -336,16 +350,21 @@ public class ProjectionPlot2D extends JPanel
     drawSelected(gr);
     drawHighlighted(gr);
   }
-  
-  public void drawPoints(Graphics2D g) {
-    g.setColor(dotColor);
+
+  public void setPointCoordinates() {
     if (px==null || px.length!=proj.length)
       px=new int[proj.length];
     if (py==null || py.length!=proj.length)
       py=new int[proj.length];
     for (int i=0; i<proj.length; i++) {
-      px[i]=xMarg+(int)Math.round((proj[i][0]-xMin)*scale);
-      py[i]=yMarg+(int)Math.round((proj[i][1]-yMin)*scale);
+      px[i]=xMarg+(int)Math.round((proj[i][0]-viewX1)*scale);
+      py[i]=yMarg+(int)Math.round((proj[i][1]-viewY1)*scale);
+    }
+  }
+
+  public void drawPoints(Graphics2D g) {
+    g.setColor(dotColor);
+    for (int i=0; i<proj.length; i++) {
       drawPoint(g,i,px[i],py[i],false,false);
       if (labels!=null) {
         g.setColor(labelColor);
@@ -392,35 +411,61 @@ public class ProjectionPlot2D extends JPanel
   }
   
   protected int pressX=-1, pressY=-1, dragX=-1, dragY=-1;
+  protected boolean button1=true, isShiftDown=false;
 
   public void mousePressed(MouseEvent e) {
-    if (e.getButton()==MouseEvent.BUTTON1){
-      pressX=e.getX(); pressY=e.getY();
-    }
+    button1=e.getButton()==MouseEvent.BUTTON1;
+    isShiftDown=button1 && e.isShiftDown();
+    pressX=e.getX(); pressY=e.getY();
   }
   
   public void mouseReleased(MouseEvent e) {
-    if (pressX>=0 && pressY>=0 && dragX>=0 && dragY>=0) {
-      int x1=Math.min(pressX,dragX), x2=Math.max(pressX,dragX),
-          y1=Math.min(pressY,dragY), y2=Math.max(pressY,dragY);
-      if (x1<x2 || y1<y2) {
-        ArrayList<Integer> indexes=new ArrayList<Integer>(50);
-        for (int i=0; i<px.length; i++)
-          if (px[i]>=x1 && px[i]<=x2 && py[i]>=y1 && py[i]<=y2)
-            indexes.add(i);
-        if (!indexes.isEmpty())
-          if (selector.areAllSelected(indexes))
-            selector.deselect(indexes);
-          else
-            selector.select(indexes);
-      }
-    }
+    if (pressX>=0 && pressY>=0 && dragX>=0 && dragY>=0)
+      if (button1)
+        if (isShiftDown) {
+          //shifting
+          dragX=e.getX(); dragY=e.getY();
+          double dx=(dragX-pressX)/scale, dy=(dragY-pressY)/scale;
+          viewX1-=dx; viewX2-=dx; viewY1-=dy; viewY2-=dy;
+          off_Valid=off_selected_Valid=false;
+          redraw();
+        }
+        else {
+          int x1=Math.min(pressX,dragX), x2=Math.max(pressX,dragX),
+              y1=Math.min(pressY,dragY), y2=Math.max(pressY,dragY);
+          if (x1<x2 || y1<y2) {
+            ArrayList<Integer> indexes=new ArrayList<Integer>(50);
+            for (int i=0; i<px.length; i++)
+              if (px[i]>=x1 && px[i]<=x2 && py[i]>=y1 && py[i]<=y2)
+                indexes.add(i);
+            if (!indexes.isEmpty())
+              if (selector.areAllSelected(indexes))
+                selector.deselect(indexes);
+              else
+                selector.select(indexes);
+          }
+        }
     pressX=pressY=dragX=dragY=-1;
+    isShiftDown=false;
   }
   
   public void mouseClicked(MouseEvent e) {
-    if (e.getClickCount()>1)
-      selector.deselectAll();
+    if (e.getClickCount()>1) {
+      if (e.getButton() != MouseEvent.BUTTON1)
+        return;
+      if (e.isShiftDown()) {
+        if (viewX1 != xMin || viewX2 != xMax || viewY1 != yMin || viewY2 != yMax) {
+          viewX1 = xMin;
+          viewX2 = xMax;
+          viewY1 = yMin;
+          viewY2 = yMax;
+          off_Valid = off_selected_Valid = false;
+          redraw();
+        }
+      }
+      else
+        selector.deselectAll();
+    }
     else
       if (e.getButton()==MouseEvent.BUTTON1){
         ArrayList<Integer> sel=getPointIndexesAtPosition(e.getX(),e.getY(),dotRadius*2);
@@ -446,18 +491,33 @@ public class ProjectionPlot2D extends JPanel
       highlighter.highlight(new Integer(idx));
   }
   public void mouseDragged(MouseEvent e) {
-    if (pressX>=0 && pressY>=0){
-      if (dragX>=0 && dragY>=0 && (dragX!=pressX || dragY!=pressY))
-        redraw();
-      dragX=e.getX(); dragY=e.getY();
-      Rectangle r=new Rectangle(Math.min(pressX,dragX),Math.min(pressY,dragY),
-          Math.abs(pressX-dragX),Math.abs(pressY-dragY));
-      if (r.width>0 || r.height>0) {
-        Graphics g = getGraphics();
-        g.setColor(new Color(0,0,0,96));
-        g.drawRect(r.x,r.y,r.width,r.height);
-        g.fillRect(r.x,r.y,r.width,r.height);
+    if (pressX>=0 && pressY>=0)
+      if (isShiftDown) {
+        dragX=e.getX(); dragY=e.getY();
+        Graphics g=getGraphics();
+        g.drawImage(off_Image,dragX-pressX,dragY-pressY,null);
       }
-    }
+      else {
+        if (dragX>=0 && dragY>=0 && (dragX!=pressX || dragY!=pressY))
+          redraw();
+        dragX=e.getX(); dragY=e.getY();
+        Rectangle r=new Rectangle(Math.min(pressX,dragX),Math.min(pressY,dragY),
+            Math.abs(pressX-dragX),Math.abs(pressY-dragY));
+        if (r.width>0 || r.height>0) {
+          Graphics g = getGraphics();
+          g.setColor(new Color(0,0,0,96));
+          g.drawRect(r.x,r.y,r.width,r.height);
+          g.fillRect(r.x,r.y,r.width,r.height);
+        }
+      }
+  }
+
+  public void zoom(int amount) {
+    int w0=getWidth()-2*xMarg, h0=getHeight()-2*yMarg, w=w0+amount*w0/25, h=h0+amount*h0/25;
+    int dxScr=(w-w0)/2, dyScr=(h-h0)/2;
+    double dxAbs=dxScr/scale, dyAbs=dyScr/scale;
+    viewX1+=dxAbs; viewX2-=dyAbs; viewY1+=dyAbs; viewY2-=dyAbs;
+    off_Valid=false; off_selected_Valid=false;
+    redraw();
   }
 }

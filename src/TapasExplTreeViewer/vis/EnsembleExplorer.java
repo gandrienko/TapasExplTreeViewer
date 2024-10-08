@@ -3,8 +3,11 @@ package TapasExplTreeViewer.vis;
 import TapasDataReader.CommonExplanation;
 import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.util.MatrixWriter;
+import TapasUtilities.ItemSelectionManager;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,7 +18,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 
-public class EnsembleExplorer {
+public class EnsembleExplorer implements ChangeListener {
   public ArrayList<CommonExplanation> rules=null;
   public String rulesInfoText=null;
   public Hashtable<String,float[]> attrMinMaxValues=null;
@@ -23,6 +26,8 @@ public class EnsembleExplorer {
   public int treeIds[]=null;
   public double treeDistances[][]=null;
   public JPanel uiPanel=null, mainPanel=null;
+  protected JMenuItem mitExtract=null;
+  protected ItemSelectionManager selector=null;
   /**
    * When a file is created, it is registered in this list, to be deleted afterwards
    */
@@ -107,7 +112,9 @@ public class EnsembleExplorer {
           for (int i=0; i<treeIds.length; i++)
             labels[i]=Integer.toString(treeIds[i]);
           pp.setLabels(labels);
+          selector=pp.getSelector();
           mainPanel.add(pp,BorderLayout.CENTER);
+
           JPopupMenu menu=new JPopupMenu();
           JMenuItem mit=new JMenuItem("Export the distance matrix to a file");
           menu.add(mit);
@@ -161,8 +168,16 @@ public class EnsembleExplorer {
         mainPanel.validate();
       };
     };
+    selector.addChangeListener(this);
     worker.execute();
-    
+
     return uiPanel;
+  }
+
+  public void extractRulesOfSelectedTrees() {
+    //
+  }
+  public void stateChanged(ChangeEvent e) {
+    //
   }
 }

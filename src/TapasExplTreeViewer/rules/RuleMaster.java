@@ -1286,9 +1286,21 @@ public class RuleMaster {
       for (int j=i+1; j<nTrees; j++) {
         int nPairs=0;
         double sumDist=0;
-        for (CommonExplanation rule1:treeRules[i]) {
+        for (CommonExplanation rule1:treeRules[i]) { //for each rule of the first tree find the closest rule of the second tree
           double minDist=Double.NaN;
           for (CommonExplanation rule2:treeRules[j]) {
+            double dist=CommonExplanation.distance(rule1.eItems,rule2.eItems,featuresToUse,attrMinMaxValues);
+            if (!Double.isNaN(dist))
+              if (Double.isNaN(minDist) || minDist>dist)
+                minDist=dist;
+          }
+          if (!Double.isNaN(minDist)) {
+            sumDist+=minDist; ++nPairs;
+          }
+        }
+        for (CommonExplanation rule2:treeRules[j]) { //for each rule of the second tree find the closest rule of the first tree
+          double minDist=Double.NaN;
+          for (CommonExplanation rule1:treeRules[i]) {
             double dist=CommonExplanation.distance(rule1.eItems,rule2.eItems,featuresToUse,attrMinMaxValues);
             if (!Double.isNaN(dist))
               if (Double.isNaN(minDist) || minDist>dist)

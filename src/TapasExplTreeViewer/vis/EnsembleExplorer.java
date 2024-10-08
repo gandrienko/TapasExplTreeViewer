@@ -81,6 +81,8 @@ public class EnsembleExplorer implements ChangeListener {
     System.out.println("Computing distances between the trees in background mode...");
     uiPanel.add(mainPanel,BorderLayout.CENTER);
     
+    ChangeListener changeListener=this;
+    
     SwingWorker worker=new SwingWorker() {
       @Override
       protected Object doInBackground() throws Exception {
@@ -113,6 +115,7 @@ public class EnsembleExplorer implements ChangeListener {
             labels[i]=Integer.toString(treeIds[i]);
           pp.setLabels(labels);
           selector=pp.getSelector();
+          selector.addChangeListener(changeListener);
           mainPanel.add(pp,BorderLayout.CENTER);
 
           JPopupMenu menu=new JPopupMenu();
@@ -154,6 +157,14 @@ public class EnsembleExplorer implements ChangeListener {
               }
             }
           });
+          mitExtract=new JMenuItem("Extract the rules of the selected trees to a new table");
+          mitExtract.setEnabled(false);
+          mitExtract.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              extractRulesOfSelectedTrees();
+            }
+          });
           pp.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -168,7 +179,6 @@ public class EnsembleExplorer implements ChangeListener {
         mainPanel.validate();
       };
     };
-    selector.addChangeListener(this);
     worker.execute();
 
     return uiPanel;
@@ -178,6 +188,6 @@ public class EnsembleExplorer implements ChangeListener {
     //
   }
   public void stateChanged(ChangeEvent e) {
-    //
+    mitExtract.setEnabled(selector.hasSelection());
   }
 }

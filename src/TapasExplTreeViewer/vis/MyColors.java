@@ -16,7 +16,7 @@ public class MyColors {
       new Color(227, 26, 28),   // "#e31a1c"
       new Color(253, 191, 111), // "#fdbf6f"
       new Color(255, 127, 0),   // "#ff7f00"
-      new Color(202, 178, 214), // "#cab2d6"
+      new Color(178, 106, 214), // "#b26ad6"
       new Color(106, 61, 154),  // "#6a3d9a"
       new Color(255, 255, 153), // "#ffff99"
       new Color(177, 89, 40),   // "#b15928"

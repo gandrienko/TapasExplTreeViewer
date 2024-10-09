@@ -6,6 +6,7 @@ import TapasExplTreeViewer.alt_rules.Rule;
 import TapasExplTreeViewer.ui.ShowRules;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 public class SeeRules {
   public static String pathToRules="c:\\CommonGISprojects\\Lamarr\\model_rules\\";
+  public static String lastUsedDirectory = null;
 
   public static void main(String[] args) {
     File file=null;
@@ -35,10 +37,14 @@ public class SeeRules {
         if (workingDirectory != null)
           fileChooser.setCurrentDirectory(new File(workingDirectory));
       }
+      FileNameExtensionFilter filter = new FileNameExtensionFilter("CSV Files", "csv");
+      fileChooser.setFileFilter(filter);
       int userSelection = fileChooser.showOpenDialog(null);
 
-      if (userSelection == JFileChooser.APPROVE_OPTION)
+      if (userSelection == JFileChooser.APPROVE_OPTION) {
         file = fileChooser.getSelectedFile();
+        lastUsedDirectory = file.getParent();
+      }
     }
     if (file==null)
       return;

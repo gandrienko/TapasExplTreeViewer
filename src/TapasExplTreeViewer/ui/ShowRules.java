@@ -7,8 +7,11 @@ import TapasExplTreeViewer.MST.Edge;
 import TapasExplTreeViewer.MST.Prim;
 import TapasExplTreeViewer.MST.Vertex;
 import TapasExplTreeViewer.clustering.*;
+import TapasExplTreeViewer.rules.DataRecord;
+import TapasExplTreeViewer.rules.DataSet;
 import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.rules.UnitedRule;
+import TapasExplTreeViewer.util.CSVDataLoader;
 import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.*;
@@ -57,6 +60,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    * The data instances (cases) the rules apply to.
    */
   public AbstractList<Explanation> dataInstances =null;
+  /**
+   * Data in a simpler format
+   */
+  public DataSet data=null;
   /**
    * Whether the rule set has been previously reduced by removing rules
    * subsumed in more general rules.
@@ -830,6 +837,14 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       }
       */
     }
+    menu.addSeparator();
+    menu.add(mit=new JMenuItem("Apply rules to data"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        applyRulesToData();
+      }
+    });
 
     menu.addSeparator();
     menu.add(mit=new JMenuItem("Export rules to file in text format"));
@@ -2356,5 +2371,38 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (frames==null)
       frames=new ArrayList<JFrame>(20);
     frames.add(plotFrame);
+  }
+
+  public void applyRulesToData() {
+    boolean applyToSelection=localSelector!=null &&
+        localSelector.hasSelection() &&
+            JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                "Apply the operation to the selected subset?",
+                "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
+                ==JOptionPane.YES_OPTION;
+    ArrayList rules=(applyToSelection)?getSelectedRules(exList,localSelector):exList;
+    if (data==null)
+      try {
+        data= CSVDataLoader.loadDataFromCSVFile(CSVDataLoader.selectFilePathThroughDialog());
+        if (data!=null)
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+              "Loaded "+data.records.size()+" data records.","Data loaded!",
+              JOptionPane.INFORMATION_MESSAGE);
+      } catch (IOException ex) {};
+    if (data==null)  {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No data have been loaded!",
+          "No data",JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    if (RuleMaster.applyRulesToData(rules,data.records))
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Completed application of "+rules.size()+" rules to "+
+              data.records.size()+" data records.","Rule application done",
+          JOptionPane.INFORMATION_MESSAGE);
+    else
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to apply the rules to data!",
+          "Rule application failed",JOptionPane.ERROR_MESSAGE);
   }
 }

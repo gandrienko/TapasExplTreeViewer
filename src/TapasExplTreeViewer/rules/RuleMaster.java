@@ -1346,4 +1346,11 @@ public class RuleMaster {
       }
     return selectedRules;
   }
+
+  public static boolean applyRulesToData(ArrayList<CommonExplanation> rules,
+                                         ArrayList<DataRecord> data) {
+    if (rules==null || rules.isEmpty() || data==null || data.isEmpty())
+      return false;
+    return true;
+  }
 }

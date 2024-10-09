@@ -41,4 +41,10 @@ public class DataRecord {
       return null;
     return items.get(feature);
   }
+
+  public void erasePrediction(){
+    predictedClassIdx=-1;
+    predictedValue=Double.NaN;
+    predictedValueRange=null;
+  }
 }

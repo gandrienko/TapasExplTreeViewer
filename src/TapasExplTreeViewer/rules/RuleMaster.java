@@ -1351,6 +1351,54 @@ public class RuleMaster {
                                          ArrayList<DataRecord> data) {
     if (rules==null || rules.isEmpty() || data==null || data.isEmpty())
       return false;
+    int predictionCount=0, applicationCount=0;
+    for (DataRecord record:data) {
+      record.erasePrediction();
+      HashMap<Integer,Integer> predictions=null;
+      for (CommonExplanation rule:rules)
+        if (ruleAppliesToDataRecord(rule,record)) {
+          ++applicationCount;
+          if (predictions==null) {
+            predictions = new HashMap<Integer, Integer>(10);
+            ++predictionCount;
+          }
+          if (predictions.get(rule.action)==null)
+            predictions.put(rule.action,1);
+          else
+            predictions.put(rule.action,predictions.get(rule.action)+1);
+        }
+      if (predictions==null)
+        continue;
+      int maxClass=-1, maxRulesForClass=0;
+      for (Integer classN:predictions.keySet())
+        if (predictions.get(classN)>maxRulesForClass) {
+          maxClass=classN; maxRulesForClass=predictions.get(classN);
+        }
+      record.predictedClassIdx=maxClass;
+    }
+    System.out.println("Rule application to data: made "+applicationCount+
+        " successful applications of "+rules.size()+" rules to "+predictionCount+
+        " data records out of "+data.size()+" available records");
+    return predictionCount>0;
+  }
+
+  public static boolean ruleAppliesToDataRecord(CommonExplanation rule, DataRecord data) {
+    if (rule==null || rule.eItems==null || rule.eItems.length==0)
+      return false;
+    if (data==null || data.items==null || data.items.isEmpty())
+      return false;
+    for (ExplanationItem ei:rule.eItems) {
+      if (ei.interval==null || (Double.isInfinite(ei.interval[0]) && Double.isInfinite(ei.interval[1])))
+        continue;
+      DataElement item=data.getDataElement(ei.attr);
+      if (item==null || !item.hasAnyValue())
+        return false;
+      double value=(item.dataType==DataElement.INTEGER)?item.getIntValue():item.getDoubleValue();
+      if (!Double.isInfinite(ei.interval[0]) && value<ei.interval[0])
+        return false;
+      if (!Double.isInfinite(ei.interval[1]) && value>ei.interval[1])
+        return false;
+    }
     return true;
   }
 }

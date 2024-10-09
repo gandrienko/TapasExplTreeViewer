@@ -22,6 +22,7 @@ import java.util.Hashtable;
 public class EnsembleExplorer implements ChangeListener {
   public ArrayList<CommonExplanation> rules=null;
   public String rulesInfoText=null;
+  public ChangeListener owner=null;
   public Hashtable<String,float[]> attrMinMaxValues=null;
   public HashSet<String> featuresToUse=null;
   public int treeIds[]=null;
@@ -29,10 +30,16 @@ public class EnsembleExplorer implements ChangeListener {
   public JPanel uiPanel=null, mainPanel=null;
   protected JMenuItem mitExtract=null;
   protected ItemSelectionManager selector=null;
+  public ArrayList<CommonExplanation> selectedRules=null;
+  public String selectedRulesInfo=null, selectionInfoShort=null;
   /**
    * When a file is created, it is registered in this list, to be deleted afterwards
    */
   public ArrayList<File> createdFiles=null;
+
+  public void setOwner(ChangeListener owner) {
+    this.owner=owner;
+  }
 
   public void setFileRegister(ArrayList<File> createdFiles) {
     this.createdFiles=createdFiles;
@@ -122,6 +129,7 @@ public class EnsembleExplorer implements ChangeListener {
             for (int i=0; i<treeIds.length; i++) {
               int clusterId=treeClusters.get(treeIds[i]);
               colors[i] = MyColors.getNiceColorExt(clusterId);
+              colors[i]=new Color(colors[i].getRed(),colors[i].getGreen(),colors[i].getBlue(),128);
               labels[i]+="/"+clusterId;
             }
             pp.setColors(colors);
@@ -171,6 +179,7 @@ public class EnsembleExplorer implements ChangeListener {
             }
           });
           mitExtract=new JMenuItem("Extract the rules of the selected trees to a new table");
+          menu.add(mitExtract);
           mitExtract.setEnabled(false);
           mitExtract.addActionListener(new ActionListener() {
             @Override
@@ -198,8 +207,40 @@ public class EnsembleExplorer implements ChangeListener {
   }
 
   public void extractRulesOfSelectedTrees() {
-    //
+    ArrayList currSel=selector.getSelected();
+    if (currSel==null || currSel.isEmpty())
+      return;
+    HashSet<Integer> selTrees=new HashSet<Integer>(currSel.size());
+    for (int i=0; i<currSel.size(); i++)
+      selTrees.add(treeIds[(Integer)currSel.get(i)]);
+    selectedRules=RuleMaster.selectRulesOfTrees(rules,selTrees);
+    if (selectedRules==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to select the rules!!!",
+          "Failure",JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    selectedRulesInfo=Integer.toString(selectedRules.size())+" rules originating from "+selTrees.size()+
+        " interactively selected ensemble components (trees) extracted from the rule set \""+
+        rulesInfoText+"\".\nThe identifiers of the selected trees: "+selTrees.toString();
+    selectionInfoShort=Integer.toString(selectedRules.size())+" rules from "+selTrees.size()+
+        " interactively selected trees "+selTrees.toString();
+    if (owner!=null)
+      owner.stateChanged(new ChangeEvent(this));
   }
+
+  public ArrayList<CommonExplanation> getSelectedRules() {
+    return selectedRules;
+  }
+
+  public String getSelectedRulesInfo() {
+    return selectedRulesInfo;
+  }
+
+  public String getSelectionInfoShort() {
+    return selectionInfoShort;
+  }
+
   public void stateChanged(ChangeEvent e) {
     mitExtract.setEnabled(selector.hasSelection());
   }

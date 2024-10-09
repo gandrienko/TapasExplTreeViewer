@@ -1917,6 +1917,16 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           }
       }
     }
+    else
+    if (e.getSource() instanceof EnsembleExplorer)  {
+      EnsembleExplorer eEx=(EnsembleExplorer)e.getSource();
+      ArrayList<CommonExplanation> selRules=eEx.getSelectedRules();
+      if (selRules!=null) {
+        ShowRules showRules=createShowRulesInstance(selRules);
+        showRules.setTitle(eEx.getSelectionInfoShort());
+        showRules.showRulesInTable(eEx.getSelectedRulesInfo());
+      }
+    }
   }
   
   public void aggregate(ArrayList<CommonExplanation> exList,
@@ -2331,6 +2341,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (exList==null || exList.isEmpty() || !RuleMaster.hasDistinctTreeIds(exList))
       return;
     EnsembleExplorer eEx=new EnsembleExplorer();
+    eEx.setOwner(this);
     eEx.setFileRegister(createdFiles);
     JPanel eExPanel=eEx.startEnsembleExplorer(exList,infoArea.getText(),attrMinMax,featuresInDistances);
     if (eExPanel==null)

@@ -1332,4 +1332,18 @@ public class RuleMaster {
     }
     return d;
   }
+
+  public static ArrayList<CommonExplanation> selectRulesOfTrees(ArrayList<CommonExplanation> rules,
+                                                                HashSet<Integer> treeIds) {
+    if (rules==null || rules.isEmpty() || treeIds==null || treeIds.isEmpty())
+      return null;
+    ArrayList<CommonExplanation> selectedRules=null;
+    for (CommonExplanation rule:rules)
+      if (treeIds.contains(rule.treeId)) {
+        if (selectedRules==null)
+          selectedRules=new ArrayList<CommonExplanation>(2000);
+        selectedRules.add(rule);
+      }
+    return selectedRules;
+  }
 }

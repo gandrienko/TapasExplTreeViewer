@@ -134,7 +134,7 @@ public class CSVDataLoader {
     }
   }
 
-  public static String selectFilePathThroughDialog() {
+  public static String selectFilePathThroughDialog(boolean openExisting) {
     // Select file with rules
     JFileChooser fileChooser = new JFileChooser();
     fileChooser.setDialogTitle("Specify a file with data to test the rules");
@@ -147,7 +147,8 @@ public class CSVDataLoader {
     }
     // Set the file filter to only show CSV files
     FileNameExtensionFilter filter = new FileNameExtensionFilter("CSV Files", "csv");
-    int userSelection = fileChooser.showOpenDialog(null);
+    int userSelection = (openExisting)?fileChooser.showOpenDialog(null):
+        fileChooser.showSaveDialog(null);
 
     if (userSelection == JFileChooser.APPROVE_OPTION) {
       File file = fileChooser.getSelectedFile();

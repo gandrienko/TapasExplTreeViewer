@@ -838,13 +838,25 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       */
     }
     menu.addSeparator();
+    JMenuItem mitExportData=new JMenuItem("Export previously loaded data");
+    mitExportData.setEnabled(data!=null);
+    mitExportData.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        exportDataToCSVFile();
+      }
+    });
+
     menu.add(mit=new JMenuItem("Apply rules to data"));
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         applyRulesToData();
+        if (data!=null)
+          mitExportData.setEnabled(true);
       }
     });
+    menu.add(mitExportData);
 
     menu.addSeparator();
     menu.add(mit=new JMenuItem("Export rules to file in text format"));
@@ -1224,6 +1236,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     ShowRules showRules=new ShowRules(rules,attrMinMax,null);
     showRules.setOrigRules(origRules);
     showRules.setDataInstances(dataInstances,actionsDiffer);
+    showRules.data=this.data;
     showRules.setOrigHighlighter(origHighlighter);
     showRules.setOrigSelector(origSelector);
     showRules.setCreatedFileRegister(createdFiles);
@@ -2383,7 +2396,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,localSelector):exList;
     if (data==null)
       try {
-        data= CSVDataLoader.loadDataFromCSVFile(CSVDataLoader.selectFilePathThroughDialog());
+        data= CSVDataLoader.loadDataFromCSVFile(CSVDataLoader.selectFilePathThroughDialog(true));
         if (data!=null)
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
               "Loaded "+data.records.size()+" data records.","Data loaded!",
@@ -2404,5 +2417,25 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to apply the rules to data!",
           "Rule application failed",JOptionPane.ERROR_MESSAGE);
+  }
+
+  public void exportDataToCSVFile() {
+    if (data==null || data.records==null || data.records.isEmpty()) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No data have been loaded in the system!","No data",
+          JOptionPane.INFORMATION_MESSAGE);
+      return;
+    }
+    String pathName=CSVDataLoader.selectFilePathThroughDialog(false);
+    if (pathName==null)
+      return;
+    if (data.exportToCSV(pathName))
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Successfully exported the data to file "+pathName,"Data exported",
+          JOptionPane.INFORMATION_MESSAGE);
+    else
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to export the data!","Export failed",
+          JOptionPane.ERROR_MESSAGE);
   }
 }

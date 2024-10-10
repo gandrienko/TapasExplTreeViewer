@@ -66,30 +66,36 @@ public class DataSet {
       for (DataRecord record : records) {
         ArrayList<String> rowValues = new ArrayList<String>(headerFields.size());
         for (int i=0; i<fieldNames.length; i++)
-          if (i==idIdx) rowValues.add(record.id);
-
-
-        // Add the values for the predefined fields (id, name, etc.) in the same order as the header
-        for (String field : headerFields) {
-          DataElement dataElement = record.getDataElement(field);
-          if (dataElement != null && dataElement.hasAnyValue()) {
-            rowValues.add(dataElement.getStringValue());
-          } else {
-            // Handle predicted values based on the prediction type
-            if (field.equalsIgnoreCase("PredictedClass") && predictionType == DataRecord.CLASS_PREDICTION) {
-              rowValues.add(record.predictedClassIdx >= 0 ? String.valueOf(record.predictedClassIdx) : "");
-            } else if (field.equalsIgnoreCase("PredictedValue") && predictionType == DataRecord.VALUE_PREDICTION) {
-              rowValues.add(!Double.isNaN(record.predictedValue) ? String.valueOf(record.predictedValue) : "");
-            } else if (field.equalsIgnoreCase("PredictedValueLowerBound") && predictionType == DataRecord.RANGE_PREDICTION) {
-              rowValues.add(record.predictedValueRange != null && record.predictedValueRange.length > 0
-                  ? String.valueOf(record.predictedValueRange[0]) : "");
-            } else if (field.equalsIgnoreCase("PredictedValueUpperBound") && predictionType == DataRecord.RANGE_PREDICTION) {
-              rowValues.add(record.predictedValueRange != null && record.predictedValueRange.length > 1
-                  ? String.valueOf(record.predictedValueRange[1]) : "");
-            } else {
-              rowValues.add(""); // Add an empty string for missing values
+          if (i==idIdx) rowValues.add(record.id); else
+          if (i==nameIdx) rowValues.add(record.name); else
+          if (i==numIdx) rowValues.add(Integer.toString(record.idx)); else
+          if (i==classLabelIdx) rowValues.add(record.trueClassLabel); else
+          if (i==classNumIdx) rowValues.add(Integer.toString(record.trueClassIdx));
+          else {
+            DataElement item=record.getDataElement(fieldNames[i]);
+            if (item==null)
+              rowValues.add("");
+            else {
+              String sValue=item.getStringValue();
+              rowValues.add((sValue==null)?"":sValue);
             }
           }
+        switch (predictionType) {
+          case DataRecord.CLASS_PREDICTION:
+            rowValues.add((record.predictedClassIdx>=0)?Integer.toString(record.predictedClassIdx):"");
+            break;
+          case DataRecord.VALUE_PREDICTION:
+            rowValues.add((Double.isNaN(record.predictedValue))?"":String.format("%.6f",record.predictedValue));
+            break;
+          case DataRecord.RANGE_PREDICTION:
+            if (record.predictedValueRange==null) {
+              rowValues.add(""); rowValues.add("");
+            }
+            else {
+              rowValues.add(String.format("%.6f",record.predictedValueRange[0]));
+              rowValues.add(String.format("%.6f",record.predictedValueRange[1]));
+            }
+            break;
         }
 
         // Write the row to the CSV file

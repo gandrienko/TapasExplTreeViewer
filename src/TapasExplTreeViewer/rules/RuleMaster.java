@@ -1387,6 +1387,7 @@ public class RuleMaster {
       return false;
     if (data==null || data.items==null || data.items.isEmpty())
       return false;
+    //String str=null;
     for (ExplanationItem ei:rule.eItems) {
       if (ei.interval==null || (Double.isInfinite(ei.interval[0]) && Double.isInfinite(ei.interval[1])))
         continue;
@@ -1398,7 +1399,18 @@ public class RuleMaster {
         return false;
       if (!Double.isInfinite(ei.interval[1]) && value>ei.interval[1])
         return false;
+      /*
+      String s=ei.attr+" = "+value+" in ["+ei.interval[0]+","+ei.interval[1]+"]";
+      if (str==null)
+        str=s;
+      else
+        str+="\t"+s;
+      */
     }
+    /*
+    str+="\t>>> class = "+rule.action;
+    System.out.println(str);
+    */
     return true;
   }
 }

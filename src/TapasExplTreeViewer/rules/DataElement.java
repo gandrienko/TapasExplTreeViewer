@@ -1,7 +1,7 @@
 package TapasExplTreeViewer.rules;
 
 public class DataElement {
-  public static byte CATEGORY=0, INTEGER=1, REAL=2;
+  public static final byte CATEGORY=0, INTEGER=1, REAL=2;
 
   public String feature=null;
   public byte dataType=CATEGORY;

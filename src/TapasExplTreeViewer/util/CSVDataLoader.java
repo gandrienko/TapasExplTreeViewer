@@ -81,8 +81,12 @@ public class CSVDataLoader {
             recordIdx=Integer.parseInt(values[numIdx]);
           } catch (Exception ex) {}
         DataRecord record = new DataRecord(recordIdx, recordId, recordName);
-        if (classLabelIdx>=0)
-          record.trueClassLabel=values[classLabelIdx];
+        if (classLabelIdx>=0) {
+          record.trueClassLabel = values[classLabelIdx];
+          try {
+            record.trueClassIdx=Integer.parseInt(record.trueClassLabel);
+          } catch (Exception ex) {}
+        }
         if (classNumIdx>=0)
           try {
             record.trueClassIdx=Integer.parseInt(values[classNumIdx]);

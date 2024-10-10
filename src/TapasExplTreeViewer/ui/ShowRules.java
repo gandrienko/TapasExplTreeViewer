@@ -7,10 +7,7 @@ import TapasExplTreeViewer.MST.Edge;
 import TapasExplTreeViewer.MST.Prim;
 import TapasExplTreeViewer.MST.Vertex;
 import TapasExplTreeViewer.clustering.*;
-import TapasExplTreeViewer.rules.DataRecord;
-import TapasExplTreeViewer.rules.DataSet;
-import TapasExplTreeViewer.rules.RuleMaster;
-import TapasExplTreeViewer.rules.UnitedRule;
+import TapasExplTreeViewer.rules.*;
 import TapasExplTreeViewer.util.CSVDataLoader;
 import TapasExplTreeViewer.util.CoordinatesReader;
 import TapasExplTreeViewer.util.MatrixWriter;
@@ -2408,11 +2405,20 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           "No data",JOptionPane.ERROR_MESSAGE);
       return;
     }
-    if (RuleMaster.applyRulesToData(rules,data.records))
+    if (RuleMaster.applyRulesToData(rules,data.records)) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Completed application of "+rules.size()+" rules to "+
-              data.records.size()+" data records.","Rule application done",
+          "Completed application of " + rules.size() + " rules to " +
+              data.records.size() + " data records.", "Rule application done",
           JOptionPane.INFORMATION_MESSAGE);
+      ClassConfusionMatrix cMatrix=new ClassConfusionMatrix();
+      if (cMatrix.makeConfusionMatrix(data)) {
+        ClassConfusionMatrixFrame cmFrame=new ClassConfusionMatrixFrame(cMatrix);
+        cmFrame.setVisible(true);
+        if (frames==null)
+          frames=new ArrayList<JFrame>(20);
+        frames.add(cmFrame);
+      }
+    }
     else
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to apply the rules to data!",

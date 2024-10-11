@@ -2412,7 +2412,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           JOptionPane.INFORMATION_MESSAGE);
       ClassConfusionMatrix cMatrix=new ClassConfusionMatrix();
       if (cMatrix.makeConfusionMatrix(data)) {
-        ClassConfusionMatrixFrame cmFrame=new ClassConfusionMatrixFrame(cMatrix);
+        ClassConfusionMatrixFrame cmFrame=new ClassConfusionMatrixFrame(cMatrix,infoArea.getText());
         cmFrame.setVisible(true);
         if (frames==null)
           frames=new ArrayList<JFrame>(20);

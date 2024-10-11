@@ -8,7 +8,7 @@ public class ClassConfusionMatrix {
   public int counts[][]=null;
   public int classTotals[]=null;
   public double percents[][]=null;
-  public int nSame=0;
+  public int nSame=0, nDataTotal=0;
 
   public boolean makeConfusionMatrix(DataSet data) {
     if (data==null || data.records==null || data.records.isEmpty())
@@ -33,6 +33,7 @@ public class ClassConfusionMatrix {
     }
     nSame=0;
     for (DataRecord record:data.records)  {
+      ++nDataTotal;
       int i1=classNs.indexOf(record.trueClassIdx),
           i2=(record.trueClassIdx==record.predictedClassIdx)?i1:classNs.indexOf(record.predictedClassIdx);
       if (i1==i2) ++nSame;

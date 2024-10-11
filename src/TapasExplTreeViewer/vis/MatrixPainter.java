@@ -15,10 +15,13 @@ public class MatrixPainter extends JPanel  {
   public double matrix[][]=null;
   public int counts[][]=null;
   public int order[]=null;
-  public boolean showValues=false;
+  public boolean showValues=false, showColumnTotals=false;
+  public String labels[]=null;
 
   public double minValue = Double.MAX_VALUE;
   public double maxValue = Double.MIN_VALUE;
+
+  public int maxLabelWidth=0;
 
   public MatrixPainter(double matrix[][], boolean mayReorder) {
     this.matrix=matrix;
@@ -79,8 +82,28 @@ public class MatrixPainter extends JPanel  {
     this.showValues = showValues;
   }
 
+  public void setShowColumnTotals(boolean showColumnTotals) {
+    this.showColumnTotals = showColumnTotals;
+  }
+
   public void setMinValue(double minValue) {
     this.minValue = minValue;
+  }
+
+  public void setLabels(String[] labels) {
+    this.labels = labels;
+  }
+
+  public void findMaxLabelWidth(FontMetrics fm) {
+    maxLabelWidth=0;
+    if (labels!=null)
+      for (String label:labels) {
+        int sw=fm.stringWidth(label);
+        if (maxLabelWidth<sw)
+          maxLabelWidth=sw;
+      }
+    if (maxLabelWidth>0)
+      maxLabelWidth+=10; //surrounding spaces
   }
 
   @Override
@@ -90,30 +113,83 @@ public class MatrixPainter extends JPanel  {
       return;
     }
 
+    FontMetrics fm=g.getFontMetrics();
+    int fh=fm.getHeight(), asc=fm.getAscent();
+    if (labels!=null && maxLabelWidth==0)
+      findMaxLabelWidth(fm);
+    int bottomFieldH=(showValues)?fh+6:0,
+        rightFieldW=(showValues)?fm.stringWidth((counts!=null)?"999":"999.99")+10:0;
+
     int rows = (counts!=null)?counts.length:matrix.length;
     int cols = (counts!=null)?counts[0].length:matrix[0].length;
-    int cellWidth = getWidth() / cols;
-    int cellHeight = getHeight() / rows;
-
-    int fh=g.getFontMetrics().getHeight(), asc=g.getFontMetrics().getAscent();
+    int cellWidth = (getWidth()-maxLabelWidth-rightFieldW) / cols;
+    int labelHeight=(labels==null)?0:fh+6;
+    int cellHeight = (getHeight()-labelHeight-bottomFieldH) / rows;
 
     // Draw the matrix as a grid of colored cells
+    int x0=maxLabelWidth, y0=labelHeight;
+
+    String sigma = "\u03A3";
+
+    if (labels!=null) {
+      g.setColor(Color.black);
+      for (int j = 0; j < cols; j++) {
+        int sw=g.getFontMetrics().stringWidth(labels[j]);
+        g.drawString(labels[j],x0+j*cellWidth+(cellWidth-sw)/2,3+asc);
+      }
+      if (showValues) {
+        int sw=fm.stringWidth(sigma);
+        g.drawString(sigma, getWidth()- (rightFieldW+sw)/2, 3 + asc);
+      }
+    }
+
     for (int i = 0; i < rows; i++) {
+      if (labels!=null) {
+        g.setColor(Color.black);
+        g.drawString(labels[i],5,i*cellHeight+asc+(cellHeight-fh)/2);
+        if (showColumnTotals)
+          g.drawString(sigma,5,getHeight()-bottomFieldH+3+asc);
+      }
+      double sum=0;
       for (int j = 0; j < cols; j++) {
         double value = (counts!=null)?(order==null)?counts[i][j]:counts[order[i]][order[j]]:
             (order==null)?matrix[i][j]:matrix[order[i]][order[j]];
+        sum+=value;
         Color cellColor = getColorForValue(value, minValue, maxValue);
         g.setColor(cellColor);
-        g.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+        g.fillRect(x0+j * cellWidth, y0+i * cellHeight, cellWidth, cellHeight);
         if (showValues) {
           String s=(counts!=null)?Integer.toString((int)value):String.format("%.2f",value);
           int sw=g.getFontMetrics().stringWidth(s);
           if (sw<=cellWidth) {
-            g.setColor(getContrastingColor(cellColor));
-            g.drawString(s,j*cellWidth+(cellWidth-sw)/2,i*cellHeight+asc+(cellHeight-fh)/2);
+            g.setColor(MyColors.getTextColorBasedOnBrightness(cellColor));
+            g.drawString(s,x0+j*cellWidth+(cellWidth-sw)/2,y0+i*cellHeight+asc+(cellHeight-fh)/2);
           }
         }
       }
+      if (showValues) {
+        g.setColor(Color.black);
+        String s=(counts!=null)?Integer.toString((int)sum):String.format("%.2f",sum);
+        g.drawString(s,getWidth()-rightFieldW+5,y0+i*cellHeight+asc+(cellHeight-fh)/2);
+      }
+    }
+    if (showColumnTotals) {
+      g.setColor(Color.black);
+      double totalSum=0;
+      for (int j = 0; j < cols; j++) {
+        double sum=0;
+        for (int i = 0; i < rows; i++) {
+          double value = (counts != null) ? (order == null) ? counts[i][j] : counts[order[i]][order[j]] :
+              (order == null) ? matrix[i][j] : matrix[order[i]][order[j]];
+          sum+=value;
+        }
+        String s=(counts!=null)?Integer.toString((int)sum):String.format("%.2f",sum);
+        int sw=g.getFontMetrics().stringWidth(s);
+        g.drawString(s,x0+j*cellWidth+(cellWidth-sw)/2,getHeight()-bottomFieldH+3+asc);
+        totalSum+=sum;
+      }
+      String s=(counts!=null)?Integer.toString((int)totalSum):String.format("%.2f",totalSum);
+      g.drawString(s,getWidth()-rightFieldW+5,getHeight()-bottomFieldH+3+asc);
     }
   }
 

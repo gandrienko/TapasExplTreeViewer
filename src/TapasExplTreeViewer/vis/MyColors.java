@@ -53,4 +53,14 @@ public class MyColors {
         (float)Math.max(Math.random(),0.5),
         (float)Math.max(Math.random(),0.5));
   }
+
+  public static Color getTextColorBasedOnBrightness(Color backgroundColor) {
+    // Calculate the luminance of the background color
+    double luminance = 0.299 * backgroundColor.getRed() +
+        0.587 * backgroundColor.getGreen() +
+        0.114 * backgroundColor.getBlue();
+
+    // Return black text on light backgrounds and white text on dark backgrounds
+    return luminance > 128 ? Color.BLACK : Color.WHITE;
+  }
 }

@@ -766,7 +766,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
       });
     }
     
-    JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
+    JMenuItem mitExtract=new JMenuItem("Extract the (non-) selected subset to a separate view");
     menu.add(mitExtract);
     mitExtract.addActionListener(new ActionListener() {
       @Override
@@ -1704,15 +1704,35 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     ArrayList selected = selector.getSelected();
     if (selected.size() < 1)
       return;
-    ArrayList<CommonExplanation> exSubset = new ArrayList<CommonExplanation>(selected.size());
-    int idx[] = new int[selected.size()];
+    int result=JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Answer \"Yes\" to extract the selected rules and \"No\" " +
+            "to extract the remaining (not selected) rules.","Selected or not?",
+        JOptionPane.YES_NO_CANCEL_OPTION);
+    if (result==JOptionPane.CANCEL_OPTION)
+      return;
+    boolean extractSelected=result==JOptionPane.YES_OPTION;
+
+    int nRulesToExtract=(extractSelected)?selected.size():exList.size()-selected.size();
+
+    ArrayList<CommonExplanation> exSubset = new ArrayList<CommonExplanation>(nRulesToExtract);
+    int idx[] = new int[nRulesToExtract];
     int nEx = 0;
-    for (int i = 0; i < selected.size(); i++)
-      if (selected.get(i) instanceof Integer) {
-        idx[nEx] = (Integer) selected.get(i);
-        exSubset.add(exList.get(idx[nEx]));
-        ++nEx;
-      }
+    if (extractSelected) {
+      for (int i = 0; i < selected.size(); i++)
+        if (selected.get(i) instanceof Integer) {
+          idx[nEx] = (Integer) selected.get(i);
+          exSubset.add(exList.get(idx[nEx]));
+          ++nEx;
+        }
+    }
+    else
+      for (int i=0; i<exList.size(); i++)
+        if (!selected.contains(i)) {
+          idx[nEx] =i;
+          exSubset.add(exList.get(i));
+          ++nEx;
+        }
+
     double distances[][] = null;
     if (distanceMatrix!=null) {
       distances=new double[nEx][nEx];
@@ -1738,8 +1758,12 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     showRules.setMaxQDiff(maxQDiff);
     showRules.setExpanded(expanded);
     showRules.setCreatedFileRegister(createdFiles);
-    showRules.showRulesInTable("Subset with "+exSubset.size()+" rules selected from the set of "+
-        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"));
+    String infoText=(extractSelected)?"Subset with "+exSubset.size()+" rules selected from the set of "+
+        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"):
+        "Subset with "+exSubset.size()+" rules remaining after exclusion of "+selected.size()+
+            " selected rules from the set of "+exList.size()+
+            ((exList.equals(origRules))?" original rules":" earlier selected or derived rules");
+    showRules.showRulesInTable(infoText);
   }
   
   /**

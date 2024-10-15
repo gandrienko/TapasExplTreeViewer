@@ -3,7 +3,7 @@ package TapasExplTreeViewer.rules;
 import java.util.HashMap;
 
 public class DataRecord {
-  public static final byte NO_PREDICTION=0, CLASS_PREDICTION=1, VALUE_PREDICTION=2, RANGE_PREDICTION=3;
+  public static final byte NO_TARGET =0, CLASS_TARGET =1, VALUE_TARGET =2, RANGE_TARGET =3;
 
   public String id=null, name=null;
   public int idx=-1; //index in a data set or table
@@ -11,7 +11,7 @@ public class DataRecord {
   public int trueClassIdx=-1, predictedClassIdx=-1;
   public double trueValue=Double.NaN, predictedValue=Double.NaN;
   public double predictedValueRange[]=null;
-  public byte predictionType=NO_PREDICTION;
+  public byte predictionType= NO_TARGET;
   public HashMap<String,DataElement> items=null;
 
   public DataRecord(){}
@@ -49,15 +49,15 @@ public class DataRecord {
     predictedClassIdx=-1;
     predictedValue=Double.NaN;
     predictedValueRange=null;
-    predictionType=NO_PREDICTION;
+    predictionType= NO_TARGET;
   }
 
   public byte getPredictionType() {
-    if (predictionType>NO_PREDICTION)
+    if (predictionType> NO_TARGET)
       return predictionType;
-    predictionType=(predictedClassIdx>=0)?CLASS_PREDICTION:
-                    (!Double.isNaN(predictedValue))?VALUE_PREDICTION:
-                    (predictedValueRange!=null)?RANGE_PREDICTION:NO_PREDICTION;
+    predictionType=(predictedClassIdx>=0)? CLASS_TARGET :
+                    (!Double.isNaN(predictedValue))? VALUE_TARGET :
+                    (predictedValueRange!=null)? RANGE_TARGET : NO_TARGET;
     return predictionType;
   }
 }

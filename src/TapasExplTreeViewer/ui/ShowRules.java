@@ -2418,10 +2418,22 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (data==null)
       try {
         data= CSVDataLoader.loadDataFromCSVFile(CSVDataLoader.selectFilePathThroughDialog(true));
-        if (data!=null)
+        if (data!=null) {
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-              "Loaded "+data.records.size()+" data records.","Data loaded!",
+              "Loaded " + data.records.size() + " data records.", "Data loaded!",
               JOptionPane.INFORMATION_MESSAGE);
+          DataTableViewer dViewer=new DataTableViewer(data,
+              listOfFeatures.toArray(new String[listOfFeatures.size()]),
+              "Data loaded from file "+data.filePath);
+          JFrame dViewFrame=new JFrame("Data from file "+data.filePath);
+          dViewFrame.setSize(800,600);
+          dViewFrame.add(dViewer,BorderLayout.CENTER);
+          dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+          dViewFrame.setVisible(true);
+          if (frames==null)
+            frames=new ArrayList<JFrame>(20);
+          frames.add(dViewFrame);
+        }
       } catch (IOException ex) {};
     if (data==null)  {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),

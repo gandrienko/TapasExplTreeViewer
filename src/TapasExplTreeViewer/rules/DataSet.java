@@ -12,14 +12,27 @@ public class DataSet {
   public ArrayList<DataRecord> records=null;
 
   /**
+   * Determines the type of the target variable, i.e., class (category) or real value
+   */
+  public byte determineTargetType() {
+    if (records == null || records.isEmpty()) return DataRecord.NO_TARGET;
+    for (DataRecord data:records)
+      if (data.trueClassIdx>=0 || data.trueClassLabel!=null)
+        return DataRecord.CLASS_TARGET;
+      else
+      if (!Double.isNaN(data.trueValue))
+        return DataRecord.VALUE_TARGET;
+    return DataRecord.NO_TARGET;
+  }
+  /**
    * Finds the type of model predictions made for the data records
    */
-  private byte determinePredictionType() {
-    if (records == null || records.isEmpty()) return DataRecord.NO_PREDICTION;
+  public byte determinePredictionType() {
+    if (records == null || records.isEmpty()) return DataRecord.NO_TARGET;
     for (DataRecord data:records)
-      if (data.getPredictionType()>DataRecord.NO_PREDICTION)
+      if (data.getPredictionType()>DataRecord.NO_TARGET)
         return data.getPredictionType();
-    return DataRecord.NO_PREDICTION;
+    return DataRecord.NO_TARGET;
   }
 
   /**
@@ -44,18 +57,18 @@ public class DataSet {
 
       // Add additional fields based on the prediction type
       switch (predictionType) {
-        case DataRecord.CLASS_PREDICTION:
+        case DataRecord.CLASS_TARGET:
           headerFields.add("PredictedClass");
           break;
-        case DataRecord.VALUE_PREDICTION:
+        case DataRecord.VALUE_TARGET:
           headerFields.add("PredictedValue");
           break;
-        case DataRecord.RANGE_PREDICTION:
+        case DataRecord.RANGE_TARGET:
           headerFields.add("PredictedValueLowerBound");
           headerFields.add("PredictedValueUpperBound");
           break;
         default:
-          break; // No additional fields needed for NO_PREDICTION
+          break; // No additional fields needed for NO_TARGET
       }
 
       // Write the header row to the CSV file
@@ -81,13 +94,13 @@ public class DataSet {
             }
           }
         switch (predictionType) {
-          case DataRecord.CLASS_PREDICTION:
+          case DataRecord.CLASS_TARGET:
             rowValues.add((record.predictedClassIdx>=0)?Integer.toString(record.predictedClassIdx):"");
             break;
-          case DataRecord.VALUE_PREDICTION:
+          case DataRecord.VALUE_TARGET:
             rowValues.add((Double.isNaN(record.predictedValue))?"":String.format("%.6f",record.predictedValue));
             break;
-          case DataRecord.RANGE_PREDICTION:
+          case DataRecord.RANGE_TARGET:
             if (record.predictedValueRange==null) {
               rowValues.add(""); rowValues.add("");
             }

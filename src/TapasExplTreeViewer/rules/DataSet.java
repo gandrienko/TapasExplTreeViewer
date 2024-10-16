@@ -16,12 +16,11 @@ public class DataSet {
    */
   public byte determineTargetType() {
     if (records == null || records.isEmpty()) return DataRecord.NO_TARGET;
-    for (DataRecord data:records)
-      if (data.trueClassIdx>=0 || data.trueClassLabel!=null)
-        return DataRecord.CLASS_TARGET;
-      else
-      if (!Double.isNaN(data.trueValue))
-        return DataRecord.VALUE_TARGET;
+    for (DataRecord data:records) {
+      byte type=data.getTargetType();
+      if (type>DataRecord.NO_TARGET)
+        return type;
+    }
     return DataRecord.NO_TARGET;
   }
   /**
@@ -33,6 +32,28 @@ public class DataSet {
       if (data.getPredictionType()>DataRecord.NO_TARGET)
         return data.getPredictionType();
     return DataRecord.NO_TARGET;
+  }
+
+  public DataSet extractWronglyPredicted(){
+    if (determineTargetType()==DataRecord.NO_TARGET)
+      return null; //no target to predict
+    if (determinePredictionType()==DataRecord.NO_TARGET)
+      return null; //no predictions available
+    ArrayList<DataRecord> wrong=null;
+    for (DataRecord data:records)
+      if (!data.hasCorrectPrediction()) {
+        if (wrong==null)
+          wrong=new ArrayList<DataRecord>(records.size()/3);
+        wrong.add(data);
+      }
+    if (wrong==null)
+      return null;
+    DataSet ds=new DataSet();
+    ds.records=wrong;
+    ds.fieldNames=fieldNames;
+    ds.idIdx=idIdx; ds.nameIdx=nameIdx; ds.numIdx=numIdx;
+    ds.classLabelIdx=classLabelIdx; ds.classNumIdx=classNumIdx;
+    return ds;
   }
 
   /**

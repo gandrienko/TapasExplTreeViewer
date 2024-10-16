@@ -60,4 +60,25 @@ public class DataRecord {
                     (predictedValueRange!=null)? RANGE_TARGET : NO_TARGET;
     return predictionType;
   }
+
+  public byte getTargetType() {
+    if (trueClassLabel!=null || trueClassIdx>=0)
+      return CLASS_TARGET;
+    if (!Double.isNaN(trueValue))
+      return VALUE_TARGET;
+    return NO_TARGET;
+  }
+
+  public boolean hasCorrectPrediction(){
+    if (getPredictionType()==NO_TARGET)
+      return false;
+    if (predictionType==CLASS_TARGET)
+      return predictedClassIdx==trueClassIdx;
+    if (predictionType==VALUE_TARGET)
+      return !Double.isNaN(predictedValue) && !Double.isNaN(trueValue) && predictedValue==trueValue;
+    if (predictionType==RANGE_TARGET)
+      return predictedValueRange!=null && !Double.isNaN(trueValue) &&
+          trueValue>=predictedValueRange[0] && trueValue<=predictedValueRange[1];
+    return false;
+  }
 }

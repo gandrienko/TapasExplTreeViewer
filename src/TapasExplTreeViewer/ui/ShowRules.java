@@ -1747,6 +1747,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     }
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
     showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
+    showRules.data=this.data;
     showRules.setDataInstances(dataInstances,actionsDiffer);
     if (showRules.getOrigRules().equals(origRules)) {
       showRules.setOrigHighlighter(origHighlighter);
@@ -1814,7 +1815,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     }
     ShowRules showRules=createShowRulesInstance(exList2);
     showRules.setNonSubsumed(true);
-    showRules.setAggregated(true);
+    showRules.setAggregated(aggregated);
     showRules.countRightAndWrongRuleApplications();
     showRules.showRulesInTable(exList2.size()+" non-subsumed rules selected from the set of "+
         exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"));
@@ -2422,10 +2423,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
               "Loaded " + data.records.size() + " data records.", "Data loaded!",
               JOptionPane.INFORMATION_MESSAGE);
+          /*
           DataTableViewer dViewer=new DataTableViewer(data,
               listOfFeatures.toArray(new String[listOfFeatures.size()]),
               "Data loaded from file "+data.filePath);
-          /*
           JFrame dViewFrame=new JFrame("Data from file "+data.filePath);
           dViewFrame.setSize(800,600);
           dViewFrame.add(dViewer,BorderLayout.CENTER);
@@ -2455,6 +2456,23 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         if (frames==null)
           frames=new ArrayList<JFrame>(20);
         frames.add(cmFrame);
+      }
+      DataSet wrong=data.extractWronglyPredicted();
+      if (wrong!=null) {
+        DataTableViewer dViewer=new DataTableViewer(wrong,
+            listOfFeatures.toArray(new String[listOfFeatures.size()]),
+            wrong.records.size()+" data records that received wrong predictions in " +
+                "the result of applying rules described as \""+infoArea.getText()+
+            "\" to "+data.records.size()+" data records loaded from file "+data.filePath);
+        JFrame dViewFrame=new JFrame("Data with wrong predictions ("+wrong.records.size()+
+            " of "+data.records.size()+" records)");
+        dViewFrame.setSize(800,600);
+        dViewFrame.add(dViewer,BorderLayout.CENTER);
+        dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        dViewFrame.setVisible(true);
+        if (frames==null)
+          frames=new ArrayList<JFrame>(20);
+        frames.add(dViewFrame);
       }
     }
     else

@@ -18,11 +18,15 @@ public class DataTableViewer extends JPanel {
 
     JScrollPane scrollPane = new JScrollPane(dataTable);
     setLayout(new BorderLayout());
-    add(scrollPane, BorderLayout.CENTER);
 
     if (dataInfo!=null) {
       infoArea=new JTextArea(dataInfo);
-      add(infoArea,BorderLayout.SOUTH);
+      infoArea.setLineWrap(true);
+      infoArea.setWrapStyleWord(true);
+      JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
+      add(splitPane,BorderLayout.CENTER);
     }
+    else
+      add(scrollPane, BorderLayout.CENTER);
   }
 }

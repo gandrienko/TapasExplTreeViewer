@@ -50,7 +50,7 @@ public class DataTableModel extends AbstractTableModel {
     if (columnIndex == 0) {
       return record.id;
     } else if (columnIndex == 1) {
-      return (record.trueClassLabel != null) ? record.trueClassLabel : record.trueValue;
+      return (record.trueClassIdx >=0) ? record.trueClassIdx : record.trueValue;
     } else if (columnIndex == 2) {
       switch (record.getPredictionType()) {
         case DataRecord.CLASS_TARGET:
@@ -83,6 +83,29 @@ public class DataTableModel extends AbstractTableModel {
         return ""; // If no value, return empty string
       }
     }
+  }
+
+  public boolean isNumericColumn(int columnIndex) {
+    if (columnIndex==0)
+      return false;
+    if (columnIndex==1)
+      return true;
+    if (columnIndex==2)
+      return dataSet.determinePredictionType()!=DataRecord.RANGE_TARGET;
+    int featureIndex = columnIndex - 3;
+    byte type=dataSet.determineFeatureType(featureNames[featureIndex]);
+    return type==DataElement.INTEGER || type==DataElement.REAL;
+  }
+
+  public double[] getColumnMinMax(int columnIndex) {
+    if (columnIndex==0)
+      return null;
+    if (columnIndex==1)
+      return dataSet.getTargetMinMax();
+    if (columnIndex==2)
+      return dataSet.getPredictionMinMax();
+    int featureIndex = columnIndex - 3;
+    return dataSet.findMinMax(featureNames[featureIndex]);
   }
 
   @Override

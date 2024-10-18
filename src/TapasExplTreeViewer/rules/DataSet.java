@@ -23,6 +23,50 @@ public class DataSet {
     }
     return DataRecord.NO_TARGET;
   }
+
+  public double[] getTargetMinMax() {
+    if (records == null || records.isEmpty())
+      return null;
+    double minmax[]=null;
+    for (DataRecord data:records) {
+      if (data.trueClassIdx>=0 || !Double.isNaN(data.trueValue))  {
+        double v=(!Double.isNaN(data.trueValue))?data.trueValue:data.trueClassIdx;
+        if (minmax==null) {
+          minmax=new double[2];
+          minmax[0]=minmax[1]=v;
+        }
+        else
+          if (v<minmax[0]) minmax[0]=v; else
+          if (v>minmax[1]) minmax[1]=v;
+      }
+    }
+    return minmax;
+  }
+
+  public double[] getPredictionMinMax() {
+    if (records == null || records.isEmpty())
+      return null;
+    double minmax[]=null;
+    for (DataRecord data:records) {
+      byte type=data.getPredictionType();
+      if (type==DataRecord.NO_TARGET)
+        continue;
+      double v=(type==DataRecord.CLASS_TARGET)?data.predictedClassIdx:
+          (type==DataRecord.VALUE_TARGET)?data.predictedValue:
+              (type==DataRecord.RANGE_TARGET && data.predictedValueRange!=null)?data.predictedValueRange[0]:Double.NaN;
+      if (Double.isNaN(v))
+        continue;
+      double v2=(type==DataRecord.RANGE_TARGET)?data.predictedValueRange[1]:v;
+      if (minmax==null) {
+        minmax=new double[2];
+        minmax[0]=v; minmax[1]=v2;
+      }
+      else
+      if (v<minmax[0]) minmax[0]=v; else
+      if (v2>minmax[1]) minmax[1]=v2;
+    }
+    return minmax;
+  }
   /**
    * Finds the type of model predictions made for the data records
    */
@@ -32,6 +76,42 @@ public class DataSet {
       if (data.getPredictionType()>DataRecord.NO_TARGET)
         return data.getPredictionType();
     return DataRecord.NO_TARGET;
+  }
+
+  public byte determineFeatureType(String featureName) {
+    if (records==null || records.isEmpty())
+      return -1;
+    for (DataRecord data:records) {
+      DataElement item=data.getDataElement(featureName);
+      if (item!=null && item.hasAnyValue())
+        return item.getDataType();
+    }
+    return -1;
+  }
+
+  public double[] findMinMax(String featureName) {
+    if (records == null || records.isEmpty())
+      return null;
+    double minmax[] = null;
+    for (DataRecord data : records) {
+      DataElement item = data.getDataElement(featureName);
+      if (item != null && item.hasAnyValue()) {
+        byte type = item.getDataType();
+        if (type != DataElement.INTEGER && type != DataElement.REAL)
+          return null;
+        double v = item.getDoubleValue();
+        if (!Double.isNaN(v)) {
+          if (minmax==null) {
+            minmax=new double[2];
+            minmax[0]=minmax[1]=v;
+          }
+          else
+            if (v<minmax[0]) minmax[0]=v; else
+              if (v>minmax[1]) minmax[1]=v;
+        }
+      }
+    }
+    return minmax;
   }
 
   public DataSet extractWronglyPredicted(){

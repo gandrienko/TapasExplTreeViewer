@@ -15,6 +15,12 @@ public class DataTableViewer extends JPanel {
       return;
     tableModel=new DataTableModel(dataSet,featureNames);
     dataTable = new JTable(tableModel);
+    for (int i = 1; i < tableModel.getColumnCount(); i++)
+      if (tableModel.isNumericColumn(i)) {
+        double minmax[]=tableModel.getColumnMinMax(i);
+        if (minmax!=null)
+          dataTable.getColumnModel().getColumn(i).setCellRenderer(new NumericCellRenderer(minmax[0], minmax[1]));
+      }
 
     JScrollPane scrollPane = new JScrollPane(dataTable);
     setLayout(new BorderLayout());

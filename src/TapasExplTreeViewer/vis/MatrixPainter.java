@@ -195,6 +195,10 @@ public class MatrixPainter extends JPanel  {
 
   // Maps a value to a color between minColor and maxColor based on the range of values
   protected Color getColorForValue(double value, double minValue, double maxValue) {
+    if (Double.isNaN(value))
+      return new Color(202,202,202);
+    if (value==0)
+      return Color.white;
     double ratio = (value - minValue) / (maxValue - minValue);
     int red = (int) (minColor.getRed() + ratio * (maxColor.getRed() - minColor.getRed()));
     int green = (int) (minColor.getGreen() + ratio * (maxColor.getGreen() - minColor.getGreen()));

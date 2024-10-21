@@ -1411,4 +1411,22 @@ public class RuleMaster {
     */
     return true;
   }
+  
+  public static ArrayList<CommonExplanation> selectRulesApplicableToData(
+      ArrayList<CommonExplanation> rules,
+      ArrayList<DataRecord> data)
+  {
+    if (rules==null || rules.isEmpty() || data==null || data.isEmpty())
+      return null;
+    ArrayList<CommonExplanation> applicable=null;
+    for (CommonExplanation rule:rules)
+      for (DataRecord record:data)
+        if (ruleAppliesToDataRecord(rule,record)) {
+          if (applicable==null)
+            applicable=new ArrayList<CommonExplanation>(100);
+          applicable.add(rule);
+          break;
+        }
+    return applicable;
+  }
 }

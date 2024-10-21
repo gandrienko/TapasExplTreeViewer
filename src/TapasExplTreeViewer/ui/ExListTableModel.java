@@ -34,7 +34,9 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     this.drawValuesOrStatsForIntervals=drawValuesOrStatsForIntervals;
   }
   
-  public ExListTableModel(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
+  public ExListTableModel(ArrayList<CommonExplanation> exList,
+                          Hashtable<String,float[]> attrMinMax,
+                          ArrayList<String> orderedFeatureNames) {
     this.exList=exList;
     this.attrMinMax =attrMinMax;
     Hashtable<String,Integer> attrUses=new Hashtable<String,Integer>(50);
@@ -110,16 +112,32 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       String aName=entry.getKey();
       if (listOfFeatures.isEmpty())
         listOfFeatures.add(aName);
-      else {
-        int count=entry.getValue(), idx=-1;
-        for (int i=0; i<listOfFeatures.size() && idx<0; i++)
-          if (count>attrUses.get(listOfFeatures.get(i)))
-            idx=i;
-        if (idx<0)
-          listOfFeatures.add(aName);
-        else
-          listOfFeatures.add(idx,aName);
-      }
+      else
+        if (orderedFeatureNames!=null && !orderedFeatureNames.isEmpty()) {
+          int ord=orderedFeatureNames.indexOf(aName);
+          if (ord<0)
+            listOfFeatures.add(aName);
+          else {
+            int idx=-1;
+            for (int i=0; i<listOfFeatures.size() && idx<0; i++)
+              if (orderedFeatureNames.indexOf(listOfFeatures.get(i))>ord)
+                idx=i;
+            if (idx<0)
+              listOfFeatures.add(aName);
+            else
+              listOfFeatures.add(idx,aName);
+          }
+        }
+        else {
+          int count=entry.getValue(), idx=-1;
+          for (int i=0; i<listOfFeatures.size() && idx<0; i++)
+            if (count>attrUses.get(listOfFeatures.get(i)))
+              idx=i;
+          if (idx<0)
+            listOfFeatures.add(aName);
+          else
+            listOfFeatures.add(idx,aName);
+        }
     }
     listOfColumnNames=new ArrayList<String>(25+listOfFeatures.size());
     listOfColumnNames.add("Id");

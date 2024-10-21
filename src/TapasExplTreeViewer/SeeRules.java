@@ -185,7 +185,7 @@ public class SeeRules {
       float minmax[]=attrMinMax.get(entry.getKey());
       System.out.println(entry.getKey() + ": frequency = " + entry.getValue()+"; values = "+minmax[0]+".."+minmax[1]);
     }
-
+    
     ArrayList<CommonExplanation> exList=new ArrayList<CommonExplanation>(rules.size());
     boolean intOrBin=featureType!=null && (featureType.startsWith("int") || featureType.startsWith("bin"));
 
@@ -221,9 +221,12 @@ public class SeeRules {
     }
 
     ShowRules.RULES_FOLDER=file.getParent();
-
+    ArrayList<String> orderedFeatureNames=loadFeatureOrder(ShowRules.RULES_FOLDER);
+  
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     showRules.setOrigRules(exList);
+    if (orderedFeatureNames!=null)
+      showRules.setOrderedFeatureNames(orderedFeatureNames);
     showRules.dataFolder=ShowRules.RULES_FOLDER;
     JFrame fr=showRules.showRulesInTable(null);
     if (fr==null) {
@@ -270,6 +273,34 @@ public class SeeRules {
       return selectedFeatureType;
     }
     return null;
+  }
+  /**
+   * Searches for the file "features_order.txt" in the given folder and reads the feature names.
+   *
+   * @param folderPath The path to the folder where the file is searched.
+   * @return A list of feature names if the file is found and successfully read; otherwise, an empty list.
+   */
+  public static ArrayList<String> loadFeatureOrder(String folderPath) {
+    ArrayList<String> featureNames = new ArrayList<String>(50);
+    File file = new File(folderPath, "features_order.txt");
+    
+    if (file.exists() && file.isFile()) {
+      try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          line = line.trim();
+          if (!line.isEmpty()) {
+            featureNames.add(line);
+          }
+        }
+      } catch (IOException e) {
+        System.err.println("Error reading the file: " + e.getMessage());
+      }
+    } else {
+      System.out.println("File 'features_order.txt' not found in the specified folder.");
+    }
+    
+    return featureNames;
   }
 
   private static List<Condition> parseConditions(String ruleText) {

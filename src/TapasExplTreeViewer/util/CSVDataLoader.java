@@ -23,6 +23,8 @@ public class CSVDataLoader {
    * @throws IOException If there is an error reading the file.
    */
   public static DataSet loadDataFromCSVFile(String filePath) throws IOException {
+    if (filePath==null)
+      return null;
     ArrayList<DataRecord> dataRecords = new ArrayList<DataRecord>(10000);
     String[] headers=null;
     int idIdx=-1, nameIdx=-1, numIdx=-1, classLabelIdx=-1, classNumIdx=-1;

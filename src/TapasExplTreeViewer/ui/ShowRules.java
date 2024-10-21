@@ -87,6 +87,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
    */
   public Hashtable<String,float[]> attrMinMax=null;
   /**
+   * Ordered list of feature names
+   */
+  public ArrayList<String> orderedFeatureNames=null;
+  /**
    * The distances between the rules
    */
   protected double distanceMatrix[][]=null;
@@ -159,6 +163,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   
   public ShowRules(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this(exList,attrMinMax,null);
+  }
+  
+  public void setOrderedFeatureNames(ArrayList<String> orderedFeatureNames) {
+    this.orderedFeatureNames=orderedFeatureNames;
   }
   
   public AbstractList<Explanation> getDataInstances() {
@@ -388,7 +396,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (createdFiles==null)
       createdFiles=new ArrayList<File>(20);
 
-    ExListTableModel eTblModel=new ExListTableModel(rules,attrMinMax);
+    ExListTableModel eTblModel=new ExListTableModel(rules,attrMinMax,orderedFeatureNames);
     if (clOptics==null)
       runOptics(eTblModel);
     else
@@ -750,6 +758,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
             showRules.setNonSubsumed(true);
             showRules.setAggregated(true);
             showRules.setExpanded(true);
+            showRules.setOrderedFeatureNames(orderedFeatureNames);
             showRules.setCreatedFileRegister(createdFiles);
             showRules.countRightAndWrongRuleApplications();
             showRules.showRulesInTable(ex.size()+" rules obtained by expanded hierarchies of "+
@@ -1232,6 +1241,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
   protected ShowRules createShowRulesInstance(ArrayList rules) {
     ShowRules showRules=new ShowRules(rules,attrMinMax,null);
     showRules.setOrigRules(origRules);
+    showRules.setOrderedFeatureNames(orderedFeatureNames);
     showRules.setDataInstances(dataInstances,actionsDiffer);
     showRules.data=this.data;
     showRules.setOrigHighlighter(origHighlighter);
@@ -1747,6 +1757,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     }
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
     showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
+    showRules.setOrderedFeatureNames(orderedFeatureNames);
     showRules.data=this.data;
     showRules.setDataInstances(dataInstances,actionsDiffer);
     if (showRules.getOrigRules().equals(origRules)) {
@@ -2418,7 +2429,10 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,localSelector):exList;
     if (data==null)
       try {
-        data= CSVDataLoader.loadDataFromCSVFile(CSVDataLoader.selectFilePathThroughDialog(true));
+        String filePath=CSVDataLoader.selectFilePathThroughDialog(true);
+        if (filePath==null)
+          return;
+        data= CSVDataLoader.loadDataFromCSVFile(filePath);
         if (data!=null) {
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
               "Loaded " + data.records.size() + " data records.", "Data loaded!",

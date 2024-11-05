@@ -35,6 +35,7 @@ public class UnitedRule extends CommonExplanation {
     rule.treeId=this.treeId;
     rule.treeCluster=this.treeCluster;
     rule.action=this.action;
+    rule.weight=this.weight;
     rule.eItems=this.eItems;
     rule.uses=this.uses;
     rule.nUses=this.nUses;
@@ -187,6 +188,7 @@ public class UnitedRule extends CommonExplanation {
     rule.eItems=ex.eItems;
     rule.uses=ex.uses;
     rule.nUses=(ex.nUses>0)?ex.nUses:1;
+    rule.weight=ex.weight;
     rule.minQ=ex.minQ;
     rule.maxQ=ex.maxQ;
     rule.meanQ=ex.meanQ;
@@ -316,6 +318,7 @@ public class UnitedRule extends CommonExplanation {
     rule.eItems=items.toArray(new ExplanationItem[items.size()]);
     rule.uses=r.uses;
     rule.nUses=r.nUses;
+    rule.weight=r.weight;
     rule.minQ=r.minQ;
     rule.maxQ=r.maxQ;
     rule.meanQ=r.meanQ;
@@ -393,6 +396,7 @@ public class UnitedRule extends CommonExplanation {
         rule.nUses-=n1+n2-rule.uses.size();
     }
     rule.nUses=r1.nUses+r2.nUses;
+    rule.weight=r1.weight+r2.weight;
 
     rule.fromRules=new ArrayList<UnitedRule>(10);
     rule.fromRules.add(r1);

@@ -194,7 +194,7 @@ public class SeeRules {
       ex.numId=rule.getId();
       ex.treeId=rule.treeId;
       ex.treeCluster=rule.treeCluster;
-      ex.nSame=rule.nSame;
+      ex.nSame=ex.weight=rule.nSame;
       if (!Double.isNaN(rule.getPredictedValue())) {
         ex.minQ = ex.maxQ = ex.meanQ = (float) rule.getPredictedValue();
         ex.sumQ=rule.getPredictedValue();

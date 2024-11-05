@@ -145,6 +145,7 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
       listOfColumnNames.add("Tree Id");
     if (maxTreeCluster>=0)
       listOfColumnNames.add("Tree cluster");
+    listOfColumnNames.add("Weight");
     if (maxClass>=0)
       listOfColumnNames.add("Class");
     if (!Double.isNaN(qMin) && !Double.isNaN(qMax) && qMax>qMin) {
@@ -329,6 +330,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         return new Integer(cEx.treeCluster);
       if (colName.equals("class"))
         return new Integer(cEx.action);
+      if (colName.equals("weight"))
+        return new Integer(cEx.weight);
       if (colName.equals("value") || colName.equals("q") || colName.contains("mean"))
         return new Float(cEx.meanQ);
       if (colName.equals("min"))

@@ -47,6 +47,7 @@ public class RuleMaster {
     UnitedRule rule= new UnitedRule();
     rule.action=ex1.action;
     rule.nUses=ex1.nUses+ex2.nUses;
+    rule.weight=ex1.weight+ex2.weight;
     rule.treeId=ex1.treeId;
     rule.treeCluster=ex1.treeCluster;
     if (ex1.uses!=null || ex2.uses!=null) {
@@ -1361,9 +1362,9 @@ public class RuleMaster {
             ++predictionCount;
           }
           if (predictions.get(rule.action)==null)
-            predictions.put(rule.action,1);
+            predictions.put(rule.action,rule.weight);
           else
-            predictions.put(rule.action,predictions.get(rule.action)+1);
+            predictions.put(rule.action,predictions.get(rule.action)+rule.weight);
         }
       if (predictions==null)
         continue;

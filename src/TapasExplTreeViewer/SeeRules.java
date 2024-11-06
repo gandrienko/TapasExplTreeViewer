@@ -63,7 +63,7 @@ public class SeeRules {
       String line=null;
       String fieldNames[]=null;
       boolean realValued=false;
-      int fNRuleId=-1, fNTreeId=-1, fNCluster=-1, fNResult=-1, fNRuleBody=-1;
+      int fNRuleId=-1, fNTreeId=-1, fNCluster=-1, fNResult=-1, fNWeight=-1, fNRuleBody=-1;
 
       while ((line = br.readLine()) != null) {
         if (line==null || line.trim().length()<2)
@@ -80,6 +80,9 @@ public class SeeRules {
             else
             if (fieldNames[i].contains("cluster"))
               fNCluster=i;
+            else
+            if (fieldNames[i].contains("weight"))
+              fNWeight=i;
             else
             if (fieldNames[i].contains("rule"))
               if (fieldNames[i].contains("id"))
@@ -115,11 +118,15 @@ public class SeeRules {
             r.treeId=Integer.parseInt(fields[fNTreeId]);
           if (fNCluster>=0)
             r.treeCluster =Integer.parseInt(fields[fNCluster]);
+          if (fNWeight>=0)
+            r.weight=Integer.parseInt(fields[fNWeight]);
           int idx=rules.indexOf(r);
           if (idx<0)
             rules.add(r);
-          else
+          else {
             ++rules.get(idx).nSame;
+            ++rules.get(idx).weight;
+          }
         }
       }
     } catch (IOException e) {
@@ -194,7 +201,8 @@ public class SeeRules {
       ex.numId=rule.getId();
       ex.treeId=rule.treeId;
       ex.treeCluster=rule.treeCluster;
-      ex.nSame=ex.weight=rule.nSame;
+      ex.nSame=rule.nSame;
+      ex.weight=Math.max(rule.nSame,rule.weight);
       if (!Double.isNaN(rule.getPredictedValue())) {
         ex.minQ = ex.maxQ = ex.meanQ = (float) rule.getPredictedValue();
         ex.sumQ=rule.getPredictedValue();
@@ -258,7 +266,8 @@ public class SeeRules {
     panel.add(realValuedButton);
 
     // Show the dialog with the radio buttons
-    int result = JOptionPane.showConfirmDialog(null, panel, "Feature Type Selection", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+    int result = JOptionPane.showConfirmDialog(null, panel, "Feature Type Selection",
+        JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
     // Handle the user's selection
     if (result == JOptionPane.OK_OPTION) {

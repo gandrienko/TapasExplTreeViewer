@@ -918,7 +918,7 @@ public class RuleMaster {
     boolean areUnited=rules.get(0) instanceof UnitedRule;
 
     boolean ok=false;
-    String header="RuleID"+((hasTreeId)?",TreeID":"")+",Rule,"+
+    String header="RuleID"+((hasTreeId)?",TreeID":"")+",Weight"+",Rule,"+
         ((isRegression)?((areUnited)?"Mean value,Min value,Max value":"Value"):"Class");
 
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
@@ -928,6 +928,7 @@ public class RuleMaster {
         writer.write(ce.numId+",");
         if (hasTreeId)
           writer.write(ce.treeId+",");
+        writer.write(ce.weight+",");
         boolean first=true;
         for (ExplanationItem e:ce.eItems) {
           if (!first)
@@ -1066,6 +1067,7 @@ public class RuleMaster {
     else
       if (!Double.isNaN(qMin) && qMin<qMax)
         fieldNames.add("Value");
+    fieldNames.add("Weight");
     if (rulesHaveUses)
       fieldNames.add("N uses");
     if (maxRight>0)
@@ -1117,6 +1119,9 @@ public class RuleMaster {
           else
           if (fName.equals("Class"))
             writer.write(Integer.toString(cEx.action));
+          else
+          if (fName.equals("Weight"))
+            writer.write(Integer.toString(cEx.weight));
           else
           if (fName.equals("Value") || fName.equals("Mean value"))
             writer.write(String.format("%.6f",cEx.meanQ));

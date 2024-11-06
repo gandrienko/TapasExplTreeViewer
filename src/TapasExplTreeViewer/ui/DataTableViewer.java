@@ -2,6 +2,8 @@ package TapasExplTreeViewer.ui;
 
 import TapasExplTreeViewer.rules.DataSet;
 import TapasExplTreeViewer.util.CSVDataLoader;
+import TapasUtilities.ItemSelectionManager;
+import TapasUtilities.TableRowsSelectionManager;
 
 import javax.swing.*;
 import javax.swing.table.TableRowSorter;
@@ -18,6 +20,7 @@ public class DataTableViewer extends JPanel {
   private JTextArea infoArea=null;
   private JPopupMenu popup=null;
   private int shownRow=-1;
+  private ItemSelectionManager selector=null;
   
   public DataTableViewer (DataSet dataSet, String featureNames[], String dataInfo) {
     if (dataSet==null || dataSet.records==null || dataSet.records.isEmpty())
@@ -34,10 +37,27 @@ public class DataTableViewer extends JPanel {
   
     TableRowSorter<DataTableModel> sorter = new TableRowSorter<>(tableModel);
     dataTable.setRowSorter(sorter);
-  
+    dataTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+    dataTable.setRowSelectionAllowed(true);
+    dataTable.setColumnSelectionAllowed(false);
+
+    selector=new ItemSelectionManager();
+    TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();
+    rowSelMan.setTable(dataTable);
+    rowSelMan.setSelector(selector);
+    rowSelMan.setMayScrollTable(false);
+
     JPopupMenu menu=new JPopupMenu();
-    JMenuItem mit=new JMenuItem("Export the data to a CSV file");
-    menu.add(mit);
+    JMenuItem mit;
+    menu.add(mit=new JMenuItem("Extract the rules applicable to the selected data"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        showRulesApplicableToData();
+      }
+    });
+
+    menu.add(mit=new JMenuItem("Export the data to a CSV file"));
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {

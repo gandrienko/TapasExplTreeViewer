@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-public class ShowRules implements RulesOrderer, ChangeListener {
+public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   public static String RULES_FOLDER=null;
   
   public static Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
@@ -182,6 +182,9 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     if (dataInstances!=null && !dataInstances.isEmpty() && exList!=null && !exList.isEmpty())
       for (CommonExplanation ex:exList)
         ex.countRightAndWrongApplications(dataInstances,actionsDiffer);
+  }
+  public ArrayList getRules() {
+    return exList;
   }
   
   public ArrayList<CommonExplanation> getOrigRules() {
@@ -1119,7 +1122,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
         }
         String title="Select data for the rule "+
                 exList.get(realRowIndex).numId+", action="+exList.get(realRowIndex).action+
-                ", Nrecords="+exList.get(realRowIndex).getApplicationsCount();
+                ", N records="+exList.get(realRowIndex).getApplicationsCount();
         JMenuItem selItem = new JMenuItem(title);
         selItem.addActionListener(new ActionListener() {
           @Override
@@ -1257,6 +1260,13 @@ public class ShowRules implements RulesOrderer, ChangeListener {
     //showRules.showRulesInTable();
     return showRules;
   }
+  
+  public void showRules(ArrayList rules, String infoText){
+    ShowRules showRules=createShowRulesInstance(rules);
+    showRules.setTitle(infoText);
+    showRules.showRulesInTable(infoText);
+  }
+  
   
   public ArrayList getSelectedRules(ArrayList allRules, ItemSelectionManager selector) {
     if (allRules==null || allRules.isEmpty() || selector==null || !selector.hasSelection())
@@ -2477,7 +2487,7 @@ public class ShowRules implements RulesOrderer, ChangeListener {
             listOfFeatures.toArray(new String[listOfFeatures.size()]),
             wrong.records.size()+" data records that received wrong predictions in " +
                 "the result of applying rules described as \""+infoArea.getText()+
-            "\" to "+data.records.size()+" data records loaded from file "+data.filePath);
+            "\" to "+data.records.size()+" data records loaded from file "+data.filePath,this);
         JFrame dViewFrame=new JFrame("Data with wrong predictions ("+wrong.records.size()+
             " of "+data.records.size()+" records)");
         dViewFrame.setSize(800,600);

@@ -1,6 +1,9 @@
 package TapasExplTreeViewer.ui;
 
+import TapasDataReader.CommonExplanation;
+import TapasExplTreeViewer.rules.DataRecord;
 import TapasExplTreeViewer.rules.DataSet;
+import TapasExplTreeViewer.rules.RuleMaster;
 import TapasExplTreeViewer.util.CSVDataLoader;
 import TapasUtilities.ItemSelectionManager;
 import TapasUtilities.TableRowsSelectionManager;
@@ -12,22 +15,34 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 
 public class DataTableViewer extends JPanel {
   private DataSet data=null;
+  private RulesPresenter rulesPresenter=null;
   private JTable dataTable=null;
   private DataTableModel tableModel=null;
   private JTextArea infoArea=null;
-  private JPopupMenu popup=null;
   private int shownRow=-1;
   private ItemSelectionManager selector=null;
   
-  public DataTableViewer (DataSet dataSet, String featureNames[], String dataInfo) {
+  public DataTableViewer (DataSet dataSet,
+                          String featureNames[],
+                          String dataInfo,
+                          RulesPresenter rulesPresenter) {
     if (dataSet==null || dataSet.records==null || dataSet.records.isEmpty())
       return;
-    data=dataSet;
+    data=dataSet; this.rulesPresenter=rulesPresenter;
     tableModel=new DataTableModel(dataSet,featureNames);
-    dataTable = new JTable(tableModel);
+    dataTable = new JTable(tableModel){
+      public String getToolTipText(MouseEvent e) {
+        int row = dataTable.rowAtPoint(e.getPoint());
+        if (row<0)
+          return null;
+        return getPopupContent(convertRowIndexToModel(row));
+      }
+    };
+    
     for (int i = 1; i < tableModel.getColumnCount(); i++)
       if (tableModel.isNumericColumn(i)) {
         double minmax[]=tableModel.getColumnMinMax(i);
@@ -49,13 +64,15 @@ public class DataTableViewer extends JPanel {
 
     JPopupMenu menu=new JPopupMenu();
     JMenuItem mit;
-    menu.add(mit=new JMenuItem("Extract the rules applicable to the selected data"));
-    mit.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        showRulesApplicableToData();
-      }
-    });
+    if (rulesPresenter!=null) {
+      menu.add(mit=new JMenuItem("Extract the rules applicable to the selected data"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          showRulesApplicableToData();
+        }
+      });
+    }
 
     menu.add(mit=new JMenuItem("Export the data to a CSV file"));
     mit.addActionListener(new ActionListener() {
@@ -64,35 +81,17 @@ public class DataTableViewer extends JPanel {
         exportDataToCSVFile();
       }
     });
-
-    // Add mouse listener to show popup when mouse points to a row
-    dataTable.addMouseMotionListener(new MouseAdapter() {
-      @Override
-      public void mouseMoved(MouseEvent e) {
-        int row = dataTable.rowAtPoint(e.getPoint());
-        if (row >= 0) {
-          dataTable.setRowSelectionInterval(row, row); // Select the row under the mouse cursor
-          showHtmlPopup(e, dataTable.convertRowIndexToModel(row));
-        }
-        else
-          hidePopup();
-      }
-    });
+    
     dataTable.addMouseListener(new MouseAdapter() {
       @Override
-      public void mouseExited(MouseEvent e) {
-        hidePopup();
-        super.mouseExited(e);
-      }
-      @Override
       public void mousePressed(MouseEvent e) {
-        hidePopup();
-        if (e.isPopupTrigger() || SwingUtilities.isRightMouseButton(e)) {
+        if (SwingUtilities.isRightMouseButton(e)) {
           menu.show(e.getComponent(), e.getX(), e.getY());
         }
+        super.mousePressed(e);
       }
     });
-    
+
     JScrollPane scrollPane = new JScrollPane(dataTable);
     setLayout(new BorderLayout());
 
@@ -107,32 +106,6 @@ public class DataTableViewer extends JPanel {
       add(scrollPane, BorderLayout.CENTER);
   }
   
-  private void showHtmlPopup(MouseEvent e, int row) {
-    if (row<0)
-      return;
-    if (popup!=null) {
-      if (shownRow==row) {
-        // Show the popup at the mouse cursor position
-        popup.show(e.getComponent(), e.getX(), e.getY());
-        return;
-      }
-      popup.setVisible(false);
-      popup.removeAll();
-    }
-    else {
-      // Create the popup menu
-      popup=new JPopupMenu();
-      popup.setBackground(new Color(255,255,202));
-    }
-    
-    // Create a JLabel to display the HTML content in the popup
-    JLabel label = new JLabel(getPopupContent(row));
-    popup.add(label);
-    
-    // Show the popup at the mouse cursor position
-    popup.show(e.getComponent(), e.getX(), e.getY());
-  }
-  
   public String getPopupContent(int row) {
     if (row<0)
       return null;
@@ -141,7 +114,7 @@ public class DataTableViewer extends JPanel {
     String rowNumber = String.valueOf(row + 1);
   
     // Build the HTML content
-    StringBuilder htmlContent = new StringBuilder("<html><body>");
+    StringBuilder htmlContent = new StringBuilder("<html><body style='background-color:#FFFACD; padding: 5px;'>");
     htmlContent.append("<div style='text-align: center;'>")
         .append("<b>Record ID:</b> ").append(recordId)
         .append("<br><b>Row:</b> ").append(rowNumber)
@@ -159,14 +132,6 @@ public class DataTableViewer extends JPanel {
   
     htmlContent.append("</table></body></html>");
     return htmlContent.toString();
-  }
-  
-  protected void hidePopup() {
-    if (popup!=null) {
-      popup.setVisible(false);
-      popup=null;
-      shownRow=-1;
-    }
   }
   
   public void exportDataToCSVFile() {
@@ -190,6 +155,27 @@ public class DataTableViewer extends JPanel {
   }
   
   public void showRulesApplicableToData(){
-    //
+    if (rulesPresenter==null)
+      return;
+    ArrayList selected=selector.getSelected();
+    if (selected==null || selected.isEmpty())
+      return;
+    ArrayList<CommonExplanation> rules=rulesPresenter.getRules();
+    if (rules==null)
+      return;
+    ArrayList<DataRecord> records=new ArrayList<DataRecord>(selected.size());
+    for (int i=0; i<selected.size(); i++) {
+      int idx=(Integer)selected.get(i);
+      records.add(data.records.get(idx));
+    }
+    ArrayList<CommonExplanation> applicableRules=RuleMaster.selectRulesApplicableToData(rules,records);
+    if (applicableRules==null || applicableRules.isEmpty()) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No rules applicable to the selected data have been found!","No applicable rules!",
+          JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    rulesPresenter.showRules(applicableRules,applicableRules.size()+" rules applicable to "+
+                                                 records.size()+" selected data record(s)");
   }
 }

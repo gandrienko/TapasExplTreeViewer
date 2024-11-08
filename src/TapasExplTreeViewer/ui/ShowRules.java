@@ -865,6 +865,19 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           mitExportData.setEnabled(true);
       }
     });
+
+    menu.add(mit=new JMenuItem("Load (other) data from file"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        DataSet loadedData=loadData();
+        if (loadedData!=null) {
+          data=loadedData;
+          mitExportData.setEnabled(true);
+        }
+      }
+    });
+
     menu.add(mitExportData);
 
     menu.addSeparator();
@@ -2429,6 +2442,37 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     frames.add(plotFrame);
   }
 
+  public DataSet loadData() {
+    DataSet data=null;
+    try {
+      String filePath = CSVDataLoader.selectFilePathThroughDialog(true);
+      if (filePath == null)
+        return null;
+      data = CSVDataLoader.loadDataFromCSVFile(filePath);
+    } catch (IOException ex) { }
+    if (data == null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to load data!", "Data loading failed!",
+          JOptionPane.ERROR_MESSAGE);
+    }
+    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Loaded " + data.records.size() + " data records.", "Data loaded!",
+        JOptionPane.INFORMATION_MESSAGE);
+    data.description="Set with "+data.records.size()+" original data records loaded from file "+
+        data.filePath;
+    DataTableViewer dViewer=new DataTableViewer(data,
+        listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
+    JFrame dViewFrame=new JFrame("Data from file "+data.filePath);
+    dViewFrame.setSize(800,600);
+    dViewFrame.add(dViewer,BorderLayout.CENTER);
+    dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    dViewFrame.setVisible(true);
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
+    frames.add(dViewFrame);
+    return data;
+  }
+
   public void applyRulesToData() {
     boolean applyToSelection=localSelector!=null &&
         localSelector.hasSelection() &&
@@ -2439,39 +2483,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,localSelector):exList;
     DataSet testData;
     if (data==null) {
-      try {
-        String filePath = CSVDataLoader.selectFilePathThroughDialog(true);
-        if (filePath == null)
-          return;
-        data = CSVDataLoader.loadDataFromCSVFile(filePath);
-        if (data != null) {
-          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-              "Loaded " + data.records.size() + " data records.", "Data loaded!",
-              JOptionPane.INFORMATION_MESSAGE);
-          /*
-          DataTableViewer dViewer=new DataTableViewer(data,
-              listOfFeatures.toArray(new String[listOfFeatures.size()]),
-              "Data loaded from file "+data.filePath);
-          JFrame dViewFrame=new JFrame("Data from file "+data.filePath);
-          dViewFrame.setSize(800,600);
-          dViewFrame.add(dViewer,BorderLayout.CENTER);
-          dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-          dViewFrame.setVisible(true);
-          if (frames==null)
-            frames=new ArrayList<JFrame>(20);
-          frames.add(dViewFrame);
-          */
-        }
-      } catch (IOException ex) { }
-
-      if (data == null) {
-        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "No data have been loaded!",
-            "No data", JOptionPane.ERROR_MESSAGE);
+      data=loadData();
+      if (data == null)
         return;
-      }
-      data.description="Set with "+data.records.size()+" original data records loaded from file "+
-          data.filePath;
       testData=data;
     }
     else
@@ -2489,25 +2503,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           frames=new ArrayList<JFrame>(20);
         frames.add(cmFrame);
       }
-      /*
-      DataSet wrong=testData.extractWronglyPredicted();
-      if (wrong!=null) {
-        DataTableViewer dViewer=new DataTableViewer(wrong,
-            listOfFeatures.toArray(new String[listOfFeatures.size()]),
-            wrong.records.size()+" data records that received wrong predictions in " +
-                "the result of applying rules described as \""+infoArea.getText()+
-            "\" to "+testData.records.size()+" data records loaded from file "+testData.filePath,this);
-        JFrame dViewFrame=new JFrame("Data with wrong predictions ("+wrong.records.size()+
-            " of "+testData.records.size()+" records)");
-        dViewFrame.setSize(800,600);
-        dViewFrame.add(dViewer,BorderLayout.CENTER);
-        dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        dViewFrame.setVisible(true);
-        if (frames==null)
-          frames=new ArrayList<JFrame>(20);
-        frames.add(dViewFrame);
-      }
-      */
       testData.description="Data records with predictions obtained by applying "+rules.size()+" rules "+
           ((applyToSelection)?"selected from rule set ":"")+"described as "+infoArea.getText();
 

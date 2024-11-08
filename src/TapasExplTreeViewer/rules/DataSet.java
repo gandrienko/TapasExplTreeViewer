@@ -5,11 +5,39 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class DataSet {
-  public String filePath=null;
+  public String filePath=null, description=null;
   public String fieldNames[]=null;
   public int idIdx=-1, nameIdx=-1, numIdx=-1, classLabelIdx=-1, classNumIdx=-1;
 
   public ArrayList<DataRecord> records=null;
+  /**
+   * To compare predictions made by different versions of a model,
+   * a new version of the DataSet is created before applying a model.
+   * The field previousVersion keeps a reference to the previous version
+   * of this data set.
+   */
+
+  public DataSet previousVersion=null;
+
+  /**
+   * Creates a new instance of DataSet with a reference to this instance.
+   * The new instance contains new versions of the data records.
+   * @return a new instance of DataSet with a reference to this instance.
+   */
+
+  public DataSet makeNewVersion() {
+    DataSet ds=new DataSet();
+    ds.filePath=filePath;
+    ds.fieldNames=fieldNames;
+    ds.idIdx=idIdx; ds.nameIdx=nameIdx; ds.numIdx=numIdx;
+    ds.classLabelIdx=classLabelIdx; ds.classNumIdx=classNumIdx;
+    if (records!=null && !records.isEmpty()) {
+      ds.records = new ArrayList<DataRecord>(records.size());
+      for (int i=0; i<records.size(); i++)
+        ds.records.add(records.get(i).makeNewVersion());
+    }
+    return ds;
+  }
 
   /**
    * Determines the type of the target variable, i.e., class (category) or real value
@@ -29,8 +57,8 @@ public class DataSet {
       return null;
     double minmax[]=null;
     for (DataRecord data:records) {
-      if (data.trueClassIdx>=0 || !Double.isNaN(data.trueValue))  {
-        double v=(!Double.isNaN(data.trueValue))?data.trueValue:data.trueClassIdx;
+      if (data.origClassIdx >=0 || !Double.isNaN(data.origValue))  {
+        double v=(!Double.isNaN(data.origValue))?data.origValue :data.origClassIdx;
         if (minmax==null) {
           minmax=new double[2];
           minmax[0]=minmax[1]=v;
@@ -184,7 +212,7 @@ public class DataSet {
           if (i==nameIdx) rowValues.add(record.name); else
           if (i==numIdx) rowValues.add(Integer.toString(record.idx)); else
           if (i==classLabelIdx) rowValues.add(record.trueClassLabel); else
-          if (i==classNumIdx) rowValues.add(Integer.toString(record.trueClassIdx));
+          if (i==classNumIdx) rowValues.add(Integer.toString(record.origClassIdx));
           else {
             DataElement item=record.getDataElement(fieldNames[i]);
             if (item==null)

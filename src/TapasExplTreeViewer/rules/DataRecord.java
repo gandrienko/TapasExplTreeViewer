@@ -8,16 +8,42 @@ public class DataRecord {
   public String id=null, name=null;
   public int idx=-1; //index in a data set or table
   public String trueClassLabel=null;
-  public int trueClassIdx=-1, predictedClassIdx=-1;
-  public double trueValue=Double.NaN, predictedValue=Double.NaN;
-  public double predictedValueRange[]=null;
+  public int origClassIdx =-1, predictedClassIdx=-1;
+  public double origValue =Double.NaN, predictedValue=Double.NaN;
+  public double origValueRange[]=null, predictedValueRange[]=null;
   public byte predictionType= NO_TARGET;
   public HashMap<String,DataElement> items=null;
+  /**
+   * To compare predictions made by different versions of a model,
+   * a new version of each DataRecord is created before applying a model.
+   * The field previousVersion keeps a reference to the previous version
+   * of this data record.
+   */
+  public DataRecord previousVersion=null;
 
   public DataRecord(){}
 
   public DataRecord(int idx, String id, String name) {
     this.idx=idx; this.id=id; this.name=name;
+  }
+  /**
+   * Creates a new instance of DataRecord with a reference to this instance.
+   * Copies all fields, except for the original classes or values and predictions.
+   * If predictions are available, they are stored as the original classes or values.
+   * The fields for the predictions are left in the  "unknown" state.
+   * The data items are not copied; the same hashmap with the items is passed to the new instance.
+   * @return a new instance of DataRecord with a reference to this instance.
+   */
+  public DataRecord makeNewVersion() {
+    DataRecord r=new DataRecord(idx,id,name);
+    r.previousVersion=this;
+    r.trueClassLabel=trueClassLabel;
+    r.origClassIdx=(predictedClassIdx>=0)?predictedClassIdx:origClassIdx;
+    r.origValue=(Double.isNaN(predictedValue))?origValue:predictedValue;
+    r.origValueRange=(predictedValueRange==null)?origValueRange:predictedValueRange;
+    r.predictionType=predictionType;
+    r.items=items;
+    return r;
   }
 
   public void addDataElement(DataElement item) {
@@ -62,9 +88,9 @@ public class DataRecord {
   }
 
   public byte getTargetType() {
-    if (trueClassLabel!=null || trueClassIdx>=0)
+    if (trueClassLabel!=null || origClassIdx >=0)
       return CLASS_TARGET;
-    if (!Double.isNaN(trueValue))
+    if (!Double.isNaN(origValue))
       return VALUE_TARGET;
     return NO_TARGET;
   }
@@ -73,12 +99,12 @@ public class DataRecord {
     if (getPredictionType()==NO_TARGET)
       return false;
     if (predictionType==CLASS_TARGET)
-      return predictedClassIdx==trueClassIdx;
+      return predictedClassIdx== origClassIdx;
     if (predictionType==VALUE_TARGET)
-      return !Double.isNaN(predictedValue) && !Double.isNaN(trueValue) && predictedValue==trueValue;
+      return !Double.isNaN(predictedValue) && !Double.isNaN(origValue) && predictedValue== origValue;
     if (predictionType==RANGE_TARGET)
-      return predictedValueRange!=null && !Double.isNaN(trueValue) &&
-          trueValue>=predictedValueRange[0] && trueValue<=predictedValueRange[1];
+      return predictedValueRange!=null && !Double.isNaN(origValue) &&
+          origValue >=predictedValueRange[0] && origValue <=predictedValueRange[1];
     return false;
   }
 }

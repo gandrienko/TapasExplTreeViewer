@@ -8,6 +8,7 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 
 public class DataTableModel extends AbstractTableModel {
+  public static int nStandardColumns=4;
   public DataSet dataSet=null;
   public String featureNames[]=null;
   protected String[] columnNames=null;
@@ -21,11 +22,12 @@ public class DataTableModel extends AbstractTableModel {
     this.featureNames = (featureNames==null)?dataSet.fieldNames:featureNames;
 
     // Define column names: Record ID, True Class, Predicted Class/Value, and Features
-    columnNames = new String[3 + featureNames.length];
+    columnNames = new String[nStandardColumns + featureNames.length];
     columnNames[0] = "Record ID";
-    columnNames[1] = "True Class/Value";
+    columnNames[1] = "Original Class/Value";
     columnNames[2] = "Predicted Class/Value";
-    System.arraycopy(featureNames, 0, columnNames, 3, featureNames.length);
+    columnNames[3] = "Match?";
+    System.arraycopy(featureNames, 0, columnNames, nStandardColumns, featureNames.length);
   }
 
   @Override
@@ -50,7 +52,7 @@ public class DataTableModel extends AbstractTableModel {
     if (columnIndex == 0) {
       return record.id;
     } else if (columnIndex == 1) {
-      return (record.trueClassIdx >=0) ? record.trueClassIdx : record.trueValue;
+      return (record.origClassIdx >=0) ? record.origClassIdx : record.origValue;
     } else if (columnIndex == 2) {
       switch (record.getPredictionType()) {
         case DataRecord.CLASS_TARGET:
@@ -62,9 +64,11 @@ public class DataTableModel extends AbstractTableModel {
         default:
           return "";
       }
+    } else if (columnIndex == 3) {
+      return (checkPrediction(record))?"yes":"no";
     } else {
       // Handle feature columns
-      int featureIndex = columnIndex - 3;
+      int featureIndex = columnIndex - nStandardColumns;
       String featureName = featureNames[featureIndex];
       DataElement dataElement = record.getDataElement(featureName);
 
@@ -84,27 +88,49 @@ public class DataTableModel extends AbstractTableModel {
       }
     }
   }
+  
+  public boolean checkPrediction(DataRecord r) {
+    if (r.origClassIdx>=0)
+      return r.origClassIdx==r.predictedClassIdx;
+    if (!Double.isNaN(r.origValue)) {
+      if (!Double.isNaN(r.predictedValue))
+        return r.predictedValue==r.origValue;
+      if (r.predictedValueRange!=null)
+        return r.origValue>=r.predictedValueRange[0] &&
+            r.origValue<=r.predictedValueRange[1];
+      return false;
+    }
+    if (r.origValueRange!=null) {
+      if (!Double.isNaN(r.predictedValue))
+        return r.predictedValue>=r.origValueRange[0] &&
+            r.predictedValue<=r.origValueRange[1];
+      if (r.predictedValueRange!=null)
+        return r.predictedValue==r.origValueRange[0] &&
+            r.predictedValue==r.origValueRange[1];
+    }
+    return false;
+  }
 
   public boolean isNumericColumn(int columnIndex) {
-    if (columnIndex==0)
+    if (columnIndex==0 || columnIndex==3)
       return false;
     if (columnIndex==1)
       return true;
     if (columnIndex==2)
       return dataSet.determinePredictionType()!=DataRecord.RANGE_TARGET;
-    int featureIndex = columnIndex - 3;
+    int featureIndex = columnIndex - nStandardColumns;
     byte type=dataSet.determineFeatureType(featureNames[featureIndex]);
     return type==DataElement.INTEGER || type==DataElement.REAL;
   }
 
   public double[] getColumnMinMax(int columnIndex) {
-    if (columnIndex==0)
+    if (columnIndex==0 || columnIndex==3)
       return null;
     if (columnIndex==1)
       return dataSet.getTargetMinMax();
     if (columnIndex==2)
       return dataSet.getPredictionMinMax();
-    int featureIndex = columnIndex - 3;
+    int featureIndex = columnIndex - nStandardColumns;
     return dataSet.findMinMax(featureNames[featureIndex]);
   }
 

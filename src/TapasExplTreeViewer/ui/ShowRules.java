@@ -2437,13 +2437,14 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                 "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                 ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,localSelector):exList;
-    if (data==null)
+    DataSet testData;
+    if (data==null) {
       try {
-        String filePath=CSVDataLoader.selectFilePathThroughDialog(true);
-        if (filePath==null)
+        String filePath = CSVDataLoader.selectFilePathThroughDialog(true);
+        if (filePath == null)
           return;
-        data= CSVDataLoader.loadDataFromCSVFile(filePath);
-        if (data!=null) {
+        data = CSVDataLoader.loadDataFromCSVFile(filePath);
+        if (data != null) {
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
               "Loaded " + data.records.size() + " data records.", "Data loaded!",
               JOptionPane.INFORMATION_MESSAGE);
@@ -2461,35 +2462,43 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           frames.add(dViewFrame);
           */
         }
-      } catch (IOException ex) {};
-    if (data==null)  {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "No data have been loaded!",
-          "No data",JOptionPane.ERROR_MESSAGE);
-      return;
+      } catch (IOException ex) { }
+
+      if (data == null) {
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "No data have been loaded!",
+            "No data", JOptionPane.ERROR_MESSAGE);
+        return;
+      }
+      data.description="Set with "+data.records.size()+" original data records loaded from file "+
+          data.filePath;
+      testData=data;
     }
-    if (RuleMaster.applyRulesToData(rules,data.records)) {
+    else
+      testData=data.makeNewVersion();
+    if (RuleMaster.applyRulesToData(rules,testData.records)) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Completed application of " + rules.size() + " rules to " +
-              data.records.size() + " data records.", "Rule application done",
+              testData.records.size() + " data records.", "Rule application done",
           JOptionPane.INFORMATION_MESSAGE);
       ClassConfusionMatrix cMatrix=new ClassConfusionMatrix();
-      if (cMatrix.makeConfusionMatrix(data)) {
+      if (cMatrix.makeConfusionMatrix(testData)) {
         ClassConfusionMatrixFrame cmFrame=new ClassConfusionMatrixFrame(cMatrix,infoArea.getText());
         cmFrame.setVisible(true);
         if (frames==null)
           frames=new ArrayList<JFrame>(20);
         frames.add(cmFrame);
       }
-      DataSet wrong=data.extractWronglyPredicted();
+      /*
+      DataSet wrong=testData.extractWronglyPredicted();
       if (wrong!=null) {
         DataTableViewer dViewer=new DataTableViewer(wrong,
             listOfFeatures.toArray(new String[listOfFeatures.size()]),
             wrong.records.size()+" data records that received wrong predictions in " +
                 "the result of applying rules described as \""+infoArea.getText()+
-            "\" to "+data.records.size()+" data records loaded from file "+data.filePath,this);
+            "\" to "+testData.records.size()+" data records loaded from file "+testData.filePath,this);
         JFrame dViewFrame=new JFrame("Data with wrong predictions ("+wrong.records.size()+
-            " of "+data.records.size()+" records)");
+            " of "+testData.records.size()+" records)");
         dViewFrame.setSize(800,600);
         dViewFrame.add(dViewer,BorderLayout.CENTER);
         dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -2498,6 +2507,23 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           frames=new ArrayList<JFrame>(20);
         frames.add(dViewFrame);
       }
+      */
+      testData.description="Data records with predictions obtained by applying "+rules.size()+" rules "+
+          ((applyToSelection)?"selected from rule set ":"")+"described as "+infoArea.getText();
+
+      DataTableViewer dViewer=new DataTableViewer(testData,
+          listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
+      JFrame dViewFrame=new JFrame("Data with predictions ("+testData.records.size()+" records)");
+      dViewFrame.setSize(800,600);
+      dViewFrame.add(dViewer,BorderLayout.CENTER);
+      dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+      dViewFrame.setVisible(true);
+      if (frames==null)
+        frames=new ArrayList<JFrame>(20);
+      frames.add(dViewFrame);
+
+      if (!applyToSelection)
+        data=testData;
     }
     else
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),

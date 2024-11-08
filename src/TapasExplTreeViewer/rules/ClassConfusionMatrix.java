@@ -15,8 +15,8 @@ public class ClassConfusionMatrix {
       return false;
     classNs=new ArrayList<Integer>(10);
     for (DataRecord record:data.records) {
-      if (!classNs.contains(record.trueClassIdx))
-        classNs.add(record.trueClassIdx);
+      if (!classNs.contains(record.origClassIdx))
+        classNs.add(record.origClassIdx);
       if (!classNs.contains(record.predictedClassIdx))
         classNs.add(record.predictedClassIdx);
     }
@@ -34,8 +34,8 @@ public class ClassConfusionMatrix {
     nSame=0;
     for (DataRecord record:data.records)  {
       ++nDataTotal;
-      int i1=classNs.indexOf(record.trueClassIdx),
-          i2=(record.trueClassIdx==record.predictedClassIdx)?i1:classNs.indexOf(record.predictedClassIdx);
+      int i1=classNs.indexOf(record.origClassIdx),
+          i2=(record.origClassIdx ==record.predictedClassIdx)?i1:classNs.indexOf(record.predictedClassIdx);
       if (i1==i2) ++nSame;
       ++classTotals[i1];
       ++counts[i1][i2];

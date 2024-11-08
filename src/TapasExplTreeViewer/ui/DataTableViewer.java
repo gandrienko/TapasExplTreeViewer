@@ -28,7 +28,6 @@ public class DataTableViewer extends JPanel {
   
   public DataTableViewer (DataSet dataSet,
                           String featureNames[],
-                          String dataInfo,
                           RulesPresenter rulesPresenter) {
     if (dataSet==null || dataSet.records==null || dataSet.records.isEmpty())
       return;
@@ -97,8 +96,11 @@ public class DataTableViewer extends JPanel {
     JScrollPane scrollPane = new JScrollPane(dataTable);
     setLayout(new BorderLayout());
 
-    if (dataInfo!=null) {
-      infoArea=new JTextArea(dataInfo);
+    if (data.description!=null) {
+      String info=data.description;
+      if (data.previousVersion!=null)
+        info+=" Previous version of the data: "+data.previousVersion.description;
+      infoArea=new JTextArea(info);
       infoArea.setLineWrap(true);
       infoArea.setWrapStyleWord(true);
       JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);

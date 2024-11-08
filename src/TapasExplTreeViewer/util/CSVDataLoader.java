@@ -86,12 +86,12 @@ public class CSVDataLoader {
         if (classLabelIdx>=0) {
           record.trueClassLabel = values[classLabelIdx];
           try {
-            record.trueClassIdx=Integer.parseInt(record.trueClassLabel);
+            record.origClassIdx =Integer.parseInt(record.trueClassLabel);
           } catch (Exception ex) {}
         }
         if (classNumIdx>=0)
           try {
-            record.trueClassIdx=Integer.parseInt(values[classNumIdx]);
+            record.origClassIdx =Integer.parseInt(values[classNumIdx]);
           } catch (Exception ex) {}
 
         // Add the feature data to the DataRecord

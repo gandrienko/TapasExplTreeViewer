@@ -39,7 +39,9 @@ public class DataTableViewer extends JPanel {
         int row = dataTable.rowAtPoint(e.getPoint());
         if (row<0)
           return null;
-        return getPopupContent(convertRowIndexToModel(row));
+        int trueRow=convertRowIndexToModel(row);
+        //System.out.println("Row at pointer: "+row+", true row = "+trueRow);
+        return getPopupContent(trueRow);
       }
     };
     
@@ -110,7 +112,7 @@ public class DataTableViewer extends JPanel {
     if (row<0)
       return null;
     // Get the record ID and row number
-    String recordId = dataTable.getValueAt(row, 0).toString();
+    String recordId = tableModel.getValueAt(row, 0).toString();
     String rowNumber = String.valueOf(row + 1);
   
     // Build the HTML content
@@ -122,11 +124,11 @@ public class DataTableViewer extends JPanel {
     htmlContent.append("<br><table border='1' cellspacing='0' cellpadding='2'>");
     htmlContent.append("<tr><th>Column</th><th>Value</th></tr>");
   
-    for (int col = 0; col < dataTable.getColumnCount(); col++) {
-      String columnName = dataTable.getColumnName(col);
+    for (int col = 0; col < tableModel.getColumnCount(); col++) {
+      String columnName = tableModel.getColumnName(col);
       if (columnName.equalsIgnoreCase("Record id"))
         continue;
-      String value = dataTable.getValueAt(row, col) != null ? dataTable.getValueAt(row, col).toString() : "";
+      String value = tableModel.getValueAt(row, col) != null ? tableModel.getValueAt(row, col).toString() : "";
       htmlContent.append("<tr><td>").append(columnName).append("</td><td>").append(value).append("</td></tr>");
     }
   

@@ -11,16 +11,43 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SeeRules {
   public static String pathToRules="c:\\CommonGISprojects\\Lamarr\\model_rules\\";
+  public static String settingsFile = "settings.txt";
   public static String lastUsedDirectory = null;
 
   public static void main(String[] args) {
+    Map<String, String> settings = new HashMap<>();
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(settingsFile))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        line = line.trim();
+        if (line.startsWith("#") || line.isEmpty()) {
+          continue; // skip comments and empty lines
+        }
+        String[] parts = line.split("=");
+        if (parts.length != 2) {
+          System.err.println("Invalid format: " + line);
+          continue;
+        }
+        String paramName = parts[0].trim();
+        String paramValue = parts[1].trim();
+        if (paramValue.startsWith("\"") && paramValue.endsWith("\""))
+          paramValue = paramValue.substring(1, paramValue.length() - 1);
+        settings.put(paramName, paramValue);
+      }
+    } catch (IOException e) {
+      System.err.println("Error reading settings file: " + e.getMessage());
+    }
+
+    if (settings.containsKey("pathToRules")) {
+      pathToRules = settings.get("pathToRules");
+      System.out.println("Path to rules: " + pathToRules);
+    }
+
     File file=null;
     if (args!=null && args.length>0) {
       String csvFile = args[0];

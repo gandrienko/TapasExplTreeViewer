@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="TapasDataReader">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../TapasDataReader/out/production/TapasDataReader" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../TapasDataReader/src" />
+    </SOURCES>
+  </library>
+</component>

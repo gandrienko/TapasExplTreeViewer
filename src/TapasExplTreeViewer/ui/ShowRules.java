@@ -117,6 +117,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
    */
   protected static ArrayList<JFrame> topFrames=null;
 
+  protected JTabbedPane dataTabbedPane =null;
+  protected ClassConfusionMatrixFrame confusionMatrixFrame=null;
+
   protected RuleSelector ruleSelector=null;
   /**
    * Whether this instance of ShowRules has already created its top frame
@@ -213,7 +216,19 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     if (createdFiles!=null)
       this.createdFiles=createdFiles;
   }
-  
+
+  public void setData(DataSet data) {
+    this.data = data;
+  }
+
+  public void setDataTabbedPane(JTabbedPane dataTabbedPane) {
+    this.dataTabbedPane = dataTabbedPane;
+  }
+
+  public void setConfusionMatrixFrame(ClassConfusionMatrixFrame confusionMatrixFrame) {
+    this.confusionMatrixFrame = confusionMatrixFrame;
+  }
+
   public void setNonSubsumed(boolean nonSubsumed) {
     this.nonSubsumed = nonSubsumed;
   }
@@ -873,6 +888,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         DataSet loadedData=loadData();
         if (loadedData!=null) {
           data=loadedData;
+          confusionMatrixFrame=null;
           mitExportData.setEnabled(true);
         }
       }
@@ -1259,7 +1275,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     showRules.setOrigRules(origRules);
     showRules.setOrderedFeatureNames(orderedFeatureNames);
     showRules.setDataInstances(dataInstances,actionsDiffer);
-    showRules.data=this.data;
+    showRules.setData(this.data);
+    showRules.setDataTabbedPane(dataTabbedPane);
+    showRules.setConfusionMatrixFrame(confusionMatrixFrame);
     showRules.setOrigHighlighter(origHighlighter);
     showRules.setOrigSelector(origSelector);
     showRules.setCreatedFileRegister(createdFiles);
@@ -1781,7 +1799,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
     showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
     showRules.setOrderedFeatureNames(orderedFeatureNames);
-    showRules.data=this.data;
+    showRules.setData(this.data);
+    showRules.setDataTabbedPane(dataTabbedPane);
+    showRules.setConfusionMatrixFrame(confusionMatrixFrame);
     showRules.setDataInstances(dataInstances,actionsDiffer);
     if (showRules.getOrigRules().equals(origRules)) {
       showRules.setOrigHighlighter(origHighlighter);
@@ -2462,9 +2482,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         data.filePath;
     DataTableViewer dViewer=new DataTableViewer(data,
         listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
+    dataTabbedPane =new JTabbedPane();
+    dataTabbedPane.addTab("original data",dViewer);
     JFrame dViewFrame=new JFrame("Data from file "+data.filePath);
-    dViewFrame.setSize(800,600);
-    dViewFrame.add(dViewer,BorderLayout.CENTER);
+    dViewFrame.setSize(1000,800);
+    dViewFrame.add(dataTabbedPane,BorderLayout.CENTER);
     dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     dViewFrame.setVisible(true);
     if (frames==null)
@@ -2487,6 +2509,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       if (data == null)
         return;
       testData=data;
+      confusionMatrixFrame=null;
     }
     else
       testData=data.makeNewVersion();
@@ -2495,27 +2518,50 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           "Completed application of " + rules.size() + " rules to " +
               testData.records.size() + " data records.", "Rule application done",
           JOptionPane.INFORMATION_MESSAGE);
-      ClassConfusionMatrix cMatrix=new ClassConfusionMatrix();
-      if (cMatrix.makeConfusionMatrix(testData)) {
-        ClassConfusionMatrixFrame cmFrame=new ClassConfusionMatrixFrame(cMatrix,infoArea.getText());
-        cmFrame.setVisible(true);
-        if (frames==null)
-          frames=new ArrayList<JFrame>(20);
-        frames.add(cmFrame);
-      }
       testData.description="Data records with predictions obtained by applying "+rules.size()+" rules "+
           ((applyToSelection)?"selected from rule set ":"")+"described as "+infoArea.getText();
 
       DataTableViewer dViewer=new DataTableViewer(testData,
           listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
-      JFrame dViewFrame=new JFrame("Data with predictions ("+testData.records.size()+" records)");
-      dViewFrame.setSize(800,600);
-      dViewFrame.add(dViewer,BorderLayout.CENTER);
-      dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-      dViewFrame.setVisible(true);
-      if (frames==null)
-        frames=new ArrayList<JFrame>(20);
-      frames.add(dViewFrame);
+      int k=1;
+      DataSet ds=testData;
+      while (ds.previousVersion!=null) {
+        ++k; ds=ds.previousVersion;
+      }
+      if (dataTabbedPane!=null && dataTabbedPane.isShowing()) {
+        dataTabbedPane.addTab("version " + k, dViewer);
+        Window window = SwingUtilities.getWindowAncestor(dataTabbedPane);
+        if (window!=null)
+          window.toFront();
+        dataTabbedPane.setSelectedIndex(dataTabbedPane.getComponentCount()-1);
+      }
+      else {
+        dataTabbedPane =new JTabbedPane();
+        dataTabbedPane.addTab("data version "+k,dViewer);
+        JFrame dViewFrame = new JFrame("Data with predictions (" + testData.records.size() + " records)");
+        dViewFrame.setSize(800, 600);
+        dViewFrame.add(dViewer, BorderLayout.CENTER);
+        dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        dViewFrame.setVisible(true);
+        if (frames == null)
+          frames = new ArrayList<JFrame>(20);
+        frames.add(dViewFrame);
+      }
+      ClassConfusionMatrix cMatrix=new ClassConfusionMatrix();
+      if (cMatrix.makeConfusionMatrix(testData)) {
+        if (confusionMatrixFrame!=null) {
+          confusionMatrixFrame.addMatrix(cMatrix, infoArea.getText());
+          confusionMatrixFrame.toFront();
+        }
+        else {
+          ClassConfusionMatrixFrame cmFrame = new ClassConfusionMatrixFrame(cMatrix, infoArea.getText());
+          cmFrame.setVisible(true);
+          if (frames == null)
+            frames = new ArrayList<JFrame>(20);
+          frames.add(cmFrame);
+          confusionMatrixFrame=cmFrame;
+        }
+      }
 
       if (!applyToSelection)
         data=testData;

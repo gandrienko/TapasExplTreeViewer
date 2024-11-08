@@ -11,10 +11,7 @@ import TapasUtilities.TableRowsSelectionManager;
 import javax.swing.*;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.util.ArrayList;
 
 public class DataTableViewer extends JPanel {
@@ -25,6 +22,7 @@ public class DataTableViewer extends JPanel {
   private JTextArea infoArea=null;
   private int shownRow=-1;
   private ItemSelectionManager selector=null;
+  private JSplitPane splitPane=null;
   
   public DataTableViewer (DataSet dataSet,
                           String featureNames[],
@@ -103,13 +101,25 @@ public class DataTableViewer extends JPanel {
       infoArea=new JTextArea(info);
       infoArea.setLineWrap(true);
       infoArea.setWrapStyleWord(true);
-      JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
+      splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
       add(splitPane,BorderLayout.CENTER);
     }
     else
       add(scrollPane, BorderLayout.CENTER);
+
+    if (splitPane!=null) {
+      Component owner=this;
+      addComponentListener(new ComponentAdapter() {
+        @Override
+        public void componentShown(ComponentEvent e) {
+          super.componentShown(e);
+          splitPane.setDividerLocation(0.9);
+          owner.removeComponentListener(this);
+        }
+      });
+    }
   }
-  
+
   public String getPopupContent(int row) {
     if (row<0)
       return null;

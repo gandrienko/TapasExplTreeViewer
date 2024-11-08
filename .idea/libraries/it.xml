@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="it">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../PisaClustering/classes" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../PisaClustering/src" />
+    </SOURCES>
+  </library>
+</component>

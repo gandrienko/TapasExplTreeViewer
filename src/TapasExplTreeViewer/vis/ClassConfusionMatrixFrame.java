@@ -6,14 +6,27 @@ import javax.swing.*;
 import java.awt.*;
 
 public class ClassConfusionMatrixFrame extends JFrame {
+  public JTabbedPane versionsPane=null;
+
   public ClassConfusionMatrixFrame(ClassConfusionMatrix cMatrix, String rulesInfoText) {
+    JPanel p=makeMatrixPanel(cMatrix, rulesInfoText);
+    if (p==null)
+      return;
     setTitle("Class confusion matrix");
     setSize(800, 700);
     setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     setLocationRelativeTo(null);
 
+    versionsPane=new JTabbedPane();
+    versionsPane.setTabPlacement(JTabbedPane.BOTTOM);
+    versionsPane.addTab("version 1",p);
+    setLayout(new BorderLayout());
+    add(versionsPane,BorderLayout.CENTER);
+  }
+
+  public JPanel makeMatrixPanel(ClassConfusionMatrix cMatrix, String rulesInfoText) {
     if (cMatrix==null || cMatrix.classNs==null || cMatrix.counts==null || cMatrix.nDataTotal<1)
-      return;
+      return null;
 
     String labels[]=new String[cMatrix.classNs.size()];
     for (int i=0; i<cMatrix.classNs.size(); i++)
@@ -39,16 +52,33 @@ public class ClassConfusionMatrixFrame extends JFrame {
     JScrollPane percentageScrollPane = new JScrollPane(percentageMatrixPainter);
     tabbedPane.addTab("Percentages", percentageScrollPane);
 
-    // Add the tabbed pane to the frame
-    add(tabbedPane, BorderLayout.CENTER);
+    JPanel p=new JPanel();
+    p.setLayout(new BorderLayout());
+    p.add(tabbedPane, BorderLayout.CENTER);
 
     JTextArea infoArea=new JTextArea("Rule set: "+rulesInfoText);
     infoArea.setLineWrap(true);
     infoArea.setWrapStyleWord(true);
     infoArea.append("\nResults of applying the rules to "+cMatrix.nDataTotal+" data records. ");
+    if (cMatrix.data!=null && cMatrix.data.description!=null) {
+      infoArea.append("\nDataVersion: "+cMatrix.data.description);
+      if (cMatrix.data.previousVersion!=null && cMatrix.data.previousVersion.description!=null)
+        infoArea.append("\nPrevious version of the data: "+cMatrix.data.previousVersion.description);
+    }
     infoArea.append("Number of classes: "+cMatrix.counts.length+
         "; number of correct class assignments: "+cMatrix.nSame+
-        String.format(" (%.2f %%)",100.0*cMatrix.nSame/cMatrix.nDataTotal));
-    add(infoArea,BorderLayout.SOUTH);
+        String.format(" (%.2f %%)",100.0*cMatrix.nSame/cMatrix.nDataTotal)+
+        "; number of wrong class assignments: "+(cMatrix.nDataTotal-cMatrix.nSame)+
+        String.format(" (%.2f %%)",100.0*(1.0-cMatrix.nSame/cMatrix.nDataTotal)));
+    p.add(infoArea,BorderLayout.SOUTH);
+    return p;
+  }
+
+  public void addMatrix(ClassConfusionMatrix cMatrix, String rulesInfoText) {
+    JPanel p=makeMatrixPanel(cMatrix,rulesInfoText);
+    if (p==null)
+      return;
+    versionsPane.addTab("version "+(1+versionsPane.getComponentCount()),p);
+    versionsPane.setSelectedIndex(versionsPane.getComponentCount()-1);
   }
 }

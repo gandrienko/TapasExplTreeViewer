@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class ClassConfusionMatrix {
+  public DataSet data=null;
   public ArrayList<Integer> classNs=null;
   public int counts[][]=null;
   public int classTotals[]=null;
@@ -13,6 +14,7 @@ public class ClassConfusionMatrix {
   public boolean makeConfusionMatrix(DataSet data) {
     if (data==null || data.records==null || data.records.isEmpty())
       return false;
+    this.data=data;
     classNs=new ArrayList<Integer>(10);
     for (DataRecord record:data.records) {
       if (!classNs.contains(record.origClassIdx))

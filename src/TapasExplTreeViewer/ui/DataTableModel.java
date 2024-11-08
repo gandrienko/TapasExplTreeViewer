@@ -8,7 +8,8 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 
 public class DataTableModel extends AbstractTableModel {
-  public static int nStandardColumns=4;
+  public int nStandardColumns=4, nClasses=0;
+  public Integer classes[]=null;
   public DataSet dataSet=null;
   public String featureNames[]=null;
   protected String[] columnNames=null;
@@ -21,12 +22,25 @@ public class DataTableModel extends AbstractTableModel {
     this.records = dataSet.records;
     this.featureNames = (featureNames==null)?dataSet.fieldNames:featureNames;
 
+    if (dataSet.determinePredictionType()==DataRecord.CLASS_TARGET) {
+      classes=dataSet.getPredictionKeys();
+      if (classes!=null && classes.length>1)
+        nClasses=classes.length;
+    }
+
     // Define column names: Record ID, True Class, Predicted Class/Value, and Features
-    columnNames = new String[nStandardColumns + featureNames.length];
+    columnNames = new String[nStandardColumns +nClasses + featureNames.length];
+
     columnNames[0] = "Record ID";
     columnNames[1] = "Original Class/Value";
     columnNames[2] = "Predicted Class/Value";
     columnNames[3] = "Match?";
+    if (nClasses>0) {
+      for (int i = 0; i < nClasses; i++)
+        columnNames[nStandardColumns + i] = "Weight " + classes[i];
+      nStandardColumns += nClasses;
+    }
+
     System.arraycopy(featureNames, 0, columnNames, nStandardColumns, featureNames.length);
   }
 
@@ -65,8 +79,15 @@ public class DataTableModel extends AbstractTableModel {
           return "";
       }
     } else if (columnIndex == 3) {
-      return (checkPrediction(record))?"yes":"no";
-    } else {
+      return (checkPrediction(record)) ? "yes" : "no";
+    } else if (columnIndex<nStandardColumns && nClasses>0)  {
+      if (record.predictions==null || record.predictions.isEmpty())
+        return 0;
+      Integer count=record.predictions.get(classes[columnIndex-nStandardColumns+nClasses]);
+      if (count==null)
+        return 0;
+      return count;
+    } else if (columnIndex>=nStandardColumns){
       // Handle feature columns
       int featureIndex = columnIndex - nStandardColumns;
       String featureName = featureNames[featureIndex];
@@ -87,6 +108,7 @@ public class DataTableModel extends AbstractTableModel {
         return ""; // If no value, return empty string
       }
     }
+    return "";
   }
   
   public boolean checkPrediction(DataRecord r) {
@@ -118,9 +140,34 @@ public class DataTableModel extends AbstractTableModel {
       return true;
     if (columnIndex==2)
       return dataSet.determinePredictionType()!=DataRecord.RANGE_TARGET;
-    int featureIndex = columnIndex - nStandardColumns;
-    byte type=dataSet.determineFeatureType(featureNames[featureIndex]);
-    return type==DataElement.INTEGER || type==DataElement.REAL;
+    if (columnIndex<nStandardColumns && nClasses>0)
+      return true;
+    if (columnIndex>=nStandardColumns) {
+      int featureIndex = columnIndex - nStandardColumns;
+      byte type = dataSet.determineFeatureType(featureNames[featureIndex]);
+      return type == DataElement.INTEGER || type == DataElement.REAL;
+    }
+    return false;
+  }
+
+  public Class<?> getColumnClass(int columnIndex) {
+    if (columnIndex==0 || columnIndex==3)
+      return String.class;
+    if (columnIndex==1)
+      return Number.class;
+    if (columnIndex==2)
+      return  (dataSet.determinePredictionType()!=DataRecord.RANGE_TARGET)?Number.class:String.class;
+    if (columnIndex<nStandardColumns && nClasses>0)
+      return Integer.class;
+    if (columnIndex>=nStandardColumns) {
+      int featureIndex = columnIndex - nStandardColumns;
+      byte type = dataSet.determineFeatureType(featureNames[featureIndex]);
+      if (type == DataElement.INTEGER)
+        return Integer.class;
+      if (type == DataElement.REAL)
+        return Number.class;
+    }
+    return String.class;
   }
 
   public double[] getColumnMinMax(int columnIndex) {
@@ -130,8 +177,15 @@ public class DataTableModel extends AbstractTableModel {
       return dataSet.getTargetMinMax();
     if (columnIndex==2)
       return dataSet.getPredictionMinMax();
-    int featureIndex = columnIndex - nStandardColumns;
-    return dataSet.findMinMax(featureNames[featureIndex]);
+    if (columnIndex<nStandardColumns && nClasses>0) {
+      double mm[]={0, dataSet.getMaxPredictionWeight(classes[columnIndex-nStandardColumns+nClasses])};
+      return mm;
+    }
+    if (columnIndex>=nStandardColumns) {
+      int featureIndex = columnIndex - nStandardColumns;
+      return dataSet.findMinMax(featureNames[featureIndex]);
+    }
+    return null;
   }
 
   @Override

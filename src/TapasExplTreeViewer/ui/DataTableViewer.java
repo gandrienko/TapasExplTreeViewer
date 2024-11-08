@@ -51,7 +51,7 @@ public class DataTableViewer extends JPanel {
           dataTable.getColumnModel().getColumn(i).setCellRenderer(new NumericCellRenderer(minmax[0], minmax[1]));
       }
   
-    TableRowSorter<DataTableModel> sorter = new TableRowSorter<>(tableModel);
+    TableRowSorter<DataTableModel> sorter = new TableRowSorter<DataTableModel>(tableModel);
     dataTable.setRowSorter(sorter);
     dataTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
     dataTable.setRowSelectionAllowed(true);
@@ -99,7 +99,7 @@ public class DataTableViewer extends JPanel {
     if (data.description!=null) {
       String info=data.description;
       if (data.previousVersion!=null)
-        info+=" Previous version of the data: "+data.previousVersion.description;
+        info+="\nPrevious version of the data: "+data.previousVersion.description;
       infoArea=new JTextArea(info);
       infoArea.setLineWrap(true);
       infoArea.setWrapStyleWord(true);

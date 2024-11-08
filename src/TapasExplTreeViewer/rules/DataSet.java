@@ -3,6 +3,7 @@ package TapasExplTreeViewer.rules;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class DataSet {
   public String filePath=null, description=null;
@@ -27,6 +28,7 @@ public class DataSet {
 
   public DataSet makeNewVersion() {
     DataSet ds=new DataSet();
+    ds.previousVersion=this;
     ds.filePath=filePath;
     ds.fieldNames=fieldNames;
     ds.idIdx=idIdx; ds.nameIdx=nameIdx; ds.numIdx=numIdx;
@@ -94,6 +96,30 @@ public class DataSet {
       if (v2>minmax[1]) minmax[1]=v2;
     }
     return minmax;
+  }
+
+  public Integer[] getPredictionKeys() {
+    ArrayList<Integer> keys=new ArrayList<Integer>(20);
+    for (DataRecord r:records)
+      if (r.predictions!=null)
+        for (Integer key:r.predictions.keySet())
+          if (!keys.contains(key))
+            keys.add(key);
+    if (keys.isEmpty())
+      return null;
+    Collections.sort(keys);
+    return keys.toArray(new Integer[keys.size()]);
+  }
+
+  public int getMaxPredictionWeight(int key) {
+    int max=0;
+    for (DataRecord r:records)
+      if (r.predictions!=null) {
+        Integer count=r.predictions.get(key);
+        if (count!=null && count > max)
+          max = count;
+      }
+    return max;
   }
   /**
    * Finds the type of model predictions made for the data records

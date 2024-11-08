@@ -1358,25 +1358,24 @@ public class RuleMaster {
     int predictionCount=0, applicationCount=0;
     for (DataRecord record:data) {
       record.erasePrediction();
-      HashMap<Integer,Integer> predictions=null;
       for (CommonExplanation rule:rules)
         if (ruleAppliesToDataRecord(rule,record)) {
           ++applicationCount;
-          if (predictions==null) {
-            predictions = new HashMap<Integer, Integer>(10);
+          if (record.predictions==null) {
+            record.predictions = new HashMap<Integer, Integer>(10);
             ++predictionCount;
           }
-          if (predictions.get(rule.action)==null)
-            predictions.put(rule.action,rule.weight);
+          if (record.predictions.get(rule.action)==null)
+            record.predictions.put(rule.action,rule.weight);
           else
-            predictions.put(rule.action,predictions.get(rule.action)+rule.weight);
+            record.predictions.put(rule.action,record.predictions.get(rule.action)+rule.weight);
         }
-      if (predictions==null)
+      if (record.predictions==null)
         continue;
       int maxClass=-1, maxRulesForClass=0;
-      for (Integer classN:predictions.keySet())
-        if (predictions.get(classN)>maxRulesForClass) {
-          maxClass=classN; maxRulesForClass=predictions.get(classN);
+      for (Integer classN:record.predictions.keySet())
+        if (record.predictions.get(classN)>maxRulesForClass) {
+          maxClass=classN; maxRulesForClass=record.predictions.get(classN);
         }
       record.predictedClassIdx=maxClass;
     }

@@ -13,6 +13,7 @@ public class DataRecord {
   public double origValueRange[]=null, predictedValueRange[]=null;
   public byte predictionType= NO_TARGET;
   public HashMap<String,DataElement> items=null;
+  public HashMap<Integer,Integer> predictions=null;
   /**
    * To compare predictions made by different versions of a model,
    * a new version of each DataRecord is created before applying a model.
@@ -76,6 +77,8 @@ public class DataRecord {
     predictedValue=Double.NaN;
     predictedValueRange=null;
     predictionType= NO_TARGET;
+    if (predictions!=null)
+      predictions.clear();
   }
 
   public byte getPredictionType() {

@@ -49,6 +49,17 @@ public class DataSet {
   }
 
   /**
+   * Finds the original dataset at the beginning of the version chain
+   * @return
+   */
+  public DataSet getOriginalVersion() {
+    DataSet ds=this;
+    while (ds.previousVersion!=null)
+      ds=ds.previousVersion;
+    return ds;
+  }
+
+  /**
    * Determines the type of the target variable, i.e., class (category) or real value
    */
   public byte determineTargetType() {

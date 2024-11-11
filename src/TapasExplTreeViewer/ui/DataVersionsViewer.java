@@ -1,27 +1,51 @@
-package TapasExplTreeViewer.vis;
+package TapasExplTreeViewer.ui;
 
 import TapasExplTreeViewer.rules.ClassConfusionMatrix;
+import TapasExplTreeViewer.rules.DataSet;
+import TapasExplTreeViewer.vis.MatrixPainter;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class ClassConfusionMatrixFrame extends JFrame {
-  public JTabbedPane versionsPane=null;
+public class DataVersionsViewer extends JFrame {
+  public static int InstanceN=0;
+  public DataSet origData=null;
+  protected JTabbedPane dataTabbedPane=null;
 
-  public ClassConfusionMatrixFrame(ClassConfusionMatrix cMatrix, String rulesInfoText) {
-    JPanel p=makeMatrixPanel(cMatrix, rulesInfoText);
-    if (p==null)
+  public DataVersionsViewer(DataTableViewer dViewer, ClassConfusionMatrix cMatrix, String rulesInfoText) {
+    super();
+    if (dViewer==null)
       return;
-    setTitle("Class confusion matrix");
-    setSize(800, 700);
-    setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    setLocationRelativeTo(null);
+    this.origData=dViewer.getData();
+    setTitle("Data from file "+origData.filePath);
+    dataTabbedPane =new JTabbedPane();
+    add(dataTabbedPane, BorderLayout.CENTER);
+    if (cMatrix==null)
+      dataTabbedPane.addTab(origData.versionLabel+" (original data)",dViewer);
+    else {
+      JPanel mp=makeMatrixPanel(cMatrix,rulesInfoText);
+      JSplitPane sp=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dViewer, mp);
+      sp.setDividerLocation(0.7);
+      dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, sp);
+    }
+    Dimension scSize=Toolkit.getDefaultToolkit().getScreenSize();
+    setSize(Math.round(0.8f*scSize.width),Math.round(0.8f*scSize.height));
+    ++InstanceN;
+    setLocation(InstanceN*50,InstanceN*25);
+    setVisible(true);
+  }
 
-    versionsPane=new JTabbedPane();
-    versionsPane.setTabPlacement(JTabbedPane.BOTTOM);
-    versionsPane.addTab(cMatrix.data.versionLabel,p);
-    setLayout(new BorderLayout());
-    add(versionsPane,BorderLayout.CENTER);
+  public void addDataViewer(DataTableViewer dViewer, ClassConfusionMatrix cMatrix, String rulesInfoText) {
+    if (cMatrix == null)
+      dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, dViewer);
+    else {
+      JPanel mp=makeMatrixPanel(cMatrix,rulesInfoText);
+      JSplitPane sp=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dViewer, mp);
+      sp.setDividerLocation(0.7);
+      dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, sp);
+    }
+    dataTabbedPane.setSelectedIndex(dataTabbedPane.getComponentCount()-1);
+    toFront();
   }
 
   public JPanel makeMatrixPanel(ClassConfusionMatrix cMatrix, String rulesInfoText) {
@@ -73,13 +97,5 @@ public class ClassConfusionMatrixFrame extends JFrame {
         String.format(" (%.2f %%)",100.0-accuracy));
     p.add(infoArea,BorderLayout.SOUTH);
     return p;
-  }
-
-  public void addMatrix(ClassConfusionMatrix cMatrix, String rulesInfoText) {
-    JPanel p=makeMatrixPanel(cMatrix,rulesInfoText);
-    if (p==null)
-      return;
-    versionsPane.addTab("version "+(1+versionsPane.getComponentCount()),p);
-    versionsPane.setSelectedIndex(versionsPane.getComponentCount()-1);
   }
 }

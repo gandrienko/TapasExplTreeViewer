@@ -120,6 +120,10 @@ public class DataTableViewer extends JPanel {
     }
   }
 
+  public DataSet getData() {
+    return data;
+  }
+
   public String getPopupContent(int row) {
     if (row<0)
       return null;

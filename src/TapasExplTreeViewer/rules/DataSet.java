@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class DataSet {
+  public String versionLabel="A";
   public String filePath=null, description=null;
   public String fieldNames[]=null;
   public int idIdx=-1, nameIdx=-1, numIdx=-1, classLabelIdx=-1, classNumIdx=-1;
@@ -15,10 +16,12 @@ public class DataSet {
    * To compare predictions made by different versions of a model,
    * a new version of the DataSet is created before applying a model.
    * The field previousVersion keeps a reference to the previous version
-   * of this data set.
+   * of this data set. The list childVersions includes all versions
+   * derived from the given version of the DataSet.
    */
 
   public DataSet previousVersion=null;
+  public ArrayList<DataSet> childVersions=null;
 
   /**
    * Creates a new instance of DataSet with a reference to this instance.
@@ -38,6 +41,10 @@ public class DataSet {
       for (int i=0; i<records.size(); i++)
         ds.records.add(records.get(i).makeNewVersion());
     }
+    if (childVersions==null)
+      childVersions=new ArrayList<DataSet>(10);
+    childVersions.add(ds);
+    ds.versionLabel=versionLabel+"."+childVersions.size();
     return ds;
   }
 

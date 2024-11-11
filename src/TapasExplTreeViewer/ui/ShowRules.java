@@ -60,7 +60,12 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   /**
    * Data in a simpler format
    */
-  public DataSet data=null;
+  public DataSet currentData=null;
+  /**
+   * When a new dataset is loaded, the previously loaded ones remain accessible.
+   * This is a list of all loaded datasets.
+   */
+  public ArrayList<DataSet> loadedData=new ArrayList<DataSet>(10);
   /**
    * Whether the rule set has been previously reduced by removing rules
    * subsumed in more general rules.
@@ -217,8 +222,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       this.createdFiles=createdFiles;
   }
 
-  public void setData(DataSet data) {
-    this.data = data;
+  public void setData(DataSet currentData, ArrayList<DataSet> loadedData) {
+    this.currentData= currentData;
+    this.loadedData=loadedData;
   }
 
   public void setDataTabbedPane(JTabbedPane dataTabbedPane) {
@@ -863,7 +869,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     }
     menu.addSeparator();
     JMenuItem mitExportData=new JMenuItem("Export previously loaded data");
-    mitExportData.setEnabled(data!=null);
+    mitExportData.setEnabled(currentData!=null);
     mitExportData.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -876,7 +882,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       @Override
       public void actionPerformed(ActionEvent e) {
         applyRulesToData();
-        if (data!=null)
+        if (currentData!=null)
           mitExportData.setEnabled(true);
       }
     });
@@ -885,9 +891,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        DataSet loadedData=loadData();
-        if (loadedData!=null) {
-          data=loadedData;
+        DataSet data=loadData();
+        if (data!=null) {
+          currentData=data;
           confusionMatrixFrame=null;
           mitExportData.setEnabled(true);
         }
@@ -1275,7 +1281,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     showRules.setOrigRules(origRules);
     showRules.setOrderedFeatureNames(orderedFeatureNames);
     showRules.setDataInstances(dataInstances,actionsDiffer);
-    showRules.setData(this.data);
+    showRules.setData(currentData,loadedData);
     showRules.setDataTabbedPane(dataTabbedPane);
     showRules.setConfusionMatrixFrame(confusionMatrixFrame);
     showRules.setOrigHighlighter(origHighlighter);
@@ -1799,7 +1805,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
     showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
     showRules.setOrderedFeatureNames(orderedFeatureNames);
-    showRules.setData(this.data);
+    showRules.setData(currentData,loadedData);
     showRules.setDataTabbedPane(dataTabbedPane);
     showRules.setConfusionMatrixFrame(confusionMatrixFrame);
     showRules.setDataInstances(dataInstances,actionsDiffer);
@@ -2480,10 +2486,16 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         JOptionPane.INFORMATION_MESSAGE);
     data.description="Set with "+data.records.size()+" original data records loaded from file "+
         data.filePath;
+    if (loadedData==null)
+      loadedData=new ArrayList<DataSet>(10);
+    if (loadedData.size()>0)
+      data.versionLabel=new Character((char)('A'+loadedData.size())).toString();
+    loadedData.add(data);
+    
     DataTableViewer dViewer=new DataTableViewer(data,
         listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
     dataTabbedPane =new JTabbedPane();
-    dataTabbedPane.addTab("original data",dViewer);
+    dataTabbedPane.addTab(data.versionLabel+" (original data)",dViewer);
     JFrame dViewFrame=new JFrame("Data from file "+data.filePath);
     dViewFrame.setSize(1000,800);
     dViewFrame.add(dataTabbedPane,BorderLayout.CENTER);
@@ -2499,20 +2511,23 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     boolean applyToSelection=localSelector!=null &&
         localSelector.hasSelection() &&
             JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                "Apply the operation to the selected subset?",
-                "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
+                "Use only the selected subset of the rules?",
+                "Use selected rules?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                 ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,localSelector):exList;
     DataSet testData;
-    if (data==null) {
-      data=loadData();
-      if (data == null)
+    if (currentData==null) {
+      currentData=loadData();
+      if (currentData== null)
         return;
-      testData=data;
       confusionMatrixFrame=null;
     }
-    else
-      testData=data.makeNewVersion();
+    else {
+      if (loadedData.size()>1 || currentData.previousVersion!=null) {
+        //allow the user to select the data version (the versions differ in the classes treated as original)
+      }
+    }
+    testData=currentData.makeNewVersion();
     if (RuleMaster.applyRulesToData(rules,testData.records)) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Completed application of " + rules.size() + " rules to " +
@@ -2523,13 +2538,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
 
       DataTableViewer dViewer=new DataTableViewer(testData,
           listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
-      int k=1;
-      DataSet ds=testData;
-      while (ds.previousVersion!=null) {
-        ++k; ds=ds.previousVersion;
-      }
       if (dataTabbedPane!=null && dataTabbedPane.isShowing()) {
-        dataTabbedPane.addTab("version " + k, dViewer);
+        dataTabbedPane.addTab("version " + testData.versionLabel, dViewer);
         Window window = SwingUtilities.getWindowAncestor(dataTabbedPane);
         if (window!=null)
           window.toFront();
@@ -2537,7 +2547,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       }
       else {
         dataTabbedPane =new JTabbedPane();
-        dataTabbedPane.addTab("data version "+k,dViewer);
+        dataTabbedPane.addTab("version "+testData.versionLabel,dViewer);
         JFrame dViewFrame = new JFrame("Data with predictions (" + testData.records.size() + " records)");
         dViewFrame.setSize(800, 600);
         dViewFrame.add(dViewer, BorderLayout.CENTER);
@@ -2564,7 +2574,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       }
 
       if (!applyToSelection)
-        data=testData;
+        currentData=testData;
     }
     else
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
@@ -2573,7 +2583,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   }
 
   public void exportDataToCSVFile() {
-    if (data==null || data.records==null || data.records.isEmpty()) {
+    if (currentData==null || currentData.records==null || currentData.records.isEmpty()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "No data have been loaded in the system!","No data",
           JOptionPane.INFORMATION_MESSAGE);
@@ -2582,7 +2592,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     String pathName=CSVDataLoader.selectFilePathThroughDialog(false);
     if (pathName==null)
       return;
-    if (data.exportToCSV(pathName))
+    if (currentData.exportToCSV(pathName))
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Successfully exported the data to file "+pathName,"Data exported",
           JOptionPane.INFORMATION_MESSAGE);

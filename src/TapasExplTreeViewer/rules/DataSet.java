@@ -47,6 +47,20 @@ public class DataSet {
     ds.versionLabel=versionLabel+"."+childVersions.size();
     return ds;
   }
+  
+  /**
+   * Puts all vesrions from the descendants hierarchy into a linear list
+   */
+  public static void putAllVersionsInList(DataSet ds, ArrayList<DataSet> list) {
+    if (list==null || ds==null)
+      return;
+    if (!list.contains(ds))
+      list.add(ds);
+    if (ds.childVersions==null || ds.childVersions.isEmpty())
+      return;
+    for (DataSet child:ds.childVersions)
+      putAllVersionsInList(child,list);
+  }
 
   /**
    * Finds the original dataset at the beginning of the version chain

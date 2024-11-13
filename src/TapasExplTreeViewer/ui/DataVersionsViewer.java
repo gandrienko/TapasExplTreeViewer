@@ -53,6 +53,7 @@ public class DataVersionsViewer extends JFrame {
       splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dViewer, mp);
       splitPane.setOneTouchExpandable(true); // Add little arrows to quickly expand/collapse
       splitPane.setContinuousLayout(true); // Enable continuous layout
+      splitPane.setResizeWeight(0.7); // Optional: balance initial position
       dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, splitPane);
     }
     dataTabbedPane.setSelectedIndex(dataTabbedPane.getComponentCount()-1);

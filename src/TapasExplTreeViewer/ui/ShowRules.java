@@ -1243,11 +1243,12 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       frames.add(fr);
     }
     else {
-      if (topFrames==null)
-        topFrames=new ArrayList<JFrame>(10);
+      if (topFrames==null) {
+        topFrames = new ArrayList<JFrame>(10);
+        sharedFrames= new ArrayList<JFrame>(20);
+      }
       topFrames.add(fr);
       topFrameCreated=true;
-      sharedFrames= new ArrayList<JFrame>(20);
     }
     
     fr.addWindowListener(new WindowAdapter() {
@@ -1260,12 +1261,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
               frames.get(i).dispose();
             frames.clear();
           }
-          if (sharedFrames!=null)
-            for (JFrame fr:sharedFrames)
-              fr.dispose();
-          sharedFrames.clear();
           topFrames.remove(fr);
           if (topFrames.isEmpty()) {
+            if (sharedFrames!=null)
+              for (JFrame fr:sharedFrames)
+                fr.dispose();
             eraseCreatedFiles();
             System.exit(0);
           }
@@ -2519,13 +2519,49 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       currentData=loadData();
       if (currentData== null)
         return;
+      testData=currentData.makeNewVersion();
     }
     else {
       if (loadedData.size()>1 || currentData.previousVersion!=null) {
         //allow the user to select the data version (the versions differ in the classes treated as original)
+        ArrayList<DataSet> dataSets=new ArrayList<DataSet>(20);
+        dataSets.add(currentData);
+        DataSet prev=currentData.previousVersion;
+        while (prev!=null) {
+          dataSets.add(prev);
+          prev=prev.previousVersion;
+        }
+        DataSet.putAllVersionsInList(dataSets.get(dataSets.size()-1),dataSets);
+        for (DataSet ds:loadedData)
+          if (!dataSets.contains(ds))
+            DataSet.putAllVersionsInList(ds,dataSets);
+        String options[]=new String[dataSets.size()];
+        for (int i=0; i<dataSets.size(); i++)
+          options[i]=dataSets.get(i).versionLabel;
+        JList list=new JList(options);
+        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        list.setSelectedIndex(0);
+        JScrollPane scrollPane = new JScrollPane(list);
+        JPanel p=new JPanel();
+        p.setLayout(new BorderLayout());
+        p.add(scrollPane,BorderLayout.CENTER);
+        p.add(new JLabel("Select one of the data versions with true or predicted classes or values"),
+            BorderLayout.NORTH);
+        // Show the JOptionPane with the list inside
+        int result = JOptionPane.showConfirmDialog(
+            mainFrame,
+            scrollPane,
+            "Select dataset version",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE
+        );
+        if (result!=JOptionPane.OK_OPTION)
+          return;
+        testData=dataSets.get(list.getSelectedIndex()).makeNewVersion();
       }
+      else
+        testData=currentData.makeNewVersion();
     }
-    testData=currentData.makeNewVersion();
     if (RuleMaster.applyRulesToData(rules,testData.records)) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Completed application of " + rules.size() + " rules to " +

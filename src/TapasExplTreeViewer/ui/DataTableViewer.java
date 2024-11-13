@@ -102,6 +102,8 @@ public class DataTableViewer extends JPanel {
       infoArea.setLineWrap(true);
       infoArea.setWrapStyleWord(true);
       splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
+      splitPane.setDividerLocation(0.8);
+      splitPane.setResizeWeight(0.8); // Optional: balance initial position
       add(splitPane,BorderLayout.CENTER);
     }
     else

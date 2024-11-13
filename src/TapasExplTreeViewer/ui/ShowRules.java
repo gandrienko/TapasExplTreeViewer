@@ -111,6 +111,10 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   public String dataFolder="";
   
   protected JFrame mainFrame=null;
+  /**
+   * Additional frames created by a given instance of ShowRules. These frames are only relevant to this instance
+   * and are therefore closed when the instance is closed.
+   */
   protected ArrayList<JFrame> frames=null;
   protected ArrayList<File> createdFiles=null;
   /**
@@ -121,8 +125,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
    * are erased.
    */
   protected static ArrayList<JFrame> topFrames=null;
-
-  protected ClassConfusionMatrixFrame confusionMatrixFrame=null;
+  /**
+   * Frames that can be accessed by all ShowRules instances, e.g., frames showing data versions
+   */
+  protected ArrayList<JFrame> sharedFrames=null;
+  
 
   protected RuleSelector ruleSelector=null;
   /**
@@ -225,11 +232,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     this.currentData= currentData;
     this.loadedData=loadedData;
   }
-
-  public void setConfusionMatrixFrame(ClassConfusionMatrixFrame confusionMatrixFrame) {
-    this.confusionMatrixFrame = confusionMatrixFrame;
+  
+  public void setSharedFrames(ArrayList<JFrame> sharedFrames) {
+    this.sharedFrames = sharedFrames;
   }
-
+  
   public void setNonSubsumed(boolean nonSubsumed) {
     this.nonSubsumed = nonSubsumed;
   }
@@ -889,7 +896,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         DataSet data=loadData();
         if (data!=null) {
           currentData=data;
-          confusionMatrixFrame=null;
           mitExportData.setEnabled(true);
         }
       }
@@ -1241,6 +1247,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         topFrames=new ArrayList<JFrame>(10);
       topFrames.add(fr);
       topFrameCreated=true;
+      sharedFrames= new ArrayList<JFrame>(20);
     }
     
     fr.addWindowListener(new WindowAdapter() {
@@ -1253,6 +1260,10 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
               frames.get(i).dispose();
             frames.clear();
           }
+          if (sharedFrames!=null)
+            for (JFrame fr:sharedFrames)
+              fr.dispose();
+          sharedFrames.clear();
           topFrames.remove(fr);
           if (topFrames.isEmpty()) {
             eraseCreatedFiles();
@@ -1277,7 +1288,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     showRules.setOrderedFeatureNames(orderedFeatureNames);
     showRules.setDataInstances(dataInstances,actionsDiffer);
     showRules.setData(currentData,loadedData);
-    showRules.setConfusionMatrixFrame(confusionMatrixFrame);
+    showRules.setSharedFrames(sharedFrames);
     showRules.setOrigHighlighter(origHighlighter);
     showRules.setOrigSelector(origSelector);
     showRules.setCreatedFileRegister(createdFiles);
@@ -1800,7 +1811,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
     showRules.setOrderedFeatureNames(orderedFeatureNames);
     showRules.setData(currentData,loadedData);
-    showRules.setConfusionMatrixFrame(confusionMatrixFrame);
+    showRules.setSharedFrames(sharedFrames);
     showRules.setDataInstances(dataInstances,actionsDiffer);
     if (showRules.getOrigRules().equals(origRules)) {
       showRules.setOrigHighlighter(origHighlighter);
@@ -2489,9 +2500,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
     DataVersionsViewer dViewFrame=new DataVersionsViewer(dViewer,null,null);
     dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(dViewFrame);
+    if (sharedFrames==null)
+      sharedFrames=new ArrayList<JFrame>(20);
+    sharedFrames.add(dViewFrame);
     return data;
   }
 
@@ -2508,7 +2519,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       currentData=loadData();
       if (currentData== null)
         return;
-      confusionMatrixFrame=null;
     }
     else {
       if (loadedData.size()>1 || currentData.previousVersion!=null) {
@@ -2533,21 +2543,22 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
 
       DataSet origData=testData.getOriginalVersion();
       DataVersionsViewer dViewFrame=null;
-      for (int i=0; i<frames.size() && dViewFrame==null; i++)
-        if (frames.get(i) instanceof DataVersionsViewer) {
-          DataVersionsViewer dv=(DataVersionsViewer)frames.get(i);
-          if (dv.origData.equals(origData))
-            dViewFrame=dv;
-        }
+      if (sharedFrames!=null)
+        for (int i=0; i<sharedFrames.size() && dViewFrame==null; i++)
+          if (sharedFrames.get(i) instanceof DataVersionsViewer) {
+            DataVersionsViewer dv=(DataVersionsViewer)sharedFrames.get(i);
+            if (dv.origData.equals(origData))
+              dViewFrame=dv;
+          }
 
       if (dViewFrame!=null)
         dViewFrame.addDataViewer(dViewer,cMatrix,infoArea.getText());
       else {
         dViewFrame = new DataVersionsViewer(dViewer,cMatrix,infoArea.getText());
         dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        if (frames == null)
-          frames = new ArrayList<JFrame>(20);
-        frames.add(dViewFrame);
+        if (sharedFrames == null)
+          sharedFrames = new ArrayList<JFrame>(20);
+        sharedFrames.add(dViewFrame);
       }
 
       if (!applyToSelection)

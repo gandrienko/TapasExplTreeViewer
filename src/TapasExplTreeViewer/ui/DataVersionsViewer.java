@@ -20,31 +20,44 @@ public class DataVersionsViewer extends JFrame {
     setTitle("Data from file "+origData.filePath);
     dataTabbedPane =new JTabbedPane();
     add(dataTabbedPane, BorderLayout.CENTER);
+  
+    JSplitPane splitPane=null;
     if (cMatrix==null)
       dataTabbedPane.addTab(origData.versionLabel+" (original data)",dViewer);
     else {
       JPanel mp=makeMatrixPanel(cMatrix,rulesInfoText);
-      JSplitPane sp=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dViewer, mp);
-      sp.setDividerLocation(0.7);
-      dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, sp);
+      dViewer.setMinimumSize(new Dimension(200,200));
+      mp.setMinimumSize(new Dimension(200,200));
+      splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dViewer, mp);
+      splitPane.setOneTouchExpandable(true); // Add little arrows to quickly expand/collapse
+      splitPane.setContinuousLayout(true); // Enable continuous layout
+      dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, splitPane);
     }
     Dimension scSize=Toolkit.getDefaultToolkit().getScreenSize();
     setSize(Math.round(0.8f*scSize.width),Math.round(0.8f*scSize.height));
     ++InstanceN;
     setLocation(InstanceN*50,InstanceN*25);
     setVisible(true);
+    if (splitPane!=null)
+      splitPane.setDividerLocation(0.75);
   }
 
   public void addDataViewer(DataTableViewer dViewer, ClassConfusionMatrix cMatrix, String rulesInfoText) {
+    JSplitPane splitPane=null;
     if (cMatrix == null)
       dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, dViewer);
     else {
       JPanel mp=makeMatrixPanel(cMatrix,rulesInfoText);
-      JSplitPane sp=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dViewer, mp);
-      sp.setDividerLocation(0.7);
-      dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, sp);
+      dViewer.setMinimumSize(new Dimension(200,200));
+      mp.setMinimumSize(new Dimension(200,200));
+      splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, dViewer, mp);
+      splitPane.setOneTouchExpandable(true); // Add little arrows to quickly expand/collapse
+      splitPane.setContinuousLayout(true); // Enable continuous layout
+      dataTabbedPane.addTab("version " + dViewer.getData().versionLabel, splitPane);
     }
     dataTabbedPane.setSelectedIndex(dataTabbedPane.getComponentCount()-1);
+    if (splitPane!=null)
+      splitPane.setDividerLocation(0.75);
     toFront();
   }
 

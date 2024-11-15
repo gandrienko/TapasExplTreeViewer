@@ -110,11 +110,10 @@ public class SeeExList {
     
     //MainBody(attrMinMax,exList);
     ShowRules showRules=new ShowRules(exList,attrMinMax);
-    showRules.setOrigRules(exList);
     //showRules.setDataInstances(dataInstances,actionsDiffer);
     showRules.countRightAndWrongRuleApplications();
     
-    JFrame fr=showRules.showRulesInTable(null);
+    JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);
@@ -214,11 +213,10 @@ public class SeeExList {
       actionsDiffer=vex.elementAt(i).action!=vex.elementAt(i-1).action;
     
     ShowRules showRules=new ShowRules(exList,attrMinMax);
-    showRules.setOrigRules(exList);
     showRules.setDataInstances(vex,actionsDiffer);
     showRules.countRightAndWrongRuleApplications();
     
-    JFrame fr=showRules.showRulesInTable(null);
+    JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);

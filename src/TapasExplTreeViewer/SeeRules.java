@@ -259,11 +259,10 @@ public class SeeRules {
     ArrayList<String> orderedFeatureNames=loadFeatureOrder(ShowRules.RULES_FOLDER);
   
     ShowRules showRules=new ShowRules(exList,attrMinMax);
-    showRules.setOrigRules(exList);
     if (orderedFeatureNames!=null)
-      showRules.setOrderedFeatureNames(orderedFeatureNames);
+      showRules.ruleSet.setOrderedFeatureNames(orderedFeatureNames);
     showRules.dataFolder=ShowRules.RULES_FOLDER;
-    JFrame fr=showRules.showRulesInTable(null);
+    JFrame fr=showRules.showRulesInTable();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);

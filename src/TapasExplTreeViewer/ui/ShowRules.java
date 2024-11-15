@@ -38,21 +38,18 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   /**
    * The very original rule set (before any transformations have been applied)
    */
-  public ArrayList<CommonExplanation> origRules =null;
+  public RuleSet origRules =null;
   /**
-   * Whether there are different actions (decisions, classes) in the data and in the original rules
+   * The rules or explanations to be visualized
    */
-  public boolean actionsDiffer =false;
+  public RuleSet ruleSet=null;
+
   /**
    * The highlighter and selector for the original rule set
    */
   public SingleHighlightManager origHighlighter=null;
   public ItemSelectionManager origSelector=null, localSelector=null;
   
-  /**
-   * The rules or explanations to be visualized
-   */
-  public ArrayList<CommonExplanation> exList=null;
   /**
    * The data instances (cases) the rules apply to.
    */
@@ -67,38 +64,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
    */
   public ArrayList<DataSet> loadedData=new ArrayList<DataSet>(10);
   /**
-   * Whether the rule set has been previously reduced by removing rules
-   * subsumed in more general rules.
+   * Rule ordering being obtained from OPTICS
    */
-  public boolean nonSubsumed =false;
-  /**
-   * Whether the rule set consists of generalized rules obtained by aggregation.
-   */
-  public boolean aggregated=false;
-  /**
-   * Whether the rule set consists of expanded rule hierarchies
-   */
-  public boolean expanded=false;
-  /**
-   * The accuracy threshold used in aggregation
-   */
-  public double accThreshold=1;
-  /**
-   * The threshold for the differences in Q used for the aggregation
-   */
-  public double maxQDiff=0;
-  /**
-   * The ranges of feature values
-   */
-  public Hashtable<String,float[]> attrMinMax=null;
-  /**
-   * Ordered list of feature names
-   */
-  public ArrayList<String> orderedFeatureNames=null;
-  /**
-   * The distances between the rules
-   */
-  protected double distanceMatrix[][]=null;
   protected boolean orderingInProgress=false;
   
   protected ClustererByOPTICS clOptics=null;
@@ -107,7 +74,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   protected JLabel_Rule ruleRenderer=null;
   protected JTextArea infoArea=null;
   
-  public String title=null;
   public String dataFolder="";
   
   protected JFrame mainFrame=null;
@@ -143,72 +109,64 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   protected Vector<String> attrs=null;
   protected Vector<float[]> minmax=null;
 
-  /**
-   * list of features sorted by frequency
-   */
-  public ArrayList<String> listOfFeatures=null;
-  /**
-   * Which features are to be used in computing distances between rules
-   */
-  public HashSet featuresInDistances=null;
-  
+  public ShowRules (RuleSet rs) {
+    ruleSet=rs;
+    init();
+  }
+
   public ShowRules(ArrayList<CommonExplanation> exList,
                    Hashtable<String,float[]> attrMinMax,
                    double distances[][]) {
-    this.exList=exList; this.attrMinMax=attrMinMax;
-    this.distanceMatrix=distances;
-    if (exList!=null && !exList.isEmpty() && exList.get(0).numId<0)
-      for (int i=0; i<exList.size(); i++)
-        exList.get(i).numId=i+1;
-    if (distances==null && exList.size()<500)
-      computeDistanceMatrix();
-    /*
-    if (distanceMatrix==null && exList.size()<=1000) {
-      System.out.println("Computing distance matrix...");
-      distanceMatrix = CommonExplanation.computeDistances(exList, attrMinMax);
-      if (distanceMatrix == null)
-        System.out.println("Failed to compute a matrix of distances between the rules (explanations)!");
-      else
-        System.out.println("Distance matrix ready!");
-    }
-    */
-    ToolTipManager.sharedInstance().setDismissDelay(30000);
+    ruleSet=RuleSet.createInstance(exList);
+    ruleSet.attrMinMax=attrMinMax;
+    ruleSet.distanceMatrix=distances;
+    init();
   }
   
   public ShowRules(ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
     this(exList,attrMinMax,null);
   }
-  
-  public void setOrderedFeatureNames(ArrayList<String> orderedFeatureNames) {
-    this.orderedFeatureNames=orderedFeatureNames;
+
+  public void init() {
+    if (ruleSet==null || !ruleSet.hasRules())
+      return;
+    origRules=ruleSet.getOriginalRuleSet();
+
+    if (ruleSet.rules.get(0).numId<0)
+      for (int i=0; i<ruleSet.rules.size(); i++)
+        ruleSet.rules.get(i).numId=i+1;
+    if (ruleSet.distanceMatrix==null && ruleSet.rules.size()<500)
+      computeDistanceMatrix();
+    ToolTipManager.sharedInstance().setDismissDelay(30000);
   }
-  
+
   public AbstractList<Explanation> getDataInstances() {
     return dataInstances;
   }
   
   public void setDataInstances(AbstractList<Explanation> exData, boolean actionsDiffer) {
     this.dataInstances = exData;
-    this.actionsDiffer=actionsDiffer;
+    if (ruleSet!=null)
+      ruleSet.actionsDiffer=actionsDiffer;
   }
   
   public void countRightAndWrongRuleApplications() {
-    if (dataInstances!=null && !dataInstances.isEmpty() && exList!=null && !exList.isEmpty())
-      for (CommonExplanation ex:exList)
-        ex.countRightAndWrongApplications(dataInstances,actionsDiffer);
+    if (dataInstances!=null && !dataInstances.isEmpty() && ruleSet!=null && ruleSet.hasRules())
+      for (CommonExplanation ex:ruleSet.rules)
+        ex.countRightAndWrongApplications(dataInstances,ruleSet.actionsDiffer);
   }
   public ArrayList getRules() {
-    return exList;
+    if (ruleSet!=null)
+      return ruleSet.rules;
+    return null;
   }
   
   public ArrayList<CommonExplanation> getOrigRules() {
-    return origRules;
+    if (origRules!=null)
+      return origRules.rules;
+    return null;
   }
-  
-  public void setOrigRules(ArrayList<CommonExplanation> origRules) {
-    this.origRules = origRules;
-  }
-  
+
   public void setOrigHighlighter(SingleHighlightManager origHighlighter) {
     this.origHighlighter = origHighlighter;
   }
@@ -236,46 +194,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   public void setSharedFrames(ArrayList<JFrame> sharedFrames) {
     this.sharedFrames = sharedFrames;
   }
-  
-  public void setNonSubsumed(boolean nonSubsumed) {
-    this.nonSubsumed = nonSubsumed;
-  }
-  
-  public void setAggregated(boolean aggregated) {
-    this.aggregated = aggregated;
-  }
-  
-  public double getAccThreshold() {
-    return accThreshold;
-  }
-  
-  public void setAccThreshold(double accThreshold) {
-    this.accThreshold = accThreshold;
-  }
-  
-  public double getMaxQDiff() {
-    return maxQDiff;
-  }
-  
-  public void setMaxQDiff(double maxQDiff) {
-    this.maxQDiff = maxQDiff;
-  }
-  
-  public boolean isExpanded() {
-    return expanded;
-  }
-  
-  public void setExpanded(boolean expanded) {
-    this.expanded = expanded;
-  }
-  
-  public void setTitle(String title) {
-    this.title = title;
-  }
-  
-  public JFrame showRulesInTable(String infoText) {
-    return showRulesInTable(exList,attrMinMax,infoText);
-  }
 
   protected JDialog selectFeaturesDialog=null;
   protected FeatureSelector featureSelector=null;
@@ -285,13 +203,13 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       selectFeaturesDialog.toFront();
       return;
     }
-    if (exList==null || exList.size()<3)
+    if (ruleSet==null || !ruleSet.hasRules() || ruleSet.rules.size()<3)
       return;
-    if (listOfFeatures==null)
-      listOfFeatures=RuleMaster.getListOfFeatures(exList);
-    if (listOfFeatures==null || listOfFeatures.size()<2) {
+    if (ruleSet.listOfFeatures==null)
+      ruleSet.listOfFeatures=RuleMaster.getListOfFeatures(ruleSet.rules);
+    if (ruleSet.listOfFeatures==null || ruleSet.listOfFeatures.size()<2) {
       JOptionPane.showMessageDialog(null, "Found "+
-              ((listOfFeatures==null)?"0":listOfFeatures.size())+" features!",
+              ((ruleSet.listOfFeatures==null)?"0":ruleSet.listOfFeatures.size())+" features!",
           "Error", JOptionPane.ERROR_MESSAGE);
       return;
     }
@@ -302,7 +220,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     selectFeaturesDialog.setLayout(new BorderLayout());
     selectFeaturesDialog.add(new JLabel("Select features to use in computing distances:"),
         BorderLayout.NORTH);
-    featureSelector=new FeatureSelector(listOfFeatures,featuresInDistances);
+    featureSelector=new FeatureSelector(ruleSet.listOfFeatures,ruleSet.featuresInDistances);
     selectFeaturesDialog.getContentPane().add(featureSelector, BorderLayout.CENTER);
     JPanel bp=new JPanel(new FlowLayout(FlowLayout.CENTER, 5,5));
     selectFeaturesDialog.add(bp,BorderLayout.SOUTH);
@@ -311,8 +229,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     b.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        featuresInDistances=featureSelector.getSelection();
-        distanceMatrix=null;
+        ruleSet.featuresInDistances=featureSelector.getSelection();
+        ruleSet.distanceMatrix=null;
         clOptics=null;
         if (JOptionPane.showConfirmDialog(featureSelector,"Re-compute distances and ordering?",
             "Re-compute?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)==JOptionPane.YES_OPTION)
@@ -332,31 +250,24 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     });
   }
 
-  public ArrayList<String> getSelectedFeatures(){
-    if (featuresInDistances==null || featuresInDistances.isEmpty())
-      return listOfFeatures;
-    ArrayList<String> selected=new ArrayList<String>(featuresInDistances.size());
-    for (int i=0; i<listOfFeatures.size(); i++)
-      if (featuresInDistances.contains(listOfFeatures.get(i)))
-        selected.add(listOfFeatures.get(i));
-    return selected;
-  }
-
   public void computeDistanceMatrix(){
-    if (distanceMatrix==null)  {
+    if (ruleSet==null || !ruleSet.hasRules())
+      return;
+    if (ruleSet.distanceMatrix==null)  {
       SwingWorker worker=new SwingWorker() {
         @Override
         public Boolean doInBackground() {
           orderingInProgress=true;
           System.out.println("Computing distance matrix in background mode ...");
-          distanceMatrix = CommonExplanation.computeDistances(exList, featuresInDistances, attrMinMax);
+          ruleSet.distanceMatrix = CommonExplanation.computeDistances(ruleSet.rules,
+              ruleSet.featuresInDistances, ruleSet.attrMinMax);
           return true;
         }
 
         @Override
         protected void done() {
           orderingInProgress=false;
-          if (distanceMatrix == null) {
+          if (ruleSet.distanceMatrix == null) {
             System.out.println("Failed to compute a matrix of distances between the rules (explanations)!");
           }
           else {
@@ -373,11 +284,13 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   public void runOptics(ChangeListener changeListener){
     if (orderingInProgress || clOptics!=null)
       return;
-    clOptics=(distanceMatrix!=null && distanceMatrix.length>5)?new ClustererByOPTICS():null;
+    if (ruleSet==null || !ruleSet.hasRules())
+      return;
+    clOptics=(ruleSet.distanceMatrix!=null && ruleSet.distanceMatrix.length>5)?new ClustererByOPTICS():null;
     if (clOptics!=null) {
-      boolean showOriginalRules=this.exList.equals(origRules);
+      boolean showOriginalRules=ruleSet.equals(origRules);
       SingleHighlightManager highlighter=(showOriginalRules)?origHighlighter:new SingleHighlightManager();
-      clOptics.setDistanceMatrix(distanceMatrix);
+      clOptics.setDistanceMatrix(ruleSet.distanceMatrix);
       clOptics.setHighlighter(highlighter);
       clOptics.setSelector(getLocalSelector(showOriginalRules));
       clOptics.addChangeListener(changeListener);
@@ -387,12 +300,12 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       clOptics.doClustering();
     }
   }
-  
-  public JFrame showRulesInTable(ArrayList rules,
-                                 Hashtable<String,float[]> attrMinMax,
-                                 String infoText) {
 
-    boolean showOriginalRules=rules.equals(origRules);
+  public JFrame showRulesInTable() {
+    boolean showOriginalRules=ruleSet.equals(origRules);
+    if (showOriginalRules)
+      origRules.determinePredictionRanges();
+
     if (showOriginalRules && origHighlighter==null) {
       origHighlighter=new SingleHighlightManager();
       origSelector=new ItemSelectionManager();
@@ -401,33 +314,19 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     SingleHighlightManager highlighter=(showOriginalRules)?origHighlighter:new SingleHighlightManager();
     ItemSelectionManager selector=getLocalSelector(showOriginalRules);
 
-    int minAction=Integer.MAX_VALUE, maxAction=Integer.MIN_VALUE;
-    double minQValue=Double.NaN, maxQValue=Double.NaN;
-    for (int i=0; i<origRules.size(); i++) {
-      CommonExplanation ex = (CommonExplanation) origRules.get(i);
-      if (minAction > ex.action)
-        minAction = ex.action;
-      if (maxAction < ex.action)
-        maxAction = ex.action;
-      if (!Double.isNaN(ex.meanQ)) {
-        if (Double.isNaN(minQValue) || minQValue > ex.minQ)
-          minQValue = ex.minQ;
-        if (Double.isNaN(maxQValue) || maxQValue < ex.maxQ)
-          maxQValue = ex.maxQ;
-      }
-    }
-    int minA=minAction, maxA=maxAction;
-    double minQ=minQValue, maxQ=maxQValue;
+    int minA=origRules.minAction, maxA=origRules.maxAction;
+    double minQ=origRules.minQValue, maxQ=origRules.maxQValue;
   
     if (createdFiles==null)
       createdFiles=new ArrayList<File>(20);
 
-    ExListTableModel eTblModel=new ExListTableModel(rules,attrMinMax,orderedFeatureNames);
+    ExListTableModel eTblModel=new ExListTableModel(ruleSet.rules,
+        ruleSet.attrMinMax,ruleSet.orderedFeatureNames);
     if (clOptics==null)
       runOptics(eTblModel);
     else
       clOptics.addChangeListener(eTblModel);
-    listOfFeatures=eTblModel.listOfFeatures;
+    ruleSet.listOfFeatures=eTblModel.listOfFeatures;
     
     table=new JTable(eTblModel){
       public String getToolTipText(MouseEvent e) {
@@ -442,13 +341,13 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
             int realColIndex=convertColumnIndexToModel(colIndex);
             s=eTblModel.getColumnName(realColIndex);
           }
-          CommonExplanation ce=(CommonExplanation)rules.get(realRowIndex);
+          CommonExplanation ce=ruleSet.getRule(realRowIndex);
           Vector<CommonExplanation> vce=null;
           ArrayList selected=selector.getSelected();
           if (selected!=null && selected.size()>0) {
             vce=new Vector<>(selected.size());
             for (int i = 0; i < selected.size(); i++)
-              vce.add(exList.get((Integer)selected.get(i)));
+              vce.add(ruleSet.getRule((Integer)selected.get(i)));
           }
           try {
             BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, vce, attrs, minmax);
@@ -456,7 +355,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
             ImageIO.write(bi, "png", outputfile);
             //System.out.println("img"+ce.numId+".png");
           } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
-          String out=ce.toHTML(eTblModel.listOfFeatures,attrMinMax,s,"img.png");
+          String out=ce.toHTML(ruleSet.listOfFeatures,ruleSet.attrMinMax,s,"img.png");
           //System.out.println(out);
           return out;
         }
@@ -579,7 +478,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
       String s=eTblModel.listOfFeatures.get(i);
       attrs.add(s);
-      minmax.add(attrMinMax.get(s));
+      minmax.add(ruleSet.attrMinMax.get(s));
     }
     ruleRenderer.setAttrs(attrs,minmax);
     int rIdx=eTblModel.getRuleColumnIdx();
@@ -683,7 +582,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        showRuleGlyphs(exList,attrs,highlighter,selector);
+        showRuleGlyphs(ruleSet.rules,attrs,highlighter,selector);
       }
     });
 
@@ -691,7 +590,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        applyTopicModelling(rules, attrMinMax);
+        applyTopicModelling();
       }
     });
 
@@ -703,7 +602,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         selectFeaturesToComputeDistances();
       }
     });
-    if (RuleMaster.hasDistinctTreeIds(exList)) {
+
+    if (RuleMaster.hasDistinctTreeIds(ruleSet.rules)) {
       menu.add(mit = new JMenuItem("Explore similarities and distances between the trees"));
       mit.addActionListener(new ActionListener() {
         @Override
@@ -728,7 +628,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
             fr.toFront();
         }
         else {
-          if (distanceMatrix==null)
+          if (ruleSet.distanceMatrix==null)
             computeDistanceMatrix();
           else
             runOptics((ExListTableModel) table.getModel());
@@ -742,7 +642,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        showProjection(rules,distanceMatrix,highlighter,selector);
+        showProjection(ruleSet.rules,ruleSet.distanceMatrix,highlighter,selector);
       }
     });
 
@@ -750,11 +650,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        hierClustering(exList,distanceMatrix,minA,maxA,minQ,maxQ);
+        hierClustering(ruleSet.rules,ruleSet.distanceMatrix,minA,maxA,minQ,maxQ);
       }
     });
 
-    if (aggregated && !expanded) {
+    if (ruleSet.aggregated && !ruleSet.expanded) {
       menu.add(mit=new JMenuItem("Expand rule hierarchies"));
       mit.addActionListener(new ActionListener() {
         @Override
@@ -765,7 +665,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                       "Apply the operation to the selected subset?",
                       "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                       ==JOptionPane.YES_OPTION;
-          ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+          ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,selector):ruleSet.rules;
           ArrayList<UnitedRule> expanded=RuleMaster.expandRuleHierarchies(rules);
           if (expanded!=null) {
             /*
@@ -781,14 +681,15 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
             ArrayList<CommonExplanation> ex=new ArrayList<CommonExplanation>(expanded.size());
             ex.addAll(expanded);
             ShowRules showRules=createShowRulesInstance(ex);
-            showRules.setNonSubsumed(true);
-            showRules.setAggregated(true);
-            showRules.setExpanded(true);
-            showRules.setOrderedFeatureNames(orderedFeatureNames);
+            showRules.ruleSet.setNonSubsumed(true);
+            showRules.ruleSet.setAggregated(true);
+            showRules.ruleSet.setExpanded(true);
+            showRules.ruleSet.orderedFeatureNames=ruleSet.orderedFeatureNames;
+            showRules.ruleSet.description=ex.size()+" rules obtained by expanded hierarchies of "+
+                rules.size()+((applyToSelection)?" selected":"")+" aggregated rules";
             showRules.setCreatedFileRegister(createdFiles);
             showRules.countRightAndWrongRuleApplications();
-            showRules.showRulesInTable(ex.size()+" rules obtained by expanded hierarchies of "+
-                rules.size()+((applyToSelection)?" selected":"")+" aggregated rules");
+            showRules.showRulesInTable();
           }
         }
       });
@@ -806,7 +707,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mitExtract.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(selector,rules,distanceMatrix,attrMinMax);
+        extractSubset(selector,ruleSet.rules,ruleSet.distanceMatrix,ruleSet.attrMinMax);
       }
     });
 
@@ -818,20 +719,20 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       }
     });
     
-    if (!expanded) {
+    if (!ruleSet.expanded) {
       menu.addSeparator();
       menu.add(mit = new JMenuItem("Remove contradictory rules"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          removeContradictory(exList);
+          removeContradictory(ruleSet.rules);
         }
       });
       menu.add(mit = new JMenuItem("Extract the non-subsumed rules to a separate view"));
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          getNonSubsumed(exList, attrMinMax);
+          getNonSubsumed(ruleSet.rules, ruleSet.attrMinMax);
         }
       });
       menu.add(mit = new JMenuItem("Select or extract rule subset through a query"));
@@ -843,7 +744,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
             ruleSelector.toFront();
           else {
             ruleSelector=new RuleSelector();
-            if (!ruleSelector.makeQueryInterface(exList,listOfFeatures,featuresInDistances,changeListener))
+            if (!ruleSelector.makeQueryInterface(ruleSet.rules,
+                ruleSet.listOfFeatures,ruleSet.featuresInDistances,changeListener))
               ruleSelector=null;
           }
         }
@@ -854,7 +756,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       mit.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-          aggregate(exList, attrMinMax);
+          aggregate(ruleSet.rules, ruleSet.attrMinMax);
         }
       });
       /*
@@ -914,7 +816,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                     "Apply the operation to the selected subset?",
                     "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                     ==JOptionPane.YES_OPTION;
-        ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+        ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,selector):ruleSet.rules;
         // Select file to save
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Specify a file to save");
@@ -947,7 +849,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                     "Apply the operation to the selected subset?",
                     "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                     ==JOptionPane.YES_OPTION;
-        ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+        ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,selector):ruleSet.rules;
         // Select file to save
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Specify a file to save the table");
@@ -962,7 +864,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           String fName=fileToSave.getName().toLowerCase();
           if (!fName.endsWith(".csv"))
             fileToSave = new File(fileToSave.getAbsolutePath() + ".csv");
-          boolean ok=RuleMaster.exportRulesToTable(fileToSave, rules,attrMinMax);
+          boolean ok=RuleMaster.exportRulesToTable(fileToSave, rules,ruleSet.attrMinMax);
           if (ok)
             JOptionPane.showMessageDialog(null, "Rules exported successfully!");
           else
@@ -1009,8 +911,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         if (rowIndex<0)
           return;
         int realRowIndex = table.convertRowIndexToModel(rowIndex);
-        if (exList.get(realRowIndex) instanceof UnitedRule) {
-          UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
+        if (ruleSet.getRule(realRowIndex) instanceof UnitedRule) {
+          UnitedRule rule=(UnitedRule)ruleSet.getRule(realRowIndex);
           if (rule.fromRules!=null && !rule.fromRules.isEmpty()) {
             JMenuItem selItem = new JMenuItem("Show derivation hierarchy of rule " + rule.numId);
             selMenu.add(selItem);
@@ -1022,8 +924,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
             });
           }
         }
-        if (exList.get(realRowIndex) instanceof UnitedRule) {
-          UnitedRule rule=(UnitedRule)exList.get(realRowIndex);
+        if (ruleSet.getRule(realRowIndex) instanceof UnitedRule) {
+          UnitedRule rule=(UnitedRule)ruleSet.getRule(realRowIndex);
           if (origRules!=null) {
             //selMenu = new JPopupMenu();
             JMenuItem selItem = new JMenuItem("Extract all coverages of rule " + rule.numId);
@@ -1031,10 +933,10 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
             selItem.addActionListener(new ActionListener() {
               @Override
               public void actionPerformed(ActionEvent e) {
-                ArrayList<CommonExplanation> valid=rule.extractValidCoverages(origRules,
-                    RuleMaster.noActionDifference(origRules));
-                ArrayList<CommonExplanation> wrong=rule.extractWrongCoverages(origRules,
-                    RuleMaster.noActionDifference(origRules));
+                ArrayList<CommonExplanation> valid=rule.extractValidCoverages(origRules.rules,
+                    !origRules.actionsDiffer);
+                ArrayList<CommonExplanation> wrong=rule.extractWrongCoverages(origRules.rules,
+                    !origRules.actionsDiffer);
                 if ((valid==null || valid.isEmpty()) && (wrong==null || wrong.isEmpty())) {
                   JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
                       "Neither valid nor invalid coverages found!",
@@ -1051,16 +953,16 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                   all.addAll(wrong);
                 all.add(0,rule);
                 ShowRules showRules=createShowRulesInstance(all);
-                showRules.setTitle("All coverages of rule # "+rule.numId);
-                showRules.showRulesInTable("All coverages of rule # "+rule.numId);
+                showRules.ruleSet.title=showRules.ruleSet.description="All coverages of rule # "+rule.numId;
+                showRules.showRulesInTable();
               }
             });
             selMenu.add(selItem = new JMenuItem("Extract invalid coverages of rule " + rule.numId));
             selItem.addActionListener(new ActionListener() {
               @Override
               public void actionPerformed(ActionEvent e) {
-                ArrayList<CommonExplanation> wrong=rule.extractWrongCoverages(origRules,
-                    RuleMaster.noActionDifference(origRules));
+                ArrayList<CommonExplanation> wrong=rule.extractWrongCoverages(origRules.rules,
+                    !origRules.actionsDiffer);
                 if (wrong==null || wrong.isEmpty()) {
                   JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
                       "No invalid coverages found!",
@@ -1069,16 +971,16 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                 }
                 wrong.add(0,rule);
                 ShowRules showRules=createShowRulesInstance(wrong);
-                showRules.setTitle("Invalid coverages of rule # "+rule.numId);
-                showRules.showRulesInTable("Invalid coverages of rule # "+rule.numId);
+                showRules.ruleSet.title=showRules.ruleSet.description="Invalid coverages of rule # "+rule.numId;
+                showRules.showRulesInTable();
               }
             });
             selMenu.add(selItem = new JMenuItem("Extract valid coverages of rule " + rule.numId));
             selItem.addActionListener(new ActionListener() {
               @Override
               public void actionPerformed(ActionEvent e) {
-                ArrayList<CommonExplanation> valid=rule.extractValidCoverages(origRules,
-                    RuleMaster.noActionDifference(origRules));
+                ArrayList<CommonExplanation> valid=rule.extractValidCoverages(origRules.rules,
+                    !origRules.actionsDiffer);
                 if (valid==null || valid.isEmpty()) {
                   JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
                       "No valid coverages found!",
@@ -1087,12 +989,12 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                 }
                 valid.add(0,rule);
                 ShowRules showRules=createShowRulesInstance(valid);
-                showRules.setTitle("Valid coverages of rule # "+rule.numId);
-                showRules.showRulesInTable("Valid coverages of rule # "+rule.numId);
+                showRules.ruleSet.title=showRules.ruleSet.description="Valid coverages of rule # "+rule.numId;
+                showRules.showRulesInTable();
               }
             });
           }
-          if (expanded) {
+          if (ruleSet.expanded) {
             if (rule.upperId >= 0) {
               //if (selMenu == null)
                 //selMenu = new JPopupMenu();
@@ -1104,10 +1006,10 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                   ArrayList<Integer> toSelect = new ArrayList<Integer>(10);
                   UnitedRule r = rule;
                   do {
-                    int idx = RuleMaster.findRuleInList(exList, r.upperId);
+                    int idx = RuleMaster.findRuleInList(ruleSet.rules, r.upperId);
                     if (idx >= 0) {
                       toSelect.add(new Integer(idx));
-                      r = (UnitedRule) exList.get(idx);
+                      r = (UnitedRule) ruleSet.getRule(idx);
                     }
                     else
                       r = null;
@@ -1128,7 +1030,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                 public void actionPerformed(ActionEvent e) {
                   ArrayList<Integer> toSelect = new ArrayList<Integer>(10);
                   for (int i = 0; i < rule.fromRules.size(); i++) {
-                    int idx = RuleMaster.findRuleInList(exList, rule.fromRules.get(i).numId);
+                    int idx = RuleMaster.findRuleInList(ruleSet.rules, rule.fromRules.get(i).numId);
                     if (idx >= 0)
                       toSelect.add(idx);
                   }
@@ -1143,7 +1045,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                   ArrayList<UnitedRule> included = rule.putHierarchyInList(null);
                   ArrayList<Integer> toSelect = new ArrayList<Integer>(10);
                   for (int i = 0; i < included.size(); i++) {
-                    int idx = RuleMaster.findRuleInList(exList, included.get(i).numId);
+                    int idx = RuleMaster.findRuleInList(ruleSet.rules, included.get(i).numId);
                     if (idx >= 0)
                       toSelect.add(idx);
                   }
@@ -1156,17 +1058,20 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           //if (selMenu==null)
             //return;
         }
+        CommonExplanation rule=ruleSet.getRule(realRowIndex);
         String title="Select data for the rule "+
-                exList.get(realRowIndex).numId+", action="+exList.get(realRowIndex).action+
-                ", N records="+exList.get(realRowIndex).getApplicationsCount();
+                rule.numId+", action="+rule.action+
+                ", N records="+rule.getApplicationsCount();
         JMenuItem selItem = new JMenuItem(title);
         selItem.addActionListener(new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            DataForRuleTableModel dataTblModel=new DataForRuleTableModel(exList.get(realRowIndex),eTblModel.listOfFeatures,attrMinMax);
+            DataForRuleTableModel dataTblModel=
+                new DataForRuleTableModel(rule,eTblModel.listOfFeatures,ruleSet.attrMinMax);
             JTable dataTbl=new JTable(dataTblModel);
             Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-            dataTbl.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
+            dataTbl.setPreferredScrollableViewportSize(
+                new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
             dataTbl.setFillsViewportHeight(true);
             dataTbl.setAutoCreateRowSorter(true);
             dataTbl.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -1199,35 +1104,34 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
 
     JScrollPane scrollPane = new JScrollPane(table);
     
-    if (title==null) {
+    if (ruleSet.title==null) {
       int nUses=0, nCond=0;
-      for (int i=0; i<rules.size(); i++) {
-        CommonExplanation cEx=(CommonExplanation)rules.get(i);
+      for (CommonExplanation cEx:ruleSet.rules) {
         nUses+=cEx.nUses;
         nCond+=cEx.eItems.length;
       }
-      title = ((expanded) ? "Expanded aggregated rules " :
-                   (aggregated) ? "Aggregated rules" :
-                       (nonSubsumed) ? "Extracted non-subsumed rules" :
+      ruleSet.title = ((ruleSet.expanded) ? "Expanded aggregated rules " :
+                   (ruleSet.aggregated) ? "Aggregated rules" :
+                       (ruleSet.nonSubsumed) ? "Extracted non-subsumed rules" :
                            "Original distinct rules or explanations") +
-                  " (" + rules.size() + ")" +
+                  " (" + ruleSet.rules.size() + ")" +
                   ", N conditions (" +nCond + ")" +
                   ", Total uses (" +nUses + ")" +
-                  ((aggregated) ? "; obtained with coherence threshold " +
-                                      String.format("%.3f", accThreshold) : "");
-      if (maxQDiff > 0)
-        title += " and max Q difference " + String.format("%.5f", maxQDiff);
+                  ((ruleSet.aggregated) ? "; obtained with coherence threshold " +
+                                      String.format("%.3f", ruleSet.accThreshold) : "");
+      if (ruleSet.maxQDiff > 0)
+        ruleSet.title += " and max Q difference " + String.format("%.5f", ruleSet.maxQDiff);
     }
 
-    if (infoText==null)
-      infoText=title;
+    if (ruleSet.description==null)
+      ruleSet.description=ruleSet.title;
 
-    infoArea = new JTextArea(infoText);
+    infoArea = new JTextArea(ruleSet.description);
     infoArea.setLineWrap(true);
     infoArea.setWrapStyleWord(true);
     JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
 
-    JFrame fr = new JFrame(title);
+    JFrame fr = new JFrame(ruleSet.title);
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     fr.getContentPane().add(splitPane, BorderLayout.CENTER);
     //Display the window.
@@ -1283,30 +1187,29 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   }
   
   protected ShowRules createShowRulesInstance(ArrayList rules) {
-    ShowRules showRules=new ShowRules(rules,attrMinMax,null);
-    showRules.setOrigRules(origRules);
-    showRules.setOrderedFeatureNames(orderedFeatureNames);
-    showRules.setDataInstances(dataInstances,actionsDiffer);
+    RuleSet rs=RuleSet.createInstance(rules);
+    ruleSet.addChild(rs);
+    ShowRules showRules=new ShowRules(rs);
+    showRules.setDataInstances(dataInstances,rs.actionsDiffer);
     showRules.setData(currentData,loadedData);
     showRules.setSharedFrames(sharedFrames);
     showRules.setOrigHighlighter(origHighlighter);
     showRules.setOrigSelector(origSelector);
     showRules.setCreatedFileRegister(createdFiles);
-    showRules.setAccThreshold(getAccThreshold());
-    showRules.setNonSubsumed(nonSubsumed);
-    showRules.setAggregated(aggregated);
-    if (!Double.isNaN(maxQDiff))
-      showRules.setMaxQDiff(maxQDiff);
-    showRules.setExpanded(expanded);
+    rs.setAccThreshold(ruleSet.getAccThreshold());
+    rs.setNonSubsumed(ruleSet.nonSubsumed);
+    rs.setAggregated(ruleSet.aggregated);
+    if (!Double.isNaN(ruleSet.maxQDiff))
+      rs.setMaxQDiff(ruleSet.maxQDiff);
+    rs.setExpanded(ruleSet.expanded);
     showRules.setCreatedFileRegister(createdFiles);
-    //showRules.showRulesInTable();
     return showRules;
   }
   
   public void showRules(ArrayList rules, String infoText){
     ShowRules showRules=createShowRulesInstance(rules);
-    showRules.setTitle(infoText);
-    showRules.showRulesInTable(infoText);
+    showRules.ruleSet.setTitle(infoText);
+    showRules.showRulesInTable();
   }
   
   
@@ -1327,13 +1230,13 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   }
   
   public int[] getRulesOrder(ArrayList rules) {
-    if (rules==null || rules.isEmpty() || exList==null || table==null)
+    if (rules==null || rules.isEmpty() || ruleSet.rules==null || table==null)
       return null;
     int order[]=new int[rules.size()];
     int k=0;
     for (int i=0; i<table.getRowCount(); i++) {
       int mIdx = table.convertRowIndexToModel(i);
-      int idx=rules.indexOf(exList.get(mIdx));
+      int idx=rules.indexOf(ruleSet.rules.get(mIdx));
       if (idx>=0)
         order[k++]=idx;
     }
@@ -1358,8 +1261,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                 "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                 ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
-    RuleSetVis vis=new RuleSetVis(rules,exList,attributes,attrMinMax);
-    vis.setOrigExList(origRules);
+    RuleSetVis vis=new RuleSetVis(rules,exList,attributes,ruleSet.attrMinMax);
+    vis.setOrigExList(origRules.rules);
     vis.setHighlighter(highlighter);
     vis.setSelector(selector);
     vis.setRulesOrderer(this);
@@ -1369,7 +1272,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    JFrame plotFrame=new JFrame(title+((applyToSelection)?" (selection)":""));
+    JFrame plotFrame=new JFrame(ruleSet.title+((applyToSelection)?" (selection)":""));
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     plotFrame.getContentPane().add(scrollPane);
     plotFrame.pack();
@@ -1384,7 +1287,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   }
   
   public JFrame showRuleHierarchy(UnitedRule rule,Vector<String> attributes) {
-    RuleHierarchyVis vis=new RuleHierarchyVis(rule,origRules,attributes,attrMinMax);
+    RuleHierarchyVis vis=new RuleHierarchyVis(rule,origRules.rules,attributes,ruleSet.attrMinMax);
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     JFrame plotFrame=new JFrame("Derivation hierarchy of rule "+rule.numId);
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -1400,13 +1303,13 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     return plotFrame;
   }
 
-  public JFrame applyTopicModelling (ArrayList<CommonExplanation> exList, Hashtable<String,float[]> attrMinMax) {
+  public JFrame applyTopicModelling () {
     // TreeMap to maintain unique sorted values for each key
     Map<String, TreeSet<Float>> uniqueSortedValues = new TreeMap<>();
     // TreeMap to maintain all values for each key (for sorting later)
     Map<String, List<Float>> allValues = new TreeMap<>();
     // processing sttrMinMax
-    for (String key: attrMinMax.keySet()) {
+    for (String key: ruleSet.attrMinMax.keySet()) {
       //float minmax[]=attrMinMax.get(key);
       // Initialize the data structures for each key if not already initialized
       uniqueSortedValues.putIfAbsent(key, new TreeSet<>());
@@ -1420,7 +1323,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
 */
     }
     // processing rules
-    for (CommonExplanation rule: exList)
+    for (CommonExplanation rule: ruleSet.rules)
       for (ExplanationItem cond: rule.eItems)
         for (int i=0; i<cond.interval.length; i++)
           if (Double.isFinite(cond.interval[i])) {
@@ -1441,7 +1344,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
     }
     // Defining intervals for feature discretization
-    TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(exList,listOfFeatures,attrMinMax,uniqueSortedValues,allValues,dataFolder);
+    TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(ruleSet.rules,
+        ruleSet.listOfFeatures,ruleSet.attrMinMax,uniqueSortedValues,allValues,dataFolder);
     //
     return null;
   }
@@ -1479,16 +1383,16 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       return null;
     }
 
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
-    pp.setExplanations(exList,origRules);
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(ruleSet.attrMinMax,attrs,minmax);
+    pp.setExplanations(exList,origRules.rules);
     pp.setDistanceMatrix(distanceMatrix);
-    pp.setFeatures(getSelectedFeatures());
+    pp.setFeatures(ruleSet.getSelectedFeatures());
     pp.setProjectionProvider(tsne);
     pp.setHighlighter(highlighter);
     pp.setSelector(selector);
     pp.setPreferredSize(new Dimension(800,800));
     
-    if (expanded && (exList.get(0) instanceof UnitedRule)){
+    if (ruleSet.expanded && (exList.get(0) instanceof UnitedRule)){
       HashSet<ArrayList<Vertex>> graphs=null;
       for (int i=0; i<exList.size(); i++) {
         UnitedRule rule=(UnitedRule)exList.get(i);
@@ -1540,7 +1444,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mitExtract.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(selector,exList,distanceMatrix,attrMinMax);
+        extractSubset(selector,exList,distanceMatrix,ruleSet.attrMinMax);
       }
     });
   
@@ -1565,7 +1469,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         }
         System.out.println("Trying to create another plot...");
         ExplanationsProjPlot2D anotherPlot=
-            new ExplanationsProjPlot2D(attrMinMax,attrs,minmax,exList,origRules,coords);
+            new ExplanationsProjPlot2D(ruleSet.attrMinMax,attrs,minmax,exList,origRules.rules,coords);
         anotherPlot.setPreferredSize(new Dimension(800,800));
         anotherPlot.setSelector(selector);
         anotherPlot.setHighlighter(highlighter);
@@ -1683,7 +1587,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     putHierClustersToTable(topCluster, ch.getSelectedIndex());
     JScrollPane scpDendrogram=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
     ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
-        distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
+        distanceMatrix,exList,ruleRenderer,ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
     scpDendrogram.setPreferredSize(new Dimension(100,200));
     JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
     splitPane.setOneTouchExpandable(true);
@@ -1696,7 +1600,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       public void itemStateChanged(ItemEvent e) {
         putHierClustersToTable(topCluster, ch.getSelectedIndex());
         ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
-            distanceMatrix,exList,ruleRenderer,attrMinMax,minA,maxA,minQ,maxQ);
+            distanceMatrix,exList,ruleRenderer,ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
         splitPane.setTopComponent(clTable.scrollPane);
       }
     });
@@ -1726,16 +1630,16 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     ClusterContent clusters[]=topCluster.getClustersAtLevel(level);
     if (clusters!=null && clusters.length>1) {
       ClustersAssignments clAss=new ClustersAssignments();
-      clAss.objIndexes=new int[exList.size()];
-      clAss.clusters=new int[exList.size()];
-      for (int i=0; i<exList.size(); i++) {
+      clAss.objIndexes=new int[ruleSet.rules.size()];
+      clAss.clusters=new int[ruleSet.rules.size()];
+      for (int i=0; i<ruleSet.rules.size(); i++) {
         clAss.objIndexes[i]=i;
         clAss.clusters[i]=-1;
       }
-      clAss.minSize=exList.size()+10;
+      clAss.minSize=ruleSet.rules.size()+10;
       for (int i=0; i<clusters.length; i++) {
         int n=0;
-        for (int j = 0; j < exList.size(); j++)
+        for (int j = 0; j < ruleSet.rules.size(); j++)
           if (clusters[i].member[j]) {
             clAss.clusters[j] = i;
             ++n;
@@ -1807,28 +1711,14 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         }
       }
     }
-    ShowRules showRules=new ShowRules(exSubset,attrMinMax,distances);
-    showRules.setOrigRules(exList.equals(origRules)?exSubset: origRules);
-    showRules.setOrderedFeatureNames(orderedFeatureNames);
-    showRules.setData(currentData,loadedData);
-    showRules.setSharedFrames(sharedFrames);
-    showRules.setDataInstances(dataInstances,actionsDiffer);
-    if (showRules.getOrigRules().equals(origRules)) {
-      showRules.setOrigHighlighter(origHighlighter);
-      showRules.setOrigSelector(origSelector);
-    }
-    showRules.setNonSubsumed(this.nonSubsumed);
-    showRules.setAggregated(this.aggregated);
-    showRules.setAccThreshold(accThreshold);
-    showRules.setMaxQDiff(maxQDiff);
-    showRules.setExpanded(expanded);
-    showRules.setCreatedFileRegister(createdFiles);
-    String infoText=(extractSelected)?"Subset with "+exSubset.size()+" rules selected from the set of "+
+    ShowRules showRules=createShowRulesInstance(exSubset);
+    showRules.ruleSet.description=showRules.ruleSet.title=
+        (extractSelected)?"Subset with "+exSubset.size()+" rules selected from the set of "+
         exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"):
         "Subset with "+exSubset.size()+" rules remaining after exclusion of "+selected.size()+
             " selected rules from the set of "+exList.size()+
             ((exList.equals(origRules))?" original rules":" earlier selected or derived rules");
-    showRules.showRulesInTable(infoText);
+    showRules.showRulesInTable();
   }
   
   /**
@@ -1863,7 +1753,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       }
     }
     System.out.println("Trying to reduce the explanation set by removing less general explanations...");
-    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules.rules,attrMinMax,
         noActions,maxQDiff);
     if (exList2.size()<exList.size()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
@@ -1878,11 +1768,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       return;
     }
     ShowRules showRules=createShowRulesInstance(exList2);
-    showRules.setNonSubsumed(true);
-    showRules.setAggregated(aggregated);
+    showRules.ruleSet.setNonSubsumed(true);
     showRules.countRightAndWrongRuleApplications();
-    showRules.showRulesInTable(exList2.size()+" non-subsumed rules selected from the set of "+
-        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"));
+    showRules.ruleSet.title=showRules.ruleSet.description=exList2.size()+" non-subsumed rules selected from the set of "+
+        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules");
+    showRules.showRulesInTable();
   }
 
   public void removeContradictory (ArrayList<CommonExplanation> exList) {
@@ -1926,13 +1816,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       return;
     }
     ShowRules showRules=createShowRulesInstance(exList2);
-    showRules.setOrigRules(exList);
-    showRules.setNonSubsumed(false);
-    showRules.setAggregated(false);
     showRules.countRightAndWrongRuleApplications();
-    showRules.showRulesInTable(exList2.size()+" from the "+
+    showRules.ruleSet.description=showRules.ruleSet.title=exList2.size()+" from the "+
         exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules")+
-        " remaining after removal of "+(exList.size()-exList2.size())+" contradictory rules.");
+        " remaining after removal of "+(exList.size()-exList2.size())+" contradictory rules.";
+    showRules.showRulesInTable();
 
     ArrayList<UnitedRule> excluded=new ArrayList<UnitedRule>(exList.size()-exList2.size());
     for (CommonExplanation ce:exList)
@@ -1946,13 +1834,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       }
 
     showRules=createShowRulesInstance(excluded);
-    showRules.setOrigRules(exList);
-    showRules.setNonSubsumed(false);
-    showRules.setAggregated(false);
     showRules.countRightAndWrongRuleApplications();
-    JFrame frame=showRules.showRulesInTable(excluded.size()+
+    showRules.ruleSet.description=showRules.ruleSet.title=excluded.size()+
         " contradictory rules extracted and removed from the set of "+
-        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules"));
+        exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules");
+    JFrame frame=showRules.showRulesInTable();
     frame.setTitle("Excluded contradictory rules");
   }
 
@@ -1969,7 +1855,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     if (e.getSource() instanceof AggregationRunner) {
       AggregationRunner aRun=(AggregationRunner)e.getSource();
       ArrayList<UnitedRule> aggRules=aRun.aggRules;
-      if (aggRules==null || aggRules.isEmpty() || aggRules.size()>=exList.size()) {
+      if (aggRules==null || aggRules.isEmpty() || aggRules.size()>=ruleSet.rules.size()) {
         JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
             "Failed to aggregate!",
             "Failed",JOptionPane.WARNING_MESSAGE);
@@ -1977,7 +1863,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       }
       
       if (aRun.finished) {
-        if (aggRules.size()>=exList.size()) {
+        if (aggRules.size()>=ruleSet.rules.size()) {
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
               "The given rules could not be aggregated!",
               "Failed",JOptionPane.WARNING_MESSAGE);
@@ -1992,18 +1878,20 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       ArrayList<CommonExplanation> aggEx=new ArrayList<CommonExplanation>(aggRules.size());
       aggEx.addAll(aggRules);
       ShowRules showRules=createShowRulesInstance(aggEx);
-      showRules.setNonSubsumed(true);
-      showRules.setAggregated(true);
-      showRules.setAccThreshold(aRun.currAccuracy);
+      showRules.ruleSet.setNonSubsumed(true);
+      showRules.ruleSet.setAggregated(true);
+      showRules.ruleSet.setAccThreshold(aRun.currAccuracy);
       if (aRun.aggregateByQ)
-        showRules.setMaxQDiff(aRun.maxQDiff);
+        showRules.ruleSet.setMaxQDiff(aRun.maxQDiff);
       showRules.countRightAndWrongRuleApplications();
-      showRules.showRulesInTable(aggEx.size()+" aggregated and generalized rules obtained from the set of "+
-          exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules")+
-          " using the following parameter settings: min coherence = "+String.format("%.3f",aRun.minAccuracy)+
-          ((aRun.aggregateByQ)?String.format(", max value difference = %.5f",aRun.maxQDiff):"")+
-          (!Double.isNaN(aRun.accStep)?String.format("; stepwise aggregation starting from %.3f with step %.3f",
-              aRun.initAccuracy,aRun.accStep):""));
+      showRules.ruleSet.title=showRules.ruleSet.description=
+          aggEx.size()+" aggregated and generalized rules obtained from the set of "+
+              ruleSet.rules.size()+((ruleSet.equals(origRules))?" original rules":" earlier selected or derived rules")+
+              " using the following parameter settings: min coherence = "+String.format("%.3f",aRun.minAccuracy)+
+              ((aRun.aggregateByQ)?String.format(", max value difference = %.5f",aRun.maxQDiff):"")+
+              (!Double.isNaN(aRun.accStep)?String.format("; stepwise aggregation starting from %.3f with step %.3f",
+                  aRun.initAccuracy,aRun.accStep):"");
+      showRules.showRulesInTable();
     }
     else
     if (e.getSource().equals(ruleSelector))  {
@@ -2014,18 +1902,19 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         if (selRules!=null)
           if (ruleSelector.mustExtract()) {
             ShowRules showRules=createShowRulesInstance(selRules);
-            showRules.setTitle("Subset by query "+ruleSelector.queryStr);
-            showRules.showRulesInTable("Subset with "+selRules.size()+" rules selected from the set of "+
-                exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules")+
-                " by the following query: "+ruleSelector.queryStr);
+            showRules.ruleSet.setTitle("Subset by query "+ruleSelector.queryStr);
+            showRules.ruleSet.description="Subset with "+selRules.size()+" rules selected from the set of "+
+                ruleSet.rules.size()+((ruleSet.rules.equals(origRules))?" original rules":" earlier selected or derived rules")+
+                " by the following query: "+ruleSelector.queryStr;
+            showRules.showRulesInTable();
           }
           else {
             //select the rules by highlighting
             if (localSelector==null)
               return;
             ArrayList<Integer> selIndexes=new ArrayList<Integer>(selRules.size());
-            for (int i=0; i<exList.size(); i++)
-              if (selRules.contains(exList.get(i)))
+            for (int i=0; i<ruleSet.rules.size(); i++)
+              if (selRules.contains(ruleSet.rules.get(i)))
                 selIndexes.add(i);
             localSelector.select(selIndexes);
           }
@@ -2037,8 +1926,9 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       ArrayList<CommonExplanation> selRules=eEx.getSelectedRules();
       if (selRules!=null) {
         ShowRules showRules=createShowRulesInstance(selRules);
-        showRules.setTitle(eEx.getSelectionInfoShort());
-        showRules.showRulesInTable(eEx.getSelectedRulesInfo());
+        showRules.ruleSet.setTitle(eEx.getSelectionInfoShort());
+        showRules.ruleSet.description=eEx.getSelectedRulesInfo();
+        showRules.showRulesInTable();
       }
     }
   }
@@ -2056,7 +1946,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     JPanel pp=new JPanel(new BorderLayout(10,0));
     pp.add(new JLabel("Coherence threshold from 0 to 1 :",JLabel.RIGHT),BorderLayout.CENTER);
     
-    JTextField tfAcc=new JTextField(String.format("%.3f", (float)Math.max(0.6f,accThreshold-0.25f)),5);
+    JTextField tfAcc=new JTextField(String.format("%.3f", (float)Math.max(0.6f,ruleSet.accThreshold-0.25f)),5);
     pp.add(tfAcc,BorderLayout.EAST);
     pDialog.add(pp);
     JCheckBox cbData=(dataInstances==null)?null:
@@ -2158,7 +2048,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
     dialog.setVisible(true);
 
-    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules,attrMinMax,
+    ArrayList<CommonExplanation> exList2= RuleMaster.removeLessGeneral(exList,origRules.rules,attrMinMax,
       noActions,maxQDiff);
     dialog.dispose();
 
@@ -2176,7 +2066,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     ArrayList<UnitedRule> aggRules=null;
     AbstractList<Explanation> data=(checkWithData)?dataInstances:null;
     
-    AggregationRunner aggRunner=new AggregationRunner(rules,origRules,attrMinMax,data);
+    AggregationRunner aggRunner=new AggregationRunner(rules,origRules.rules,attrMinMax,data);
     aggRunner.setOwner(this);
     aggRunner.setAggregateByQ(noActions);
     aggRunner.setMinAccuracy(minAccuracy);
@@ -2221,7 +2111,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   }
   
   public void showAggregationInProjection(ItemSelectionManager selector) {
-    if (exList==null || exList.isEmpty() || !(exList.get(0) instanceof UnitedRule))
+    if (ruleSet==null || !ruleSet.hasRules() || !(ruleSet.rules.get(0) instanceof UnitedRule))
       return;
     boolean applyToSelection=
         selector.hasSelection() &&
@@ -2229,7 +2119,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                 "Apply the operation to the selected subset?",
                 "Apply to selection?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                 ==JOptionPane.YES_OPTION;
-    ArrayList rules=(applyToSelection)?getSelectedRules(exList,selector):exList;
+    ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,selector):ruleSet.rules;
     ArrayList<CommonExplanation> origList=new ArrayList<CommonExplanation>(rules.size());
     HashSet<ArrayList<Vertex>> graphs=null;
     ArrayList<Integer> unionIds=new ArrayList<Integer>(rules.size()*5);
@@ -2249,7 +2139,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         for (int j1=0; j1<ruleGroup.size()-1; j1++) {
           Vertex v=graph.get(j1);
           for (int j2 = j1 + 1; j2 < ruleGroup.size(); j2++) {
-            double d = UnitedRule.distance(ruleGroup.get(j1), ruleGroup.get(j2), attrMinMax);
+            double d = UnitedRule.distance(ruleGroup.get(j1), ruleGroup.get(j2), ruleSet.attrMinMax);
             if (Double.isNaN(d)) {
               System.out.println("!!! NaN distance value !!!");
               System.out.println(ruleGroup.get(j1).toString());
@@ -2298,12 +2188,12 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       return;
     }
     
-    double d[][]=CommonExplanation.computeDistances(origList,featuresInDistances,attrMinMax);
+    double d[][]=CommonExplanation.computeDistances(origList,ruleSet.featuresInDistances,ruleSet.attrMinMax);
   
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(attrMinMax,attrs,minmax);
-    pp.setExplanations(origList,origRules);
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(ruleSet.attrMinMax,attrs,minmax);
+    pp.setExplanations(origList,origRules.rules);
     pp.setDistanceMatrix(d);
-    pp.setFeatures(getSelectedFeatures());
+    pp.setFeatures(ruleSet.getSelectedFeatures());
     pp.setGraphs(graphs);
     int uIds[]=new int[unionIds.size()];
     for (int j=0; j<unionIds.size(); j++)
@@ -2313,7 +2203,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     pp.setPreferredSize(new Dimension(800,800));
   
     Translator translator=(origRules!=null && (origHighlighter!=null || origSelector!=null))?
-                              createTranslator(origList,origRules):null;
+                              createTranslator(origList,origRules.rules):null;
     if (translator!=null) {
       if (origHighlighter!=null) {
         HighlightTranslator hTrans=new HighlightTranslator();
@@ -2367,7 +2257,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mitExtract.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(pp.getSelector(),origList,d,attrMinMax);
+        extractSubset(pp.getSelector(),origList,d,ruleSet.attrMinMax);
       }
     });
   
@@ -2452,12 +2342,13 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   }
 
   public void openTreeExplorer() {
-    if (exList==null || exList.isEmpty() || !RuleMaster.hasDistinctTreeIds(exList))
+    if (ruleSet.rules==null || !ruleSet.hasRules() || !RuleMaster.hasDistinctTreeIds(ruleSet.rules))
       return;
     EnsembleExplorer eEx=new EnsembleExplorer();
     eEx.setOwner(this);
     eEx.setFileRegister(createdFiles);
-    JPanel eExPanel=eEx.startEnsembleExplorer(exList,infoArea.getText(),attrMinMax,featuresInDistances);
+    JPanel eExPanel=eEx.startEnsembleExplorer(ruleSet.rules,infoArea.getText(),
+        ruleSet.attrMinMax,ruleSet.featuresInDistances);
     if (eExPanel==null)
       return;
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
@@ -2497,7 +2388,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     loadedData.add(data);
     
     DataTableViewer dViewer=new DataTableViewer(data,
-        listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
+        ruleSet.listOfFeatures.toArray(new String[ruleSet.listOfFeatures.size()]),this);
     DataVersionsViewer dViewFrame=new DataVersionsViewer(dViewer,null,null);
     dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     if (sharedFrames==null)
@@ -2513,7 +2404,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
                 "Use only the selected subset of the rules?",
                 "Use selected rules?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
                 ==JOptionPane.YES_OPTION;
-    ArrayList rules=(applyToSelection)?getSelectedRules(exList,localSelector):exList;
+    ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,localSelector):ruleSet.rules;
     DataSet testData;
     if (currentData==null) {
       currentData=loadData();
@@ -2571,7 +2462,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           ((applyToSelection)?"selected from rule set ":"")+"described as "+infoArea.getText();
 
       DataTableViewer dViewer=new DataTableViewer(testData,
-          listOfFeatures.toArray(new String[listOfFeatures.size()]),this);
+          ruleSet.listOfFeatures.toArray(new String[ruleSet.listOfFeatures.size()]),this);
 
       ClassConfusionMatrix cMatrix=new ClassConfusionMatrix();
       if (!cMatrix.makeConfusionMatrix(testData))

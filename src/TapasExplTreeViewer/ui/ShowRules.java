@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
+public class ShowRules implements RulesPresenter, ChangeListener {
   public static String RULES_FOLDER=null;
   
   public static Border highlightBorder=new LineBorder(ProjectionPlot2D.highlightColor,1);
@@ -49,6 +49,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
    */
   public SingleHighlightManager origHighlighter=null;
   public ItemSelectionManager origSelector=null, localSelector=null;
+
+  public RulesTableViewer tableView=null;
   
   /**
    * The data instances (cases) the rules apply to.
@@ -70,8 +72,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
   
   protected ClustererByOPTICS clOptics=null;
   
-  protected JTable table=null;
-  protected JLabel_Rule ruleRenderer=null;
   protected JTextArea infoArea=null;
   
   public String dataFolder="";
@@ -131,6 +131,28 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     if (ruleSet==null || !ruleSet.hasRules())
       return;
     origRules=ruleSet.getOriginalRuleSet();
+
+    if (ruleSet.title==null) {
+      int nUses=0, nCond=0;
+      for (CommonExplanation cEx:ruleSet.rules) {
+        nUses+=cEx.nUses;
+        nCond+=cEx.eItems.length;
+      }
+      ruleSet.title = ((ruleSet.expanded) ? "Expanded aggregated rules " :
+          (ruleSet.aggregated) ? "Aggregated rules" :
+              (ruleSet.nonSubsumed) ? "Extracted non-subsumed rules" :
+                  "Original distinct rules or explanations") +
+          " (" + ruleSet.rules.size() + ")" +
+          ", N conditions (" +nCond + ")" +
+          ", Total uses (" +nUses + ")" +
+          ((ruleSet.aggregated) ? "; obtained with coherence threshold " +
+              String.format("%.3f", ruleSet.accThreshold) : "");
+      if (ruleSet.maxQDiff > 0)
+        ruleSet.title += " and max Q difference " + String.format("%.5f", ruleSet.maxQDiff);
+    }
+
+    if (ruleSet.description==null)
+      ruleSet.description=ruleSet.title;
 
     if (ruleSet.rules.get(0).numId<0)
       for (int i=0; i<ruleSet.rules.size(); i++)
@@ -272,8 +294,8 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           }
           else {
             System.out.println("Distance matrix ready!");
-            if (table!=null)
-              runOptics((ExListTableModel) table.getModel());
+            if (tableView!=null)
+              runOptics(tableView.getTableModel());
           }
         }
       };
@@ -320,204 +342,13 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     if (createdFiles==null)
       createdFiles=new ArrayList<File>(20);
 
-    ExListTableModel eTblModel=new ExListTableModel(ruleSet.rules,
-        ruleSet.attrMinMax,ruleSet.orderedFeatureNames);
-    if (clOptics==null)
-      runOptics(eTblModel);
-    else
-      clOptics.addChangeListener(eTblModel);
-    ruleSet.listOfFeatures=eTblModel.listOfFeatures;
-    
-    table=new JTable(eTblModel){
-      public String getToolTipText(MouseEvent e) {
-        java.awt.Point p = e.getPoint();
-        int rowIndex = rowAtPoint(p);
-        if (rowIndex>=0) {
-          int realRowIndex = convertRowIndexToModel(rowIndex);
-          highlighter.highlight(new Integer(realRowIndex));
-          int colIndex=columnAtPoint(p);
-          String s="";
-          if (colIndex>=0) {
-            int realColIndex=convertColumnIndexToModel(colIndex);
-            s=eTblModel.getColumnName(realColIndex);
-          }
-          CommonExplanation ce=ruleSet.getRule(realRowIndex);
-          Vector<CommonExplanation> vce=null;
-          ArrayList selected=selector.getSelected();
-          if (selected!=null && selected.size()>0) {
-            vce=new Vector<>(selected.size());
-            for (int i = 0; i < selected.size(); i++)
-              vce.add(ruleSet.getRule((Integer)selected.get(i)));
-          }
-          try {
-            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, vce, attrs, minmax);
-            File outputfile = new File("img.png");
-            ImageIO.write(bi, "png", outputfile);
-            //System.out.println("img"+ce.numId+".png");
-          } catch (IOException ex) { System.out.println("* error while writing image to file: "+ex.toString()); }
-          String out=ce.toHTML(ruleSet.listOfFeatures,ruleSet.attrMinMax,s,"img.png");
-          //System.out.println(out);
-          return out;
-        }
-        highlighter.clearHighlighting();
-        return "";
-      }
-    
-      /**/
-      public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-        if (renderer==null)
-          return null;
-        Component c = super.prepareRenderer(renderer, row, column);
-        Color bkColor=(isRowSelected(row))?getSelectionBackground():getBackground();
-        int rowIdx=convertRowIndexToModel(row), colIdx=convertColumnIndexToModel(column);
-        boolean isCluster=eTblModel.isClusterColumn(colIdx);
-        if (isCluster)
-          bkColor= ReachabilityPlot.getColorForCluster((Integer)eTblModel.getValueAt(rowIdx,colIdx));
-        boolean isAction=false, isQ=false;
-        if (!isCluster && minA<maxA &&
-            eTblModel.isResultClassColumn(colIdx)) {
-          bkColor = ExplanationsProjPlot2D.getColorForAction((Integer) eTblModel.getValueAt(rowIdx, colIdx),
-              minA, maxA);
-          isAction=true;
-        }
-        if (!isCluster && minQ<maxQ && eTblModel.isResultValueColumn(colIdx)) {
-          Object v=eTblModel.getValueAt(rowIdx, colIdx);
-          if (v!=null)
-          if (v instanceof Float) {
-            bkColor = ExplanationsProjPlot2D.getColorForQ(new Double((Float)v),minQ, maxQ);
-            isQ = true;
-          }
-          else
-            if (v instanceof double[]) {
-              double d[]=(double[])v;
-              if (d.length>1) {
-                Color qC=ExplanationsProjPlot2D.getColorForQ((d[0]+d[1])/2,minQ, maxQ);
-                bkColor = new Color(qC.getRed(),qC.getGreen(),qC.getBlue(),30);
-                isQ = true;
-              }
-            }
-        }
-        c.setBackground(bkColor);
-        if (highlighter==null || highlighter.getHighlighted()==null ||
-                ((Integer)highlighter.getHighlighted())!=rowIdx) {
-          ((JComponent) c).setBorder(null);
-          return c;
-        }
-        ((JComponent) c).setBorder(highlightBorder);
-        if (!isCluster && !isAction && !isQ)
-          c.setBackground(ProjectionPlot2D.highlightFillColor);
-        return c;
-      }
-      /**/
-    };
-    /**/
-    table.addMouseListener(new MouseAdapter() {
-      private void reactToMousePosition(MouseEvent e) {
-        int rowIndex=table.rowAtPoint(e.getPoint());
-        if (rowIndex<0)
-          highlighter.clearHighlighting();
-        else {
-          int realRowIndex = table.convertRowIndexToModel(rowIndex);
-          highlighter.highlight(new Integer(realRowIndex));
-        }
-      }
-      @Override
-      public void mouseEntered(MouseEvent e) {
-        reactToMousePosition(e);
-        super.mouseEntered(e);
-      }
-    
-      @Override
-      public void mouseExited(MouseEvent e) {
-        highlighter.clearHighlighting();
-        super.mouseExited(e);
-      }
-    
-      @Override
-      public void mouseMoved(MouseEvent e) {
-        reactToMousePosition(e);
-        super.mouseMoved(e);
-      }
-    });
-    /**/
-  
-    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-
-    table.setPreferredScrollableViewportSize(new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
-    table.setFillsViewportHeight(true);
-    table.setAutoCreateRowSorter(true);
-    table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-    table.setRowSelectionAllowed(true);
-    table.setColumnSelectionAllowed(false);
-
-    for (int i=0; i<eTblModel.getColumnCount(); i++) {
-      if (eTblModel.isMinMaxColumn(i)) {
-        JLabel_Subinterval subIntRend = new JLabel_Subinterval();
-        subIntRend.setDrawTexts(true);
-        subIntRend.setPrecision(3);
-        table.getColumnModel().getColumn(i).setCellRenderer(subIntRend);
-      }
-      else
-      if (!eTblModel.isClusterColumn(i)) {
-        Class columnClass = eTblModel.getColumnClass(i);
-        if (columnClass==null)
-          continue;
-        if (columnClass.equals(Integer.class) ||
-            columnClass.equals(Float.class) ||
-            columnClass.equals(Double.class)) {
-          float min = eTblModel.getColumnMin(i), max = eTblModel.getColumnMax(i);
-          RenderLabelBarChart rBar = new RenderLabelBarChart(min, max);
-          table.getColumnModel().getColumn(i).setCellRenderer(rBar);
-        }
-      }
-    }
-
-    ruleRenderer=new JLabel_Rule();
-    attrs=new Vector(eTblModel.listOfFeatures.size());
-    minmax=new Vector<>(eTblModel.listOfFeatures.size());
-    for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
-      String s=eTblModel.listOfFeatures.get(i);
-      attrs.add(s);
-      minmax.add(ruleSet.attrMinMax.get(s));
-    }
-    ruleRenderer.setAttrs(attrs,minmax);
-    int rIdx=eTblModel.getRuleColumnIdx();
-    if (rIdx>=0) {
-      table.getColumnModel().getColumn(rIdx).setCellRenderer(ruleRenderer);
-      table.getColumnModel().getColumn(rIdx).setPreferredWidth(200);
-    }
-
-    for (int i=0; i<eTblModel.listOfFeatures.size(); i++)
-      table.getColumnModel().getColumn(eTblModel.listOfColumnNames.size()+i).
-          setCellRenderer(new JLabel_Subinterval());
+    tableView=new RulesTableViewer(ruleSet);
 
     /**/
-    TableRowsSelectionManager rowSelMan=new TableRowsSelectionManager();
-    rowSelMan.setTable(table);
-    rowSelMan.setHighlighter(highlighter);
-    rowSelMan.setSelector(selector);
-    rowSelMan.setMayScrollTable(false);
-    /**/
 
-    TableRowSorter sorter=(TableRowSorter)table.getRowSorter();
-    for (int i=0; i<eTblModel.listOfFeatures.size(); i++)
-      sorter.setComparator(eTblModel.listOfColumnNames.size()+i, new Comparator<Object>() {
-        public int compare (Object o1, Object o2) {
-          if (o1 instanceof double[]) {
-            double d1=((double[])o1)[0], d2=((double[])o2)[0], d1r=((double[])o1)[1], d2r=((double[])o2)[1];
-            if (Double.isNaN(d1) && Double.isNaN(d2))
-              return 0;
-            if (Double.isNaN(d1))
-              return 1;
-            if (Double.isNaN(d2))
-              return -1;
-            return (d1<d2)?-1:(d1==d2)?((d1r<d2r)?-1:(d1r==d2r)?0:1):1;
-          }
-          else
-            return 0;
-        }
-      });
-    
+    ExListTableModel tblModel=tableView.getTableModel();
+    JTable table=tableView.getTable();
+
     JPopupMenu menu=new JPopupMenu();
 
     JCheckBoxMenuItem cbmit=new JCheckBoxMenuItem("Show texts for intervals",false);
@@ -525,14 +356,14 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     cbmit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
+        for (int i=0; i<tblModel.listOfFeatures.size(); i++) {
           TableCellRenderer tcr=table.getColumnModel().
-              getColumn(eTblModel.listOfColumnNames.size()+i).getCellRenderer();
+              getColumn(tblModel.listOfColumnNames.size()+i).getCellRenderer();
           if (tcr instanceof JLabel_Subinterval) {
             ((JLabel_Subinterval)tcr).setDrawTexts(cbmit.getState());
           }
         }
-        eTblModel.fireTableDataChanged();
+        tblModel.fireTableDataChanged();
       }
     });
     JCheckBoxMenuItem cbmit1=new JCheckBoxMenuItem("Mark values",false);
@@ -541,30 +372,30 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     cbmit1.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
+        for (int i=0; i<tblModel.listOfFeatures.size(); i++) {
           TableCellRenderer tcr=table.getColumnModel().getColumn(
-              eTblModel.listOfColumnNames.size()+i).getCellRenderer();
+              tblModel.listOfColumnNames.size()+i).getCellRenderer();
           if (tcr instanceof JLabel_Subinterval) {
             ((JLabel_Subinterval)tcr).setDrawValues(cbmit1.getState());
           }
         }
-        eTblModel.setDrawValuesOrStatsForIntervals(cbmit1.getState() || cbmit2.getState());
-        eTblModel.fireTableDataChanged();
+        tblModel.setDrawValuesOrStatsForIntervals(cbmit1.getState() || cbmit2.getState());
+        tblModel.fireTableDataChanged();
       }
     });
     menu.add(cbmit2);
     cbmit2.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        for (int i=0; i<eTblModel.listOfFeatures.size(); i++) {
+        for (int i=0; i<tblModel.listOfFeatures.size(); i++) {
           TableCellRenderer tcr=table.getColumnModel().
-              getColumn(eTblModel.listOfColumnNames.size()+i).getCellRenderer();
+              getColumn(tblModel.listOfColumnNames.size()+i).getCellRenderer();
           if (tcr instanceof JLabel_Subinterval) {
             ((JLabel_Subinterval)tcr).setDrawStats(cbmit2.getState());
           }
         }
-        eTblModel.setDrawValuesOrStatsForIntervals(cbmit1.getState() || cbmit2.getState());
-        eTblModel.fireTableDataChanged();
+        tblModel.setDrawValuesOrStatsForIntervals(cbmit1.getState() || cbmit2.getState());
+        tblModel.fireTableDataChanged();
       }
     });
     JMenuItem mit=new JMenuItem("Table -> Clipboard");
@@ -572,7 +403,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        eTblModel.putTableToClipboard();
+        tblModel.putTableToClipboard();
       }
     });
     menu.addSeparator();
@@ -668,16 +499,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,selector):ruleSet.rules;
           ArrayList<UnitedRule> expanded=RuleMaster.expandRuleHierarchies(rules);
           if (expanded!=null) {
-            /*
-            if (origRules!=null) {
-              boolean noActions=RuleMaster.noActionDifference(origRules);
-              for (UnitedRule r : expanded)
-                if (noActions)
-                  r.countRightAndWrongCoveragesByQ(origRules);
-                else
-                  r.countRightAndWrongCoverages(origRules);
-            }
-            */
             ArrayList<CommonExplanation> ex=new ArrayList<CommonExplanation>(expanded.size());
             ex.addAll(expanded);
             ShowRules showRules=createShowRulesInstance(ex);
@@ -759,17 +580,6 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           aggregate(ruleSet.rules, ruleSet.attrMinMax);
         }
       });
-      /*
-      if (dataInstances!=null) {
-        menu.add(mit = new JMenuItem("Aggregate and generalize rules checking data-based accuracy"));
-        mit.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            aggregate(exList, attrMinMax, true);
-          }
-        });
-      }
-      */
     }
     menu.addSeparator();
     JMenuItem mitExportData=new JMenuItem("Export previously loaded data");
@@ -1067,7 +877,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
           @Override
           public void actionPerformed(ActionEvent e) {
             DataForRuleTableModel dataTblModel=
-                new DataForRuleTableModel(rule,eTblModel.listOfFeatures,ruleSet.attrMinMax);
+                new DataForRuleTableModel(rule,tblModel.listOfFeatures,ruleSet.attrMinMax);
             JTable dataTbl=new JTable(dataTblModel);
             Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
             dataTbl.setPreferredScrollableViewportSize(
@@ -1102,41 +912,11 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       }
     });
 
-    JScrollPane scrollPane = new JScrollPane(table);
-    
-    if (ruleSet.title==null) {
-      int nUses=0, nCond=0;
-      for (CommonExplanation cEx:ruleSet.rules) {
-        nUses+=cEx.nUses;
-        nCond+=cEx.eItems.length;
-      }
-      ruleSet.title = ((ruleSet.expanded) ? "Expanded aggregated rules " :
-                   (ruleSet.aggregated) ? "Aggregated rules" :
-                       (ruleSet.nonSubsumed) ? "Extracted non-subsumed rules" :
-                           "Original distinct rules or explanations") +
-                  " (" + ruleSet.rules.size() + ")" +
-                  ", N conditions (" +nCond + ")" +
-                  ", Total uses (" +nUses + ")" +
-                  ((ruleSet.aggregated) ? "; obtained with coherence threshold " +
-                                      String.format("%.3f", ruleSet.accThreshold) : "");
-      if (ruleSet.maxQDiff > 0)
-        ruleSet.title += " and max Q difference " + String.format("%.5f", ruleSet.maxQDiff);
-    }
-
-    if (ruleSet.description==null)
-      ruleSet.description=ruleSet.title;
-
-    infoArea = new JTextArea(ruleSet.description);
-    infoArea.setLineWrap(true);
-    infoArea.setWrapStyleWord(true);
-    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
-
     JFrame fr = new JFrame(ruleSet.title);
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    fr.getContentPane().add(splitPane, BorderLayout.CENTER);
+    fr.getContentPane().add(tableView, BorderLayout.CENTER);
     //Display the window.
     fr.pack();
-    splitPane.setDividerLocation(0.95);
     int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
     fr.setLocation(30+nFrames*30, 30+nFrames*15);
     fr.setVisible(true);
@@ -1228,21 +1008,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       return null;
     return result;
   }
-  
-  public int[] getRulesOrder(ArrayList rules) {
-    if (rules==null || rules.isEmpty() || ruleSet.rules==null || table==null)
-      return null;
-    int order[]=new int[rules.size()];
-    int k=0;
-    for (int i=0; i<table.getRowCount(); i++) {
-      int mIdx = table.convertRowIndexToModel(i);
-      int idx=rules.indexOf(ruleSet.rules.get(mIdx));
-      if (idx>=0)
-        order[k++]=idx;
-    }
-    return order;
-  }
-  
+
   public void eraseCreatedFiles () {
     if (createdFiles!=null && !createdFiles.isEmpty())
       for (File f : createdFiles)
@@ -1265,7 +1031,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     vis.setOrigExList(origRules.rules);
     vis.setHighlighter(highlighter);
     vis.setSelector(selector);
-    vis.setRulesOrderer(this);
+    vis.setRulesOrderer(tableView);
   
     JScrollPane scrollPane = new JScrollPane(vis);
     scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -1587,7 +1353,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
     putHierClustersToTable(topCluster, ch.getSelectedIndex());
     JScrollPane scpDendrogram=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
     ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
-        distanceMatrix,exList,ruleRenderer,ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
+        distanceMatrix,exList,tableView.getRuleRenderer(),ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
     scpDendrogram.setPreferredSize(new Dimension(100,200));
     JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
     splitPane.setOneTouchExpandable(true);
@@ -1600,7 +1366,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
       public void itemStateChanged(ItemEvent e) {
         putHierClustersToTable(topCluster, ch.getSelectedIndex());
         ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
-            distanceMatrix,exList,ruleRenderer,ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
+            distanceMatrix,exList,tableView.getRuleRenderer(),ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
         splitPane.setTopComponent(clTable.scrollPane);
       }
     });
@@ -1647,7 +1413,7 @@ public class ShowRules implements RulesPresenter, RulesOrderer, ChangeListener {
         clAss.minSize=Math.min(n,clAss.minSize);
         clAss.maxSize=Math.max(n,clAss.maxSize);
       }
-      ExListTableModel eTblModel=(ExListTableModel)table.getModel();
+      ExListTableModel eTblModel=tableView.getTableModel();
       eTblModel.setCusterAssignments(clAss);
     }
   }

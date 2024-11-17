@@ -152,6 +152,8 @@ public class RuleHierarchyVis extends JPanel
   }
   
   public Dimension getPreferredSize() {
+    if (attrs==null)
+      return new Dimension(500,500);
     if (off_Image != null && off_Valid)
       return new Dimension(off_Image.getWidth(), off_Image.getHeight());
     int minGlyphW = attrs.size() * minFeatureW;

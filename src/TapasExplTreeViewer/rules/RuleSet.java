@@ -207,11 +207,11 @@ public class RuleSet {
   public static RuleSet createInstance(ArrayList<CommonExplanation> rules,
                                        boolean isNotSubsumed, boolean isAggregated, boolean isExpanded) {
     return createInstance(rules,isNotSubsumed,isAggregated,isExpanded,
-        Double.NaN,Double.NaN);
+        1,0);
   }
 
   public static RuleSet createInstance(ArrayList rules) {
     return createInstance(rules,false,false,false,
-        Double.NaN,Double.NaN);
+        1,0);
   }
 }

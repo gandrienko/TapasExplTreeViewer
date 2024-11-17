@@ -63,7 +63,7 @@ public class ClassConfusionMatrixFrame extends JFrame {
     if (cMatrix.data!=null && cMatrix.data.description!=null) {
       infoArea.append("\nDataVersion: "+cMatrix.data.description);
       if (cMatrix.data.previousVersion!=null && cMatrix.data.previousVersion.description!=null)
-        infoArea.append("\nPrevious version of the data: "+cMatrix.data.previousVersion.description);
+        infoArea.append("\nPrevious version of the data: "+cMatrix.data.previousVersion.description+"\n");
     }
     double accuracy=100.0*cMatrix.nSame/cMatrix.nDataTotal;
     infoArea.append("Number of classes: "+cMatrix.counts.length+

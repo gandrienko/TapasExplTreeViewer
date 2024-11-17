@@ -14,7 +14,6 @@ import TapasExplTreeViewer.util.MatrixWriter;
 import TapasExplTreeViewer.vis.*;
 import TapasUtilities.*;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
@@ -22,10 +21,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -50,7 +47,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
   public SingleHighlightManager origHighlighter=null;
   public ItemSelectionManager origSelector=null, localSelector=null;
 
-  public RulesTableViewer tableView=null;
+  public RulesTableViewer rulesView =null;
   
   /**
    * The data instances (cases) the rules apply to.
@@ -71,8 +68,6 @@ public class ShowRules implements RulesPresenter, ChangeListener {
   protected boolean orderingInProgress=false;
   
   protected ClustererByOPTICS clOptics=null;
-  
-  protected JTextArea infoArea=null;
   
   public String dataFolder="";
   
@@ -102,12 +97,6 @@ public class ShowRules implements RulesPresenter, ChangeListener {
    * Whether this instance of ShowRules has already created its top frame
    */
   protected boolean topFrameCreated=false;
-
-  /**
-   * used for rendering rules in tooltips
-   */
-  protected Vector<String> attrs=null;
-  protected Vector<float[]> minmax=null;
 
   public ShowRules (RuleSet rs) {
     ruleSet=rs;
@@ -294,8 +283,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           }
           else {
             System.out.println("Distance matrix ready!");
-            if (tableView!=null)
-              runOptics(tableView.getTableModel());
+            if (rulesView !=null)
+              runOptics(rulesView.getTableModel());
           }
         }
       };
@@ -342,12 +331,12 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     if (createdFiles==null)
       createdFiles=new ArrayList<File>(20);
 
-    tableView=new RulesTableViewer(ruleSet);
+    rulesView =new RulesTableViewer(ruleSet,highlighter,selector);
 
     /**/
 
-    ExListTableModel tblModel=tableView.getTableModel();
-    JTable table=tableView.getTable();
+    ExListTableModel tblModel= rulesView.getTableModel();
+    JTable table= rulesView.getTable();
 
     JPopupMenu menu=new JPopupMenu();
 
@@ -413,7 +402,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        showRuleGlyphs(ruleSet.rules,attrs,highlighter,selector);
+        showRuleGlyphs(ruleSet.rules,rulesView.getAttrs(),highlighter,selector);
       }
     });
 
@@ -729,7 +718,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
             selItem.addActionListener(new ActionListener() {
               @Override
               public void actionPerformed(ActionEvent e) {
-                showRuleHierarchy(rule,attrs);
+                showRuleHierarchy(rule,rulesView.getAttrs());
               }
             });
           }
@@ -914,7 +903,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
 
     JFrame fr = new JFrame(ruleSet.title);
     fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    fr.getContentPane().add(tableView, BorderLayout.CENTER);
+    fr.getContentPane().add(rulesView, BorderLayout.CENTER);
     //Display the window.
     fr.pack();
     int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
@@ -1031,7 +1020,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     vis.setOrigExList(origRules.rules);
     vis.setHighlighter(highlighter);
     vis.setSelector(selector);
-    vis.setRulesOrderer(tableView);
+    vis.setRulesOrderer(rulesView);
   
     JScrollPane scrollPane = new JScrollPane(vis);
     scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -1054,13 +1043,23 @@ public class ShowRules implements RulesPresenter, ChangeListener {
   
   public JFrame showRuleHierarchy(UnitedRule rule,Vector<String> attributes) {
     RuleHierarchyVis vis=new RuleHierarchyVis(rule,origRules.rules,attributes,ruleSet.attrMinMax);
+
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     JFrame plotFrame=new JFrame("Derivation hierarchy of rule "+rule.numId);
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    plotFrame.getContentPane().add(vis);
+    Dimension d=vis.getPreferredSize();
+    if (d.width>0.7*size.width || d.height>0.7*size.height) {
+      ScrollPane scrollPane = new ScrollPane(ScrollPane.SCROLLBARS_AS_NEEDED);
+      scrollPane.add(vis);
+      scrollPane.setPreferredSize(new Dimension((int)Math.min(d.getWidth()+30,0.75*size.width),
+          (int)Math.min(d.getHeight()+30,0.75*size.height)));
+      plotFrame.getContentPane().add(scrollPane);
+    }
+    else
+      plotFrame.getContentPane().add(vis);
     plotFrame.pack();
-    plotFrame.setSize((int)Math.min(plotFrame.getWidth(),0.7*size.width),
-        (int)Math.min(plotFrame.getHeight(),0.7*size.height));
+    plotFrame.setSize((int)Math.min(plotFrame.getWidth(),0.75*size.width),
+        (int)Math.min(plotFrame.getHeight(),0.75*size.height));
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
     if (frames==null)
@@ -1076,15 +1075,15 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     Map<String, List<Float>> allValues = new TreeMap<>();
     // processing sttrMinMax
     for (String key: ruleSet.attrMinMax.keySet()) {
-      //float minmax[]=attrMinMax.get(key);
+      //float minMax[]=attrMinMax.get(key);
       // Initialize the data structures for each key if not already initialized
       uniqueSortedValues.putIfAbsent(key, new TreeSet<>());
       allValues.putIfAbsent(key, new ArrayList<>());
 /*
       // Add values to the data structures
-      for (int i=0; i<minmax.length; i++) {
-        uniqueSortedValues.get(key).add(minmax[i]);
-        allValues.get(key).add(minmax[i]);
+      for (int i=0; i<minMax.length; i++) {
+        uniqueSortedValues.get(key).add(minMax[i]);
+        allValues.get(key).add(minMax[i]);
       }
 */
     }
@@ -1103,11 +1102,15 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     // Output the results
     System.out.println("Unique Sorted Values by Key:");
     for (Map.Entry<String, TreeSet<Float>> entry : uniqueSortedValues.entrySet()) {
-      System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
+      System.out.println("Key: " + entry.getKey() +
+          ", NValues: " + entry.getValue().size() +
+          ", Values: " + entry.getValue());
     }
     System.out.println("All Sorted Values by Key:");
     for (Map.Entry<String, List<Float>> entry : allValues.entrySet()) {
-      System.out.println("Key: " + entry.getKey() + ", NValues: " + entry.getValue().size() + ", Values: " + entry.getValue());
+      System.out.println("Key: " + entry.getKey() +
+          ", NValues: " + entry.getValue().size() +
+          ", Values: " + entry.getValue());
     }
     // Defining intervals for feature discretization
     TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(ruleSet.rules,
@@ -1149,7 +1152,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       return null;
     }
 
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(ruleSet.attrMinMax,attrs,minmax);
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(ruleSet.attrMinMax,
+        rulesView.getAttrs(),rulesView.getMinMax());
     pp.setExplanations(exList,origRules.rules);
     pp.setDistanceMatrix(distanceMatrix);
     pp.setFeatures(ruleSet.getSelectedFeatures());
@@ -1235,7 +1239,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         }
         System.out.println("Trying to create another plot...");
         ExplanationsProjPlot2D anotherPlot=
-            new ExplanationsProjPlot2D(ruleSet.attrMinMax,attrs,minmax,exList,origRules.rules,coords);
+            new ExplanationsProjPlot2D(ruleSet.attrMinMax,
+                rulesView.getAttrs(),rulesView.getMinMax(),exList,origRules.rules,coords);
         anotherPlot.setPreferredSize(new Dimension(800,800));
         anotherPlot.setSelector(selector);
         anotherPlot.setHighlighter(highlighter);
@@ -1353,7 +1358,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     putHierClustersToTable(topCluster, ch.getSelectedIndex());
     JScrollPane scpDendrogram=getHierClusteringPanel(topCluster, ch.getSelectedIndex());
     ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
-        distanceMatrix,exList,tableView.getRuleRenderer(),ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
+        distanceMatrix,exList, rulesView.getRuleRenderer(),ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
     scpDendrogram.setPreferredSize(new Dimension(100,200));
     JSplitPane splitPane=new JSplitPane(JSplitPane.VERTICAL_SPLIT,clTable.scrollPane,scpDendrogram);
     splitPane.setOneTouchExpandable(true);
@@ -1366,7 +1371,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       public void itemStateChanged(ItemEvent e) {
         putHierClustersToTable(topCluster, ch.getSelectedIndex());
         ClustersTable clTable=new ClustersTable(topCluster.getClustersAtLevel(ch.getSelectedIndex()),
-            distanceMatrix,exList,tableView.getRuleRenderer(),ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
+            distanceMatrix,exList, rulesView.getRuleRenderer(),ruleSet.attrMinMax,minA,maxA,minQ,maxQ);
         splitPane.setTopComponent(clTable.scrollPane);
       }
     });
@@ -1413,7 +1418,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         clAss.minSize=Math.min(n,clAss.minSize);
         clAss.maxSize=Math.max(n,clAss.maxSize);
       }
-      ExListTableModel eTblModel=tableView.getTableModel();
+      ExListTableModel eTblModel= rulesView.getTableModel();
       eTblModel.setCusterAssignments(clAss);
     }
   }
@@ -1956,7 +1961,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     
     double d[][]=CommonExplanation.computeDistances(origList,ruleSet.featuresInDistances,ruleSet.attrMinMax);
   
-    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(ruleSet.attrMinMax,attrs,minmax);
+    ExplanationsProjPlot2D pp=new ExplanationsProjPlot2D(ruleSet.attrMinMax,
+        rulesView.getAttrs(),rulesView.getMinMax());
     pp.setExplanations(origList,origRules.rules);
     pp.setDistanceMatrix(d);
     pp.setFeatures(ruleSet.getSelectedFeatures());
@@ -2113,7 +2119,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     EnsembleExplorer eEx=new EnsembleExplorer();
     eEx.setOwner(this);
     eEx.setFileRegister(createdFiles);
-    JPanel eExPanel=eEx.startEnsembleExplorer(ruleSet.rules,infoArea.getText(),
+    JPanel eExPanel=eEx.startEnsembleExplorer(ruleSet.rules, rulesView.getGeneralInfo(),
         ruleSet.attrMinMax,ruleSet.featuresInDistances);
     if (eExPanel==null)
       return;
@@ -2225,7 +2231,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
               testData.records.size() + " data records.", "Rule application done",
           JOptionPane.INFORMATION_MESSAGE);
       testData.description="Data records with predictions obtained by applying "+rules.size()+" rules "+
-          ((applyToSelection)?"selected from rule set ":"")+"described as "+infoArea.getText();
+          ((applyToSelection)?"selected from rule set ":"")+"described as "+rulesView.getGeneralInfo();
 
       DataTableViewer dViewer=new DataTableViewer(testData,
           ruleSet.listOfFeatures.toArray(new String[ruleSet.listOfFeatures.size()]),this);
@@ -2245,9 +2251,9 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           }
 
       if (dViewFrame!=null)
-        dViewFrame.addDataViewer(dViewer,cMatrix,infoArea.getText());
+        dViewFrame.addDataViewer(dViewer,cMatrix,rulesView.getGeneralInfo());
       else {
-        dViewFrame = new DataVersionsViewer(dViewer,cMatrix,infoArea.getText());
+        dViewFrame = new DataVersionsViewer(dViewer,cMatrix,rulesView.getGeneralInfo());
         dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         if (sharedFrames == null)
           sharedFrames = new ArrayList<JFrame>(20);

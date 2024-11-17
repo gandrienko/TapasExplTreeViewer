@@ -6,6 +6,7 @@ import TapasExplTreeViewer.rules.RuleSet;
 import TapasExplTreeViewer.vis.ExplanationsProjPlot2D;
 import TapasExplTreeViewer.vis.ProjectionPlot2D;
 import TapasUtilities.ItemSelectionManager;
+import TapasUtilities.RenderLabelBarChart;
 import TapasUtilities.SingleHighlightManager;
 import TapasUtilities.TableRowsSelectionManager;
 
@@ -44,14 +45,11 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
    * used for rendering rules in tooltips
    */
   protected Vector<String> attrs=null;
-  protected Vector<float[]> minmax=null;
+  protected Vector<float[]> minMax =null;
 
-  public RulesTableViewer (RuleSet ruleSet) {
+  public RulesTableViewer (RuleSet ruleSet, SingleHighlightManager highlighter, ItemSelectionManager selector) {
     super();
-    this.ruleSet=ruleSet;
-
-    highlighter=new SingleHighlightManager();
-    selector=new ItemSelectionManager();
+    this.ruleSet=ruleSet; this.highlighter=highlighter; this.selector=selector;
 
     makeTable();
 
@@ -82,11 +80,11 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
     ruleSet.listOfFeatures=tblModel.listOfFeatures;
 
     attrs=new Vector(tblModel.listOfFeatures.size());
-    minmax=new Vector<>(tblModel.listOfFeatures.size());
+    minMax =new Vector<>(tblModel.listOfFeatures.size());
     for (int i=0; i<tblModel.listOfFeatures.size(); i++) {
       String s=tblModel.listOfFeatures.get(i);
       attrs.add(s);
-      minmax.add(ruleSet.attrMinMax.get(s));
+      minMax.add(ruleSet.attrMinMax.get(s));
     }
 
     table=new JTable(tblModel) {
@@ -111,7 +109,7 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
               vce.add(ruleSet.getRule((Integer)selected.get(i)));
           }
           try {
-            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, vce, attrs, minmax);
+            BufferedImage bi = ShowSingleRule.getImageForRule(300,100, ce, vce, attrs, minMax);
             File outputfile = new File("img.png");
             ImageIO.write(bi, "png", outputfile);
             //System.out.println("img"+ce.numId+".png");
@@ -200,15 +198,30 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
       }
     });
 
-    ruleRenderer=new JLabel_Rule();
-    attrs=new Vector(tblModel.listOfFeatures.size());
-    minmax=new Vector<>(tblModel.listOfFeatures.size());
-    for (int i=0; i<tblModel.listOfFeatures.size(); i++) {
-      String s=tblModel.listOfFeatures.get(i);
-      attrs.add(s);
-      minmax.add(ruleSet.attrMinMax.get(s));
+    for (int i=0; i<tblModel.getColumnCount(); i++) {
+      if (tblModel.isMinMaxColumn(i)) {
+        JLabel_Subinterval subIntRend = new JLabel_Subinterval();
+        subIntRend.setDrawTexts(true);
+        subIntRend.setPrecision(3);
+        table.getColumnModel().getColumn(i).setCellRenderer(subIntRend);
+      }
+      else
+      if (!tblModel.isClusterColumn(i)) {
+        Class columnClass = tblModel.getColumnClass(i);
+        if (columnClass==null)
+          continue;
+        if (columnClass.equals(Integer.class) ||
+            columnClass.equals(Float.class) ||
+            columnClass.equals(Double.class)) {
+          float min = tblModel.getColumnMin(i), max = tblModel.getColumnMax(i);
+          RenderLabelBarChart rBar = new RenderLabelBarChart(min, max);
+          table.getColumnModel().getColumn(i).setCellRenderer(rBar);
+        }
+      }
     }
-    ruleRenderer.setAttrs(attrs,minmax);
+
+    ruleRenderer=new JLabel_Rule();
+    ruleRenderer.setAttrs(attrs, minMax);
     int rIdx=tblModel.getRuleColumnIdx();
     if (rIdx>=0) {
       table.getColumnModel().getColumn(rIdx).setCellRenderer(ruleRenderer);
@@ -258,6 +271,18 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
 
   public JTable getTable() {
     return table;
+  }
+
+  public String getGeneralInfo () {
+    return infoArea.getText();
+  }
+
+  public Vector<String> getAttrs() {
+    return attrs;
+  }
+
+  public Vector<float[]> getMinMax() {
+    return minMax;
   }
 
   public ExListTableModel getTableModel() {

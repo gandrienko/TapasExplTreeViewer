@@ -45,7 +45,7 @@ public class ClassConfusionMatrix {
     percents=new double[nClasses][nClasses];
     for (int i=0; i<nClasses; i++)
       for (int j=0; j<nClasses; j++)
-        percents[i][j]=100.0*counts[i][j]/classTotals[i];
+        percents[i][j]=(classTotals[i]>0)?100.0*counts[i][j]/classTotals[i]:0;
     return true;
   }
 }

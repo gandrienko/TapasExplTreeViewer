@@ -876,7 +876,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
               frame.pack();
               frame.setSize((int)Math.min(frame.getWidth(),0.7*size.width),
                   (int)Math.min(frame.getHeight(),0.7*size.height));
-              frame.setLocation(size.width-frame.getWidth()-30, size.height-frame.getHeight()-50);
+              frame.setLocationRelativeTo(rulesViewerManager.mainFrame);
               frame.setVisible(true);
               rulesView.addFrame(frame);
             }

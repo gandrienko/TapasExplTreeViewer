@@ -85,14 +85,11 @@ public class DataVersionsViewer extends JFrame {
     // Create the MatrixPainter instance for the percentage matrix
     MatrixPainter percentageMatrixPainter = new MatrixPainter(cMatrix.percents,false);
     percentageMatrixPainter.setShowValues(true);
+    percentageMatrixPainter.setShowColumnTotals(false);
     percentageMatrixPainter.setMinValue(0);
     percentageMatrixPainter.setLabels(labels);
     JScrollPane percentageScrollPane = new JScrollPane(percentageMatrixPainter);
     tabbedPane.addTab("Percentages", percentageScrollPane);
-
-    JPanel p=new JPanel();
-    p.setLayout(new BorderLayout());
-    p.add(tabbedPane, BorderLayout.CENTER);
 
     JTextArea infoArea=new JTextArea("Rule set: "+rulesInfoText);
     infoArea.setLineWrap(true);
@@ -109,7 +106,15 @@ public class DataVersionsViewer extends JFrame {
         String.format(" (%.2f %%)",accuracy)+
         "; number of wrong class assignments: "+(cMatrix.nDataTotal-cMatrix.nSame)+
         String.format(" (%.2f %%)",100.0-accuracy));
-    p.add(infoArea,BorderLayout.SOUTH);
+
+    JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, infoArea);
+    splitPane.setResizeWeight(0.8); // Optional: balance initial position
+    add(splitPane,BorderLayout.CENTER);
+
+    JPanel p=new JPanel();
+    p.setLayout(new BorderLayout());
+    p.add(splitPane,BorderLayout.CENTER);
+
     return p;
   }
 }

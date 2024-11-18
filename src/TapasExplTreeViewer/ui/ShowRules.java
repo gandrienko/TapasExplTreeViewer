@@ -818,43 +818,104 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           //if (selMenu==null)
             //return;
         }
-        CommonExplanation rule=ruleSet.getRule(realRowIndex);
-        String title="Select data for the rule "+
-                rule.numId+", action="+rule.action+
-                ", N records="+rule.getApplicationsCount();
-        JMenuItem selItem = new JMenuItem(title);
-        selItem.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            DataForRuleTableModel dataTblModel=
-                new DataForRuleTableModel(rule,tblModel.listOfFeatures,ruleSet.attrMinMax);
-            JTable dataTbl=new JTable(dataTblModel);
-            Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-            dataTbl.setPreferredScrollableViewportSize(
-                new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
-            dataTbl.setFillsViewportHeight(true);
-            dataTbl.setAutoCreateRowSorter(true);
-            dataTbl.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-            dataTbl.setRowSelectionAllowed(true);
-            dataTbl.setColumnSelectionAllowed(false);
-            for (int i=dataTblModel.columnNames.length; i<dataTblModel.getColumnCount(); i++) {
-              JLabel_Subinterval renderer=new JLabel_Subinterval();
-              renderer.setDrawValues(true);
-              //renderer.setDrawTexts(true);
-              dataTbl.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        if (rulesViewerManager.loadedData!=null && !rulesViewerManager.loadedData.isEmpty()) {
+          CommonExplanation rule = ruleSet.getRule(realRowIndex);
+          String title = "Select data for the rule " +
+              rule.numId + ", action=" + rule.action +
+              ", N records=" + rule.getApplicationsCount();
+          JMenuItem selItem = new JMenuItem(title);
+          selItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              DataSet testData=rulesViewerManager.loadedData.get(0);
+              if (rulesViewerManager.loadedData.size()>1) {
+                //allow the user to select the data version (the versions differ in the classes treated as original)
+                String options[]=new String[rulesViewerManager.loadedData.size()];
+                for (int i=0; i<rulesViewerManager.loadedData.size(); i++)
+                  options[i]=rulesViewerManager.loadedData.get(i).versionLabel;
+                JList list=new JList(options);
+                list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+                list.setSelectedIndex(rulesViewerManager.loadedData.size()-1);
+                JScrollPane scrollPane = new JScrollPane(list);
+                JPanel p=new JPanel();
+                p.setLayout(new BorderLayout());
+                p.add(scrollPane,BorderLayout.CENTER);
+                p.add(new JLabel("Select one of the loaded data sets"),
+                    BorderLayout.NORTH);
+                // Show the JOptionPane with the list inside
+                int result = JOptionPane.showConfirmDialog(
+                    rulesViewerManager.mainFrame,
+                    scrollPane,
+                    "Select dataset version",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+                );
+                if (result!=JOptionPane.OK_OPTION)
+                  return;
+                testData=rulesViewerManager.loadedData.get(list.getSelectedIndex());
+              }
+              ArrayList<DataRecord> data=RuleMaster.selectDataForRule(rule,testData);
+              if (data==null) {
+                JOptionPane.showMessageDialog(rulesViewerManager.mainFrame,
+                    "No data found for the selected rule!","No data found!",
+                    JOptionPane.INFORMATION_MESSAGE);
+                return;
+              }
+              DataSet ds=new DataSet();
+              testData.copyFields(ds);
+              ds.description="Selected data records satisfying the conditions of the rule\n"+
+                  rule.toString();
+              ds.records=data;
+              DataTableViewer dViewer=new DataTableViewer(ds,
+                  ruleSet.listOfFeatures.toArray(new String[ruleSet.listOfFeatures.size()]),
+                  ShowRules.this);
+              Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+              JFrame frame=new JFrame("Selected data for rule "+rule.numId);
+              frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+              frame.getContentPane().add(dViewer);
+              frame.pack();
+              frame.setSize((int)Math.min(frame.getWidth(),0.7*size.width),
+                  (int)Math.min(frame.getHeight(),0.7*size.height));
+              frame.setLocation(size.width-frame.getWidth()-30, size.height-frame.getHeight()-50);
+              frame.setVisible(true);
+              rulesView.addFrame(frame);
             }
-            JScrollPane scrollPane = new JScrollPane(dataTbl);
-            JFrame fr = new JFrame(title);
-            fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
-            //Display the window.
-            fr.pack();
-            fr.setLocationRelativeTo(rulesViewerManager.mainFrame);
-            fr.setVisible(true);
-          }
-        });
-        selMenu.addSeparator();
-        selMenu.add(selItem);
+          });
+          /*
+          selItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+              DataForRuleTableModel dataTblModel =
+                  new DataForRuleTableModel(rule, tblModel.listOfFeatures, ruleSet.attrMinMax);
+              JTable dataTbl = new JTable(dataTblModel);
+              Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
+              dataTbl.setPreferredScrollableViewportSize(
+                  new Dimension(Math.round(size.width * 0.7f), Math.round(size.height * 0.8f)));
+              dataTbl.setFillsViewportHeight(true);
+              dataTbl.setAutoCreateRowSorter(true);
+              dataTbl.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+              dataTbl.setRowSelectionAllowed(true);
+              dataTbl.setColumnSelectionAllowed(false);
+              for (int i = dataTblModel.columnNames.length; i < dataTblModel.getColumnCount(); i++) {
+                JLabel_Subinterval renderer = new JLabel_Subinterval();
+                renderer.setDrawValues(true);
+                //renderer.setDrawTexts(true);
+                dataTbl.getColumnModel().getColumn(i).setCellRenderer(renderer);
+              }
+              JScrollPane scrollPane = new JScrollPane(dataTbl);
+              JFrame fr = new JFrame(title);
+              fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+              fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
+              //Display the window.
+              fr.pack();
+              fr.setLocationRelativeTo(rulesViewerManager.mainFrame);
+              fr.setVisible(true);
+            }
+          });
+          */
+          selMenu.addSeparator();
+          selMenu.add(selItem);
+        }
         selMenu.addSeparator();
         selMenu.add(new JMenuItem("Cancel"));
         selMenu.show(table,e.getX(),e.getY());

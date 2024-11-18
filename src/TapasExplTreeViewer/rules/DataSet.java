@@ -31,11 +31,7 @@ public class DataSet {
 
   public DataSet makeNewVersion() {
     DataSet ds=new DataSet();
-    ds.previousVersion=this;
-    ds.filePath=filePath;
-    ds.fieldNames=fieldNames;
-    ds.idIdx=idIdx; ds.nameIdx=nameIdx; ds.numIdx=numIdx;
-    ds.classLabelIdx=classLabelIdx; ds.classNumIdx=classNumIdx;
+    copyFields(ds);
     if (records!=null && !records.isEmpty()) {
       ds.records = new ArrayList<DataRecord>(records.size());
       for (int i=0; i<records.size(); i++)
@@ -46,6 +42,16 @@ public class DataSet {
     childVersions.add(ds);
     ds.versionLabel=versionLabel+"."+childVersions.size();
     return ds;
+  }
+
+  public void copyFields(DataSet ds) {
+    if (ds==null)
+      return;
+    ds.previousVersion=this;
+    ds.filePath=filePath;
+    ds.fieldNames=fieldNames;
+    ds.idIdx=idIdx; ds.nameIdx=nameIdx; ds.numIdx=numIdx;
+    ds.classLabelIdx=classLabelIdx; ds.classNumIdx=classNumIdx;
   }
   
   /**

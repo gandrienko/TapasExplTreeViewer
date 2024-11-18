@@ -1434,4 +1434,20 @@ public class RuleMaster {
         }
     return applicable;
   }
+
+  public static ArrayList<DataRecord> selectDataForRule(CommonExplanation rule, DataSet data) {
+    if (rule==null || data==null)
+      return null;
+    ArrayList<DataRecord> selectedData=null;
+    for (DataRecord rec:data.records)
+      if (ruleAppliesToDataRecord(rule,rec)) {
+        if (selectedData==null)
+          selectedData=new ArrayList<DataRecord>(data.records.size()/5);
+        DataRecord rec2=rec.makeNewVersion();
+        rec2.predictedClassIdx=rule.action;
+        rec2.predictedValue=rule.meanQ;
+        selectedData.add(rec2);
+      }
+    return selectedData;
+  }
 }

@@ -352,8 +352,8 @@ public class SeeRules {
       String minStr=conditionParts[1].replace("{", "").trim();
       String maxStr=conditionParts[2].replace("}", "").trim();
 
-      float minValue = minStr.equals("-inf") ? Float.NEGATIVE_INFINITY : Float.parseFloat(minStr);
-      float maxValue = maxStr.equals("inf") ? Float.POSITIVE_INFINITY : Float.parseFloat(maxStr);
+      float minValue = minStr.contains("inf") ? Float.NEGATIVE_INFINITY : Float.parseFloat(minStr);
+      float maxValue = maxStr.contains("inf") ? Float.POSITIVE_INFINITY : Float.parseFloat(maxStr);
       if (Float.isInfinite(minValue) && Float.isInfinite(maxValue))
         continue; //this condition is excessive
 

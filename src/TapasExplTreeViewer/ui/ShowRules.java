@@ -288,6 +288,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     double minQ=origRules.minQValue, maxQ=origRules.maxQValue;
   
     rulesView =new RulesTableViewer(ruleSet,highlighter,selector);
+    rulesViewerManager.addRulesViewer(rulesView);
 
     ExListTableModel tblModel= rulesView.getTableModel();
     JTable table= rulesView.getTable();
@@ -396,18 +397,15 @@ public class ShowRules implements RulesPresenter, ChangeListener {
               "Wait...", JOptionPane.WARNING_MESSAGE);
           return;
         }
-        if (clOptics!=null) {
-          JFrame fr = clOptics.showPlot();
-          if (fr != null)
-            fr.toFront();
-        }
+        if (clOptics!=null)
+          rulesView.addFrame(clOptics.showPlot());
         else {
           if (ruleSet.distanceMatrix==null)
             computeDistanceMatrix();
           else
             runOptics((ExListTableModel) table.getModel());
           if (clOptics!=null)
-            clOptics.showPlot();
+            rulesView.addFrame(clOptics.showPlot());
         }
       }
     });
@@ -627,6 +625,17 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     });
 
     menu.addSeparator();
+    if (rulesViewerManager.getViewerIndex(rulesView)>0) {
+      menu.add(mit=new JMenuItem("Remove this rule set"));
+      mit.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          rulesViewerManager.removeRulesViewer(rulesView);
+          rulesView.closeAllFrames();
+        }
+      });
+    }
+
     menu.add(mit=new JMenuItem("Quit"));
     mit.addActionListener(new ActionListener() {
       @Override
@@ -651,6 +660,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       @Override
       public void mouseClicked(MouseEvent e) {
         super.mouseClicked(e);
+        if (e.getButton()>MouseEvent.BUTTON1)
+          return;
         if (e.getClickCount()>1) {
           selector.deselectAll();
           return;
@@ -849,8 +860,6 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         selMenu.show(table,e.getX(),e.getY());
       }
     });
-
-    rulesViewerManager.addRulesViewer(rulesView);
 
     return rulesView;
   }

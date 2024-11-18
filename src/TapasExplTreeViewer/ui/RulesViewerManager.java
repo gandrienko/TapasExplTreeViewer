@@ -34,9 +34,19 @@ public class RulesViewerManager {
   public ArrayList<DataSet> loadedData=null;
   public String dataFolder="";
 
+  public int getRulesViewerCount() {
+    if (viewers==null)
+      return 0;
+    return viewers.size();
+  }
+
   public void addRulesViewer(RulesTableViewer rView) {
     if (rView==null)
       return;
+    if (viewers==null)
+      viewers=new ArrayList<RulesTableViewer>(30);
+    viewers.add(rView);
+
     if (tabPane==null)
       tabPane=new JTabbedPane();
     tabPane.addTab(rView.ruleSet.versionLabel,rView);
@@ -61,6 +71,22 @@ public class RulesViewerManager {
     }
     else
       tabPane.setSelectedComponent(rView);
+  }
+
+  public int getViewerIndex(RulesTableViewer rView) {
+    if (viewers==null)
+      return -1;
+    return viewers.indexOf(rView);
+  }
+
+  public void removeRulesViewer(RulesTableViewer rView) {
+    int idx=getViewerIndex(rView);
+    if (idx<0)
+      return;
+    viewers.remove(idx);
+    tabPane.remove(rView);
+    tabPane.revalidate();
+    tabPane.repaint();
   }
 
   public void addLoadedDataSet(DataSet data) {

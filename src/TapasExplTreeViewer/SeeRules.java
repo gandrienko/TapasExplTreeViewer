@@ -261,8 +261,8 @@ public class SeeRules {
     ShowRules showRules=new ShowRules(exList,attrMinMax);
     if (orderedFeatureNames!=null)
       showRules.ruleSet.setOrderedFeatureNames(orderedFeatureNames);
-    showRules.dataFolder=ShowRules.RULES_FOLDER;
-    JFrame fr=showRules.showRulesInTable();
+    showRules.showRulesInTable();
+    JFrame fr=showRules.getMainFrame();
     if (fr==null) {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);

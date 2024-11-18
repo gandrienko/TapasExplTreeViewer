@@ -40,6 +40,15 @@ public class ShowRules implements RulesPresenter, ChangeListener {
    * The rules or explanations to be visualized
    */
   public RuleSet ruleSet=null;
+  /**
+   * Showing rules of the rule set owned by this instance of ShowRules
+   */
+  public RulesTableViewer rulesView =null;
+  /**
+   * A common manager across all instances of ShowRules that puts rules viewers
+   * in tabs of a single frame
+   */
+  public RulesViewerManager rulesViewerManager=null;
 
   /**
    * The highlighter and selector for the original rule set
@@ -47,56 +56,18 @@ public class ShowRules implements RulesPresenter, ChangeListener {
   public SingleHighlightManager origHighlighter=null;
   public ItemSelectionManager origSelector=null, localSelector=null;
 
-  public RulesTableViewer rulesView =null;
-  
   /**
    * The data instances (cases) the rules apply to.
    */
   public AbstractList<Explanation> dataInstances =null;
-  /**
-   * Data in a simpler format
-   */
-  public DataSet currentData=null;
-  /**
-   * When a new dataset is loaded, the previously loaded ones remain accessible.
-   * This is a list of all loaded datasets.
-   */
-  public ArrayList<DataSet> loadedData=new ArrayList<DataSet>(10);
   /**
    * Rule ordering being obtained from OPTICS
    */
   protected boolean orderingInProgress=false;
   
   protected ClustererByOPTICS clOptics=null;
-  
-  public String dataFolder="";
-  
-  protected JFrame mainFrame=null;
-  /**
-   * Additional frames created by a given instance of ShowRules. These frames are only relevant to this instance
-   * and are therefore closed when the instance is closed.
-   */
-  protected ArrayList<JFrame> frames=null;
-  protected ArrayList<File> createdFiles=null;
-  /**
-   * A top frame is created once for each instance of ShowRules.
-   * When a top frame is closed, all other frames created by this instance of ShowRules
-   * are also closed.
-   * When the last top frame is closed, the temporary files that have been created
-   * are erased.
-   */
-  protected static ArrayList<JFrame> topFrames=null;
-  /**
-   * Frames that can be accessed by all ShowRules instances, e.g., frames showing data versions
-   */
-  protected ArrayList<JFrame> sharedFrames=null;
-  
 
   protected RuleSelector ruleSelector=null;
-  /**
-   * Whether this instance of ShowRules has already created its top frame
-   */
-  protected boolean topFrameCreated=false;
 
   public ShowRules (RuleSet rs) {
     ruleSet=rs;
@@ -171,11 +142,9 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       return ruleSet.rules;
     return null;
   }
-  
-  public ArrayList<CommonExplanation> getOrigRules() {
-    if (origRules!=null)
-      return origRules.rules;
-    return null;
+
+  public void setRulesViewerManager(RulesViewerManager rulesViewerManager) {
+    this.rulesViewerManager = rulesViewerManager;
   }
 
   public void setOrigHighlighter(SingleHighlightManager origHighlighter) {
@@ -190,20 +159,6 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     if (localSelector==null)
       localSelector=(showOriginalRules)?origSelector:new ItemSelectionManager();
     return localSelector;
-  }
-  
-  public void setCreatedFileRegister(ArrayList<File> createdFiles) {
-    if (createdFiles!=null)
-      this.createdFiles=createdFiles;
-  }
-
-  public void setData(DataSet currentData, ArrayList<DataSet> loadedData) {
-    this.currentData= currentData;
-    this.loadedData=loadedData;
-  }
-  
-  public void setSharedFrames(ArrayList<JFrame> sharedFrames) {
-    this.sharedFrames = sharedFrames;
   }
 
   protected JDialog selectFeaturesDialog=null;
@@ -225,8 +180,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       return;
     }
 
-    Window win=(mainFrame!=null)?mainFrame:FocusManager.getCurrentManager().getActiveWindow();
-    selectFeaturesDialog=new JDialog(win, "Select features",
+    selectFeaturesDialog=new JDialog(rulesViewerManager.mainFrame, "Select features",
         Dialog.ModalityType.MODELESS);
     selectFeaturesDialog.setLayout(new BorderLayout());
     selectFeaturesDialog.add(new JLabel("Select features to use in computing distances:"),
@@ -249,7 +203,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       }
     });
     selectFeaturesDialog.pack();
-    selectFeaturesDialog.setLocationRelativeTo(win);
+    selectFeaturesDialog.setLocationRelativeTo(rulesViewerManager.mainFrame);
     selectFeaturesDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     selectFeaturesDialog.setVisible(true);
     selectFeaturesDialog.addWindowListener(new WindowAdapter() {
@@ -312,7 +266,12 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     }
   }
 
-  public JFrame showRulesInTable() {
+  public RulesTableViewer showRulesInTable() {
+    if (rulesViewerManager==null) {
+      rulesViewerManager = new RulesViewerManager();
+      rulesViewerManager.dataFolder=RULES_FOLDER;
+    }
+
     boolean showOriginalRules=ruleSet.equals(origRules);
     if (showOriginalRules)
       origRules.determinePredictionRanges();
@@ -328,12 +287,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     int minA=origRules.minAction, maxA=origRules.maxAction;
     double minQ=origRules.minQValue, maxQ=origRules.maxQValue;
   
-    if (createdFiles==null)
-      createdFiles=new ArrayList<File>(20);
-
     rulesView =new RulesTableViewer(ruleSet,highlighter,selector);
-
-    /**/
 
     ExListTableModel tblModel= rulesView.getTableModel();
     JTable table= rulesView.getTable();
@@ -497,7 +451,6 @@ public class ShowRules implements RulesPresenter, ChangeListener {
             showRules.ruleSet.orderedFeatureNames=ruleSet.orderedFeatureNames;
             showRules.ruleSet.description=ex.size()+" rules obtained by expanded hierarchies of "+
                 rules.size()+((applyToSelection)?" selected":"")+" aggregated rules";
-            showRules.setCreatedFileRegister(createdFiles);
             showRules.countRightAndWrongRuleApplications();
             showRules.showRulesInTable();
           }
@@ -572,7 +525,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     }
     menu.addSeparator();
     JMenuItem mitExportData=new JMenuItem("Export previously loaded data");
-    mitExportData.setEnabled(currentData!=null);
+    mitExportData.setEnabled(rulesViewerManager.currentData!=null);
     mitExportData.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -585,7 +538,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       @Override
       public void actionPerformed(ActionEvent e) {
         applyRulesToData();
-        if (currentData!=null)
+        if (rulesViewerManager.currentData!=null)
           mitExportData.setEnabled(true);
       }
     });
@@ -596,7 +549,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       public void actionPerformed(ActionEvent e) {
         DataSet data=loadData();
         if (data!=null) {
-          currentData=data;
+          rulesViewerManager.currentData=data;
           mitExportData.setEnabled(true);
         }
       }
@@ -678,11 +631,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     mit.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        int result = JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
-            "Sure? Do you want to exit?",
-            "Confirm quitting",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE);
-        if(result == JOptionPane.YES_OPTION) {
-          eraseCreatedFiles();
+        if (rulesViewerManager.mayQuit()) {
+          rulesViewerManager.eraseCreatedFiles();
           System.exit(0);
         }
       }
@@ -888,8 +838,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
             fr.getContentPane().add(scrollPane, BorderLayout.CENTER);
             //Display the window.
             fr.pack();
-            int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
-            fr.setLocation(30+nFrames*30, 30+nFrames*15);
+            fr.setLocationRelativeTo(rulesViewerManager.mainFrame);
             fr.setVisible(true);
           }
         });
@@ -901,77 +850,31 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       }
     });
 
-    JFrame fr = new JFrame(ruleSet.title);
-    fr.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    fr.getContentPane().add(rulesView, BorderLayout.CENTER);
-    //Display the window.
-    fr.pack();
-    int nFrames=((topFrames==null)?0:topFrames.size())+((frames==null)?0:frames.size());
-    fr.setLocation(30+nFrames*30, 30+nFrames*15);
-    fr.setVisible(true);
+    rulesViewerManager.addRulesViewer(rulesView);
 
-    if (topFrameCreated) { //this will not be a top frame
-      if (frames==null)
-        frames=new ArrayList<JFrame>(20);
-      frames.add(fr);
-    }
-    else {
-      if (topFrames==null) {
-        topFrames = new ArrayList<JFrame>(10);
-        sharedFrames= new ArrayList<JFrame>(20);
-      }
-      topFrames.add(fr);
-      topFrameCreated=true;
-    }
-    
-    fr.addWindowListener(new WindowAdapter() {
-      @Override
-      public void windowClosing(WindowEvent e) {
-        super.windowClosing(e);
-        if (topFrames.contains(fr)) {
-          if (frames!=null) {
-            for (int i = 0; i < frames.size(); i++)
-              frames.get(i).dispose();
-            frames.clear();
-          }
-          topFrames.remove(fr);
-          if (topFrames.isEmpty()) {
-            if (sharedFrames!=null)
-              for (JFrame fr:sharedFrames)
-                fr.dispose();
-            eraseCreatedFiles();
-            System.exit(0);
-          }
-        }
-        else
-          if (frames!=null)
-            frames.remove(fr);
-      }
-    });
-    if (fr!=null)
-      fr.toFront();
-    if (mainFrame==null)
-      mainFrame=fr;
-    return fr;
+    return rulesView;
+  }
+
+  public JFrame getMainFrame() {
+    if (rulesViewerManager==null)
+      return null;
+    return rulesViewerManager.mainFrame;
   }
   
   protected ShowRules createShowRulesInstance(ArrayList rules) {
     RuleSet rs=RuleSet.createInstance(rules);
     ruleSet.addChild(rs);
     ShowRules showRules=new ShowRules(rs);
+    showRules.setRulesViewerManager(rulesViewerManager);
     showRules.setDataInstances(dataInstances,rs.actionsDiffer);
-    showRules.setData(currentData,loadedData);
-    showRules.setSharedFrames(sharedFrames);
     showRules.setOrigHighlighter(origHighlighter);
     showRules.setOrigSelector(origSelector);
-    showRules.setCreatedFileRegister(createdFiles);
     rs.setAccThreshold(ruleSet.getAccThreshold());
     rs.setNonSubsumed(ruleSet.nonSubsumed);
     rs.setAggregated(ruleSet.aggregated);
     if (!Double.isNaN(ruleSet.maxQDiff))
       rs.setMaxQDiff(ruleSet.maxQDiff);
     rs.setExpanded(ruleSet.expanded);
-    showRules.setCreatedFileRegister(createdFiles);
     return showRules;
   }
   
@@ -998,13 +901,6 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     return result;
   }
 
-  public void eraseCreatedFiles () {
-    if (createdFiles!=null && !createdFiles.isEmpty())
-      for (File f : createdFiles)
-        f.delete();
-    createdFiles.clear();
-  }
-  
   public JFrame showRuleGlyphs(ArrayList exList,
                                Vector<String> attributes,
                                SingleHighlightManager highlighter,
@@ -1035,9 +931,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         (int)Math.min(plotFrame.getHeight(),0.7*size.height));
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(plotFrame);
+    rulesView.addFrame(plotFrame);
     return plotFrame;
   }
   
@@ -1062,9 +956,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         (int)Math.min(plotFrame.getHeight(),0.75*size.height));
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(plotFrame);
+    rulesView.addFrame(plotFrame);
     return plotFrame;
   }
 
@@ -1114,7 +1006,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     }
     // Defining intervals for feature discretization
     TMrulesDefineSettings tmRulesSettings=new TMrulesDefineSettings(ruleSet.rules,
-        ruleSet.listOfFeatures,ruleSet.attrMinMax,uniqueSortedValues,allValues,dataFolder);
+        ruleSet.listOfFeatures,ruleSet.attrMinMax,uniqueSortedValues,allValues,
+        rulesViewerManager.dataFolder);
     //
     return null;
   }
@@ -1130,7 +1023,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       return null;
     }
     TSNE_Runner tsne=new TSNE_Runner();
-    tsne.setFileRegister(createdFiles);
+    tsne.setFileRegister(rulesViewerManager.createdFiles);
     String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
         "Perplexity (integer; suggested range from 5 to 50) :",
         tsne.getPerplexity());
@@ -1204,10 +1097,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     plotFrame.pack();
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(plotFrame);
- 
+    rulesView.addFrame(plotFrame);
+
     JPopupMenu menu=new JPopupMenu();
     JMenuItem mitExtract=new JMenuItem("Extract the selected subset to a separate view");
     menu.add(mitExtract);
@@ -1264,9 +1155,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         Point p=plotFrame.getLocationOnScreen();
         fr.setLocation(Math.max(10,p.x-30), Math.max(10,p.y-50));
         fr.setVisible(true);
-        if (frames==null)
-          frames=new ArrayList<JFrame>(20);
-        frames.add(fr);
+        rulesView.addFrame(fr);
       }
     });
   
@@ -1391,9 +1280,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         Math.min(frame.getHeight(),Math.round(0.8f*size.height))));
     frame.setLocation(size.width-frame.getWidth()-30, size.height-frame.getHeight()-50);
     frame.setVisible(true);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(frame);
+    rulesView.addFrame(frame);
     return frame;
   }
 
@@ -1609,8 +1496,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     showRules.ruleSet.description=showRules.ruleSet.title=excluded.size()+
         " contradictory rules extracted and removed from the set of "+
         exList.size()+((exList.equals(origRules))?" original rules":" earlier selected or derived rules");
-    JFrame frame=showRules.showRulesInTable();
-    frame.setTitle("Excluded contradictory rules");
+    showRules.showRulesInTable();
   }
 
   private long aggrT0=-1;
@@ -1937,7 +1823,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     }
     
     TSNE_Runner tsne=new TSNE_Runner();
-    tsne.setFileRegister(createdFiles);
+    tsne.setFileRegister(rulesViewerManager.createdFiles);
     String value=JOptionPane.showInputDialog(FocusManager.getCurrentManager().getActiveWindow(),
         "Perplexity (integer; suggested range from 5 to 50) :",
         tsne.getPerplexity());
@@ -1998,10 +1884,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     plotFrame.pack();
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(plotFrame);
-  
+    rulesView.addFrame(plotFrame);
+
     JPopupMenu menu=new JPopupMenu();
     
     JMenuItem mitSelectLinked=new JMenuItem("Select linked items");
@@ -2118,7 +2002,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       return;
     EnsembleExplorer eEx=new EnsembleExplorer();
     eEx.setOwner(this);
-    eEx.setFileRegister(createdFiles);
+    eEx.setFileRegister(rulesViewerManager.createdFiles);
     JPanel eExPanel=eEx.startEnsembleExplorer(ruleSet.rules, rulesView.getGeneralInfo(),
         ruleSet.attrMinMax,ruleSet.featuresInDistances);
     if (eExPanel==null)
@@ -2130,9 +2014,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     plotFrame.setSize(500,500);
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, 100);
     plotFrame.setVisible(true);
-    if (frames==null)
-      frames=new ArrayList<JFrame>(20);
-    frames.add(plotFrame);
+    rulesView.addFrame(plotFrame);
   }
 
   public DataSet loadData() {
@@ -2153,19 +2035,13 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         JOptionPane.INFORMATION_MESSAGE);
     data.description="Set with "+data.records.size()+" original data records loaded from file "+
         data.filePath;
-    if (loadedData==null)
-      loadedData=new ArrayList<DataSet>(10);
-    if (loadedData.size()>0)
-      data.versionLabel=new Character((char)('A'+loadedData.size())).toString();
-    loadedData.add(data);
-    
+    rulesViewerManager.addLoadedDataSet(data);
+
     DataTableViewer dViewer=new DataTableViewer(data,
         ruleSet.listOfFeatures.toArray(new String[ruleSet.listOfFeatures.size()]),this);
     DataVersionsViewer dViewFrame=new DataVersionsViewer(dViewer,null,null);
     dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    if (sharedFrames==null)
-      sharedFrames=new ArrayList<JFrame>(20);
-    sharedFrames.add(dViewFrame);
+    rulesViewerManager.addSharedFrame(dViewFrame);
     return data;
   }
 
@@ -2178,53 +2054,42 @@ public class ShowRules implements RulesPresenter, ChangeListener {
                 ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,localSelector):ruleSet.rules;
     DataSet testData;
-    if (currentData==null) {
-      currentData=loadData();
-      if (currentData== null)
-        return;
-      testData=currentData.makeNewVersion();
-    }
+    ArrayList<DataSet> dataSets=rulesViewerManager.getDataSetsList();
+    if (dataSets==null || dataSets.isEmpty())
+      testData=rulesViewerManager.currentData=loadData();
+    else
+    if (dataSets.size()==1)
+      testData=dataSets.get(0);
     else {
-      if (loadedData.size()>1 || currentData.previousVersion!=null) {
-        //allow the user to select the data version (the versions differ in the classes treated as original)
-        ArrayList<DataSet> dataSets=new ArrayList<DataSet>(20);
-        dataSets.add(currentData);
-        DataSet prev=currentData.previousVersion;
-        while (prev!=null) {
-          dataSets.add(prev);
-          prev=prev.previousVersion;
-        }
-        DataSet.putAllVersionsInList(dataSets.get(dataSets.size()-1),dataSets);
-        for (DataSet ds:loadedData)
-          if (!dataSets.contains(ds))
-            DataSet.putAllVersionsInList(ds,dataSets);
-        String options[]=new String[dataSets.size()];
-        for (int i=0; i<dataSets.size(); i++)
-          options[i]=dataSets.get(i).versionLabel;
-        JList list=new JList(options);
-        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        list.setSelectedIndex(0);
-        JScrollPane scrollPane = new JScrollPane(list);
-        JPanel p=new JPanel();
-        p.setLayout(new BorderLayout());
-        p.add(scrollPane,BorderLayout.CENTER);
-        p.add(new JLabel("Select one of the data versions with true or predicted classes or values"),
-            BorderLayout.NORTH);
-        // Show the JOptionPane with the list inside
-        int result = JOptionPane.showConfirmDialog(
-            mainFrame,
-            scrollPane,
-            "Select dataset version",
-            JOptionPane.OK_CANCEL_OPTION,
-            JOptionPane.PLAIN_MESSAGE
-        );
-        if (result!=JOptionPane.OK_OPTION)
-          return;
-        testData=dataSets.get(list.getSelectedIndex()).makeNewVersion();
-      }
-      else
-        testData=currentData.makeNewVersion();
+      //allow the user to select the data version (the versions differ in the classes treated as original)
+      String options[]=new String[dataSets.size()];
+      for (int i=0; i<dataSets.size(); i++)
+        options[i]=dataSets.get(i).versionLabel;
+      JList list=new JList(options);
+      list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+      list.setSelectedIndex(0);
+      JScrollPane scrollPane = new JScrollPane(list);
+      JPanel p=new JPanel();
+      p.setLayout(new BorderLayout());
+      p.add(scrollPane,BorderLayout.CENTER);
+      p.add(new JLabel("Select one of the data versions with true or predicted classes or values"),
+          BorderLayout.NORTH);
+      // Show the JOptionPane with the list inside
+      int result = JOptionPane.showConfirmDialog(
+          rulesViewerManager.mainFrame,
+          scrollPane,
+          "Select dataset version",
+          JOptionPane.OK_CANCEL_OPTION,
+          JOptionPane.PLAIN_MESSAGE
+      );
+      if (result!=JOptionPane.OK_OPTION)
+        return;
+      testData=dataSets.get(list.getSelectedIndex());
     }
+    if (testData==null)
+      return;
+    testData=testData.makeNewVersion();
+
     if (RuleMaster.applyRulesToData(rules,testData.records)) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Completed application of " + rules.size() + " rules to " +
@@ -2241,27 +2106,18 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         cMatrix=null;
 
       DataSet origData=testData.getOriginalVersion();
-      DataVersionsViewer dViewFrame=null;
-      if (sharedFrames!=null)
-        for (int i=0; i<sharedFrames.size() && dViewFrame==null; i++)
-          if (sharedFrames.get(i) instanceof DataVersionsViewer) {
-            DataVersionsViewer dv=(DataVersionsViewer)sharedFrames.get(i);
-            if (dv.origData.equals(origData))
-              dViewFrame=dv;
-          }
 
+      DataVersionsViewer dViewFrame=rulesViewerManager.findDataViewFrame(origData);
       if (dViewFrame!=null)
         dViewFrame.addDataViewer(dViewer,cMatrix,rulesView.getGeneralInfo());
       else {
         dViewFrame = new DataVersionsViewer(dViewer,cMatrix,rulesView.getGeneralInfo());
         dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        if (sharedFrames == null)
-          sharedFrames = new ArrayList<JFrame>(20);
-        sharedFrames.add(dViewFrame);
+        rulesViewerManager.addSharedFrame(dViewFrame);
       }
 
       if (!applyToSelection)
-        currentData=testData;
+        rulesViewerManager.currentData=testData;
     }
     else
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
@@ -2270,7 +2126,9 @@ public class ShowRules implements RulesPresenter, ChangeListener {
   }
 
   public void exportDataToCSVFile() {
-    if (currentData==null || currentData.records==null || currentData.records.isEmpty()) {
+    if (rulesViewerManager.currentData==null ||
+        rulesViewerManager.currentData.records==null ||
+        rulesViewerManager.currentData.records.isEmpty()) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "No data have been loaded in the system!","No data",
           JOptionPane.INFORMATION_MESSAGE);
@@ -2279,7 +2137,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     String pathName=CSVDataLoader.selectFilePathThroughDialog(false);
     if (pathName==null)
       return;
-    if (currentData.exportToCSV(pathName))
+    if (rulesViewerManager.currentData.exportToCSV(pathName))
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Successfully exported the data to file "+pathName,"Data exported",
           JOptionPane.INFORMATION_MESSAGE);

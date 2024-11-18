@@ -17,10 +17,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -46,6 +43,12 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
    */
   protected Vector<String> attrs=null;
   protected Vector<float[]> minMax =null;
+  /**
+   * Additional frames created by the instance of ShowRules that owns the RulesTableViewer.
+   * These frames are only relevant to this instance
+   * and are therefore closed when the instance is closed.
+   */
+  protected ArrayList<JFrame> frames=null;
 
   public RulesTableViewer (RuleSet ruleSet, SingleHighlightManager highlighter, ItemSelectionManager selector) {
     super();
@@ -59,7 +62,7 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
     infoArea.setWrapStyleWord(true);
 
     JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scrollPane, infoArea);
-    splitPane.setResizeWeight(0.9); // balance initial position
+    splitPane.setResizeWeight(0.95); // balance initial position
 
     setLayout(new BorderLayout());
     add(splitPane,BorderLayout.CENTER);
@@ -68,7 +71,7 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
       @Override
       public void componentShown(ComponentEvent e) {
         super.componentShown(e);
-        splitPane.setDividerLocation(0.9);
+        splitPane.setDividerLocation(0.95);
         owner.removeComponentListener(this);
       }
     });
@@ -305,5 +308,30 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
         order[k++]=idx;
     }
     return order;
+  }
+
+  public void addFrame(JFrame frame) {
+    if (frame==null)
+      return;
+    if (frames==null)
+      frames=new ArrayList<JFrame>(20);
+    frames.add(frame);
+    frame.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowClosing(WindowEvent e) {
+        super.windowClosing(e);
+        if (frames!=null)
+          frames.remove(frame);
+      }
+    });
+    frame.toFront();
+  }
+
+  public void closeAllFrames() {
+    if (frames==null)
+      return;
+    for (JFrame frame:frames)
+      frame.dispose();
+    frames.clear();
   }
 }

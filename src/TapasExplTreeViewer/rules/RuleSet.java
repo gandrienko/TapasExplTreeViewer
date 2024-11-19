@@ -1,6 +1,7 @@
 package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
+import TapasDataReader.ExplanationItem;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -110,6 +111,94 @@ public class RuleSet {
       determinePredictionRanges();
     double minmax[]={minQValue,maxQValue};
     return minmax;
+  }
+
+  /**
+   * For each feature, divides its full value range into intervals.
+   * For each interval, counts the number of rules with this feature's range in the rule conditions
+   * overlapping with this interval. This is done for each predicted class (in a case of classification rules)
+   * or for intervals of predicted numeric values (in a case of regression model). For each class or
+   * value intervals, the number of rules that do not involve this feature is also counted.
+   *
+   * @param rules - a (sub)set of rules for which to count frequencies. If null, takes the full set of rules
+   *              from this instance of RuleSet.
+   * @param nFeatureIntervals - in how many intervals the ranges of the feature values need to be divided.
+   * @param nResultIntervals - for a regression model, in how many intervals the range of the predicted values
+   *                         needs to be divided. In a case of classification m odel, this argument is ignored.
+   * @return 2D array of computed frequencies; 1st dimension: features; 2nd dimension: classes or result intervals
+   */
+  public ValuesFrequencies[][] getFeatureValuesDistributions(ArrayList<CommonExplanation> rules,
+                                                             int nFeatureIntervals, int nResultIntervals) {
+    if (rules==null)
+      rules=this.rules;
+    if (rules==null || attrMinMax==null)
+      return null;
+    if (!actionsDiffer && (Double.isNaN(minQValue) || minQValue>=maxQValue))
+      return null;
+    ArrayList<String> fNames=(orderedFeatureNames!=null)?orderedFeatureNames:listOfFeatures;
+    if (fNames==null) {
+      fNames=new ArrayList<String>(attrMinMax.size());
+      for (String name:attrMinMax.keySet())
+        fNames.add(name);
+    }
+    else {
+      fNames=(ArrayList<String>) fNames.clone();
+      for (int j=fNames.size()-1; j>=0; j--)
+        if (!attrMinMax.containsKey(fNames.get(j)))
+          fNames.remove(j);
+    }
+    int nFeatures=fNames.size();
+    int nClasses=(actionsDiffer)?maxAction-minAction+1:nResultIntervals;
+
+    double qValueBreaks[]=null;
+    if (!actionsDiffer) {
+      qValueBreaks=new double[nResultIntervals-1];
+      double delta=(maxQValue-minQValue)/nResultIntervals;
+      qValueBreaks[0]=minQValue+delta;
+      for (int i=1; i<qValueBreaks.length; i++)
+        qValueBreaks[i]=qValueBreaks[i-1]+delta;
+    }
+
+    ValuesFrequencies freq[][]=new ValuesFrequencies[nFeatures][nClasses];
+    for (int i=0; i<nFeatures; i++) {
+      String featureName=fNames.get(i);
+      float minmax[]=attrMinMax.get(featureName);
+      double fBreaks[]=new double[nFeatureIntervals-1];
+      double delta=((double)minmax[1]-(double)minmax[0])/nResultIntervals;
+      fBreaks[0]=minmax[0]+delta;
+      for (int j=1; j<fBreaks.length; j++)
+        fBreaks[j]=fBreaks[j-1]+delta;
+
+      freq[i]=new ValuesFrequencies[nClasses];
+      for (int j=0; j<nClasses; j++) {
+        freq[i][j]=new ValuesFrequencies();
+        freq[i][j].featureName = featureName;
+        freq[i][j].breaks=fBreaks;
+        if (actionsDiffer)
+          freq[i][j].classIdx=minAction+i;
+        else {
+          freq[i][j].resultMinMax=new double[2];
+          freq[i][j].resultMinMax[0]=(i==0)?minQValue:qValueBreaks[i-1];
+          freq[i][j].resultMinMax[1]=(i<qValueBreaks.length)?qValueBreaks[i]:maxQValue;
+          freq[i][j].lowHigh=(i==0)?-1:(i<qValueBreaks.length)?0:1;
+        }
+      }
+    }
+
+    for (CommonExplanation rule:rules) {
+      int clIdx=(actionsDiffer)?rule.action-minAction:-1;
+      if (clIdx<0) {
+        if (Double.isNaN(rule.meanQ))
+          continue;
+        for (clIdx=0; clIdx<qValueBreaks.length; clIdx++)
+          if (rule.meanQ<qValueBreaks[clIdx])
+            break;
+      }
+      for (int fIdx=0; fIdx<nFeatures; fIdx++)
+        freq[fIdx][clIdx].countFeatureValuesInterval(rule.getFeatureInterval(fNames.get(fIdx)));
+    }
+
+    return freq;
   }
 
   public void setNonSubsumed(boolean nonSubsumed) {

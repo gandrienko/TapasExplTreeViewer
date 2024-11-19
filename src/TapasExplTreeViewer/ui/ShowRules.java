@@ -361,6 +361,14 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       }
     });
 
+    menu.add(mit=new JMenuItem("Show distributions of feature values"));
+    mit.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        showFeatureIntervalsDistributions();
+      }
+    });
+
     menu.add(mit=new JMenuItem("Apply topic modelling"));
     mit.addActionListener(new ActionListener() {
       @Override
@@ -2215,5 +2223,50 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to export the data!","Export failed",
           JOptionPane.ERROR_MESSAGE);
+  }
+
+  public void showFeatureIntervalsDistributions() {
+    boolean applyToSelection=localSelector!=null &&
+        localSelector.hasSelection() &&
+        JOptionPane.showConfirmDialog(FocusManager.getCurrentManager().getActiveWindow(),
+            "Use only the selected subset of the rules?",
+            "Use selected rules?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
+            ==JOptionPane.YES_OPTION;
+    ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,localSelector):ruleSet.rules;
+    ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(rules,25,10);
+    if (freq==null || freq.length<1) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to count the frequencies of the feature values!","No frequencies obtained!",
+          JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    //create an instance of HeatmapDrawer for each class or interval of predicted values
+    int nClasses=freq[0].length, nFeatures=freq.length, nIntervals=freq[0][0].breaks.length+1;
+    MultiHeatmapPanel hmPanel=new MultiHeatmapPanel();
+    for (int cIdx=0; cIdx<nClasses; cIdx++) {
+      int counts[][]=new int[nFeatures][];
+      String featureNames[]=new String[nFeatures];
+      for (int fIdx=0; fIdx<nFeatures; fIdx++) {
+        featureNames[fIdx]=freq[fIdx][cIdx].featureName;
+        counts[cIdx]=freq[fIdx][cIdx].counts;
+        if (counts[cIdx]==null) {
+          //make an array of zeros
+          counts[cIdx]=new int[nIntervals];
+          for (int i=0; i<nIntervals; i++)
+            counts[cIdx][i]=0;
+          freq[fIdx][cIdx].counts=counts[cIdx];
+        }
+      }
+      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,"values","features",featureNames);
+      hmPanel.addHeatmap(hmDraw,"Class "+cIdx);
+    }
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    JFrame plotFrame=new JFrame("Feature values distributions");
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add(hmPanel);
+    plotFrame.setSize(Math.round(0.7f*size.width),Math.round(0.7f*size.height));
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
+    plotFrame.setVisible(true);
+    rulesView.addFrame(plotFrame);
   }
 }

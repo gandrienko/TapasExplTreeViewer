@@ -2,16 +2,22 @@ package TapasExplTreeViewer.vis;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.util.Map;
 
 public class HeatmapDrawer extends JPanel {
 
-  private String xAxisLabel=null;
-  private String yAxisLabel=null;
-  private double[][] frequencies=null; // 2D array of frequencies
+  private String title=null, xAxisLabel=null, yAxisLabel=null;
   private int counts[][]=null;
   private int absMax=0;
+  private double breaks[][]=null;
   private String[] yLabels=null; // Labels for y-axis (e.g., features or classes)
+  private double[][] frequencies=null; // 2D array of frequencies
+
+  private int leftMargin = 100, rightMargin=0, topMargin=0, bottomMargin=15; // Margins for labels and axes
+  private int cellWidth=0, cellHeight=0; //to be computed when drawn
+
   public static Color minColor = new Color(255, 255, 200); // Light yellow
   public static Color maxColor = new Color(150, 0, 0); // Dark red
 
@@ -24,9 +30,14 @@ public class HeatmapDrawer extends JPanel {
    * @param yLabels Labels for y-axis (e.g., features or classes).
    */
   public HeatmapDrawer(int[][] counts, int absMaxCount,
+                       double breaks[][],
+                       String title,
                        String xAxisLabel,
                        String yAxisLabel,
                        String[] yLabels) {
+    this.counts=counts;
+    this.breaks=breaks;
+    this.title=title;
     this.xAxisLabel = xAxisLabel;
     this.yAxisLabel = yAxisLabel;
     this.counts=counts;
@@ -42,6 +53,14 @@ public class HeatmapDrawer extends JPanel {
       for (int j=0; j<counts[i].length; j++)
         frequencies[i][j]=(absMaxCount==0)?0:1.0*counts[i][j]/absMaxCount;
     this.yLabels = yLabels;
+
+    setToolTipText(""); // Enables the tooltip mechanism
+    addMouseMotionListener(new MouseMotionAdapter() {
+      @Override
+      public void mouseMoved(MouseEvent e) {
+        updateTooltip(e);
+      }
+    });
   }
 
   public Dimension getMinumumSize() {
@@ -56,12 +75,11 @@ public class HeatmapDrawer extends JPanel {
     int panelWidth = getWidth();
     int panelHeight = getHeight();
 
-    int leftMargin = 100, rightMargin=0, topMargin=0, bottomMargin=15; // Margins for labels and axes
     int heatmapWidth = panelWidth - leftMargin-rightMargin;
     int heatmapHeight = panelHeight - topMargin  - bottomMargin;
 
-    int cellWidth = heatmapWidth / frequencies[0].length;
-    int cellHeight = heatmapHeight / frequencies.length;
+    cellWidth = heatmapWidth / frequencies[0].length;
+    cellHeight = heatmapHeight / frequencies.length;
 
     if (cellWidth>2 && cellHeight>2) {
       // Draw heatmap cells
@@ -126,5 +144,38 @@ public class HeatmapDrawer extends JPanel {
     int green = (int) (minColor.getGreen() + value * (maxColor.getGreen() - minColor.getGreen()));
     int blue = (int) (minColor.getBlue() + value * (maxColor.getBlue() - minColor.getBlue()));
     return new Color(red, green, blue);
+  }
+
+  private void updateTooltip(MouseEvent e) {
+    if (cellWidth<2 || cellHeight<2) {
+      setToolTipText(null);
+    }
+
+    int col = (e.getX()-leftMargin) / cellWidth;
+    int row = (e.getY()-topMargin) / cellHeight;
+
+    if (col >= 0 && col < counts[0].length && row >= 0 && row < counts.length) {
+      String rowLabel = yLabels[row];
+      double min=0, max=0;
+      if (breaks!=null) {
+        min=(col==0)?Double.NEGATIVE_INFINITY:breaks[row][col-1];
+        max=(col>=breaks.length)?Double.POSITIVE_INFINITY:breaks[row][col];
+      }
+      setToolTipText(formatTooltip(title, rowLabel, min,max, counts[row][col]));
+    } else {
+      setToolTipText(null); // Disable tooltip when outside cells
+    }
+  }
+
+  private String formatTooltip(String title, String rowLabel, double minVal,
+                               double maxVal, int count) {
+    return String.format(
+        "<html>" +
+            "<b>%s + %s:</b><br>" +
+            "Interval of feature values: [%.3f..%.3f]<br>" +
+            "Count: %d out of %d" +
+            "</html>",
+        title, rowLabel, minVal, maxVal, count, absMax
+    );
   }
 }

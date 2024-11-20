@@ -2243,8 +2243,11 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     int nClasses=freq[0].length, nFeatures=freq.length, nIntervals=freq[0][0].breaks.length+1;
 
     String featureNames[]=new String[nFeatures], classLabels[]=new String[nClasses];
-    for (int fIdx=0; fIdx<nFeatures; fIdx++)
-      featureNames[fIdx]=freq[fIdx][0].featureName;
+    double featureBreaks[][]=new double[nFeatures][];
+    for (int fIdx=0; fIdx<nFeatures; fIdx++) {
+      featureNames[fIdx] = freq[fIdx][0].featureName;
+      featureBreaks[fIdx]=freq[fIdx][0].breaks;
+    }
 
     //create an instance of HeatmapDrawer for each class or interval of predicted values
     MultiHeatmapPanel hmPanelClasses=new MultiHeatmapPanel();
@@ -2263,18 +2266,22 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           freq[fIdx][cIdx].counts=counts[fIdx];
         }
       }
-      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,"feature values",null,featureNames);
+      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,featureBreaks,
+          classLabels[cIdx],"feature values",null,featureNames);
       hmPanelClasses.addHeatmap(hmDraw,classLabels[cIdx]);
     }
     MultiHeatmapPanel hmPanelFeatures=new MultiHeatmapPanel();
     for (int fIdx=0; fIdx<nFeatures; fIdx++) {
       int counts[][]=new int[nClasses][];
       int nRulesCounted=0;
+      double breaks[][]=new double[nClasses][];
       for (int cIdx=0; cIdx<nClasses; cIdx++) {
+        breaks[cIdx]=featureBreaks[fIdx]; //all are the same
         counts[cIdx] = freq[fIdx][cIdx].counts;
         nRulesCounted=Math.max(nRulesCounted,freq[fIdx][cIdx].nCounted);
       }
-      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,"feature values",null,classLabels);
+      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,breaks,
+          featureNames[fIdx],"feature values",null,classLabels);
       hmPanelFeatures.addHeatmap(hmDraw,featureNames[fIdx]);
     }
     JTabbedPane tabbedPane=new JTabbedPane();

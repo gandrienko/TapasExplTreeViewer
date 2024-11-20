@@ -52,7 +52,7 @@ public class RulesViewerManager {
     tabPane.addTab(rView.ruleSet.versionLabel,rView);
     if (mainFrame==null) {
       mainFrame=new JFrame("Rules explorer");
-      mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+      mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
       mainFrame.getContentPane().add(tabPane, BorderLayout.CENTER);
       Dimension d=Toolkit.getDefaultToolkit().getScreenSize();
       mainFrame.setSize(Math.round(0.8f*d.width), Math.round(0.8f*d.height));
@@ -63,6 +63,7 @@ public class RulesViewerManager {
         public void windowClosing(WindowEvent e) {
           if (mayQuit()) {
             super.windowClosing(e);
+            mainFrame.dispose();
             eraseCreatedFiles();
             System.exit(0);
           }

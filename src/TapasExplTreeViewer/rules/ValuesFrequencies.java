@@ -52,7 +52,7 @@ public class ValuesFrequencies {
         for (int i=0; i<breaks.length && fromTo[0]>=breaks[i]; i++)
           i0=i+1;
       int iEnd=(Double.isInfinite(fromTo[1]))?breaks.length:i0;
-      for (int i=iEnd; i<breaks.length && fromTo[1]>=breaks[i]; i++)
+      for (int i=iEnd; i<breaks.length && fromTo[1]>breaks[i]; i++)
         iEnd=i+1;
       for (int i=i0; i<=iEnd; i++)
         ++counts[i];

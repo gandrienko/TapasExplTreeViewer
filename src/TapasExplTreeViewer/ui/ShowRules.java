@@ -2233,7 +2233,23 @@ public class ShowRules implements RulesPresenter, ChangeListener {
             "Use selected rules?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE)
             ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,localSelector):ruleSet.rules;
-    ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(rules,25,10);
+
+    int nFeatureIntervals=10;
+    String input = JOptionPane.showInputDialog(rulesViewerManager.mainFrame,
+        "Enter the number of intervals for dividing the feature value ranges:", nFeatureIntervals);
+    try {
+      int intervals = Integer.parseInt(input);
+      if (intervals <= 0) {
+        throw new NumberFormatException();
+      }
+      nFeatureIntervals = intervals;
+    } catch (NumberFormatException ex) {
+      JOptionPane.showMessageDialog(rulesViewerManager.mainFrame,
+          "Invalid number of intervals. Please enter a positive integer.",
+          "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(rules,nFeatureIntervals,10);
     if (freq==null || freq.length<1) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to count the frequencies of the feature values!","No frequencies obtained!",

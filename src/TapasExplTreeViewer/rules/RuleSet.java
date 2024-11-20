@@ -1,7 +1,6 @@
 package TapasExplTreeViewer.rules;
 
 import TapasDataReader.CommonExplanation;
-import TapasDataReader.ExplanationItem;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -159,13 +158,15 @@ public class RuleSet {
         qValueBreaks[i]=qValueBreaks[i-1]+delta;
     }
 
+    if (nFeatureIntervals<3) nFeatureIntervals=3;
+
     ValuesFrequencies freq[][]=new ValuesFrequencies[nFeatures][nClasses];
     for (int i=0; i<nFeatures; i++) {
       String featureName=fNames.get(i);
       float minmax[]=attrMinMax.get(featureName);
       double fBreaks[]=new double[nFeatureIntervals-1];
-      double delta=((double)minmax[1]-(double)minmax[0])/nResultIntervals;
-      fBreaks[0]=minmax[0]+delta;
+      double delta=((double)minmax[1]-(double)minmax[0])/(fBreaks.length-1);
+      fBreaks[0]=minmax[0];
       for (int j=1; j<fBreaks.length; j++)
         fBreaks[j]=fBreaks[j-1]+delta;
 
@@ -175,12 +176,12 @@ public class RuleSet {
         freq[i][j].featureName = featureName;
         freq[i][j].breaks=fBreaks;
         if (actionsDiffer)
-          freq[i][j].classIdx=minAction+i;
+          freq[i][j].action =minAction+j;
         else {
           freq[i][j].resultMinMax=new double[2];
-          freq[i][j].resultMinMax[0]=(i==0)?minQValue:qValueBreaks[i-1];
-          freq[i][j].resultMinMax[1]=(i<qValueBreaks.length)?qValueBreaks[i]:maxQValue;
-          freq[i][j].lowHigh=(i==0)?-1:(i<qValueBreaks.length)?0:1;
+          freq[i][j].resultMinMax[0]=(j==0)?minQValue:qValueBreaks[j-1];
+          freq[i][j].resultMinMax[1]=(j<qValueBreaks.length)?qValueBreaks[j]:maxQValue;
+          freq[i][j].lowHigh=(j==0)?-1:(j<qValueBreaks.length)?0:1;
         }
       }
     }

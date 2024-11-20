@@ -2240,30 +2240,51 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           JOptionPane.ERROR_MESSAGE);
       return;
     }
-    //create an instance of HeatmapDrawer for each class or interval of predicted values
     int nClasses=freq[0].length, nFeatures=freq.length, nIntervals=freq[0][0].breaks.length+1;
-    MultiHeatmapPanel hmPanel=new MultiHeatmapPanel();
+
+    String featureNames[]=new String[nFeatures], classLabels[]=new String[nClasses];
+    for (int fIdx=0; fIdx<nFeatures; fIdx++)
+      featureNames[fIdx]=freq[fIdx][0].featureName;
+
+    //create an instance of HeatmapDrawer for each class or interval of predicted values
+    MultiHeatmapPanel hmPanelClasses=new MultiHeatmapPanel();
     for (int cIdx=0; cIdx<nClasses; cIdx++) {
+      classLabels[cIdx]="Class "+freq[0][cIdx].action;
       int counts[][]=new int[nFeatures][];
-      String featureNames[]=new String[nFeatures];
+      int nRulesCounted=0;
       for (int fIdx=0; fIdx<nFeatures; fIdx++) {
-        featureNames[fIdx]=freq[fIdx][cIdx].featureName;
-        counts[cIdx]=freq[fIdx][cIdx].counts;
-        if (counts[cIdx]==null) {
+        nRulesCounted=Math.max(nRulesCounted,freq[fIdx][cIdx].nCounted);
+        counts[fIdx]=freq[fIdx][cIdx].counts;
+        if (counts[fIdx]==null) {
           //make an array of zeros
-          counts[cIdx]=new int[nIntervals];
+          counts[fIdx]=new int[nIntervals];
           for (int i=0; i<nIntervals; i++)
-            counts[cIdx][i]=0;
-          freq[fIdx][cIdx].counts=counts[cIdx];
+            counts[fIdx][i]=0;
+          freq[fIdx][cIdx].counts=counts[fIdx];
         }
       }
-      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,"values","features",featureNames);
-      hmPanel.addHeatmap(hmDraw,"Class "+cIdx);
+      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,"feature values",null,featureNames);
+      hmPanelClasses.addHeatmap(hmDraw,classLabels[cIdx]);
     }
+    MultiHeatmapPanel hmPanelFeatures=new MultiHeatmapPanel();
+    for (int fIdx=0; fIdx<nFeatures; fIdx++) {
+      int counts[][]=new int[nClasses][];
+      int nRulesCounted=0;
+      for (int cIdx=0; cIdx<nClasses; cIdx++) {
+        counts[cIdx] = freq[fIdx][cIdx].counts;
+        nRulesCounted=Math.max(nRulesCounted,freq[fIdx][cIdx].nCounted);
+      }
+      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,"feature values",null,classLabels);
+      hmPanelFeatures.addHeatmap(hmDraw,featureNames[fIdx]);
+    }
+    JTabbedPane tabbedPane=new JTabbedPane();
+    tabbedPane.addTab("Class-wise",hmPanelClasses);
+    tabbedPane.addTab("Feature-wise",hmPanelFeatures);
+
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     JFrame plotFrame=new JFrame("Feature values distributions");
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    plotFrame.getContentPane().add(hmPanel);
+    plotFrame.getContentPane().add(tabbedPane);
     plotFrame.setSize(Math.round(0.7f*size.width),Math.round(0.7f*size.height));
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);

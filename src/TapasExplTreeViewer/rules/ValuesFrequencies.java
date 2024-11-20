@@ -6,9 +6,9 @@ package TapasExplTreeViewer.rules;
 public class ValuesFrequencies {
   public String featureName=null;
   /**
-   * If the frequencies correspond to a particular predicted class in a classification model
+   * If the frequencies correspond to a particular predicted class or action in a classification model
    */
-  public int classIdx=-1;
+  public int action =-1;
   /**
    * If the frequencies correspond to an interval of predicted values in a regression model
    */
@@ -30,6 +30,10 @@ public class ValuesFrequencies {
    * Count of rules that do not involve this feature
    */
   public int nAbsences=0;
+  /**
+   * Number of rules that have been counted
+   */
+  public int nCounted=0;
 
   public void countFeatureValuesInterval(double fromTo[]) {
     if (fromTo==null)
@@ -37,6 +41,7 @@ public class ValuesFrequencies {
     else {
       if (breaks==null)
         return;
+      ++nCounted;
       if (counts==null) {
         counts=new int[breaks.length+1];
         for (int i=0; i<counts.length; i++)

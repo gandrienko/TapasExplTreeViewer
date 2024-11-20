@@ -11,6 +11,7 @@ public class HeatmapDrawer extends JPanel {
   private String title=null, xAxisLabel=null, yAxisLabel=null;
   private int counts[][]=null;
   private int absMax=0;
+  private int nPresent[]=null, nAbsent[]=null;
   private double breaks[][]=null;
   private String[] yLabels=null; // Labels for y-axis (e.g., features or classes)
   private double[][] frequencies=null; // 2D array of frequencies
@@ -30,12 +31,14 @@ public class HeatmapDrawer extends JPanel {
    * @param yLabels Labels for y-axis (e.g., features or classes).
    */
   public HeatmapDrawer(int[][] counts, int absMaxCount,
+                       int nPresent[], int nAbsent[],
                        double breaks[][],
                        String title,
                        String xAxisLabel,
                        String yAxisLabel,
                        String[] yLabels) {
     this.counts=counts;
+    this.nPresent=nPresent; this.nAbsent=nAbsent;
     this.breaks=breaks;
     this.title=title;
     this.xAxisLabel = xAxisLabel;
@@ -114,8 +117,21 @@ public class HeatmapDrawer extends JPanel {
 
     // Draw y-axis labels
     for (int row = 0; row < yLabels.length; row++) {
-      int x = leftMargin - 10;
+      int x = leftMargin - 2;
       int y = topMargin + row * cellHeight + cellHeight / 2 + fm.getAscent() / 2;
+      if (nPresent!=null && nAbsent!=null) {
+        float sum=nPresent[row]+nAbsent[row];
+        int maxBarW=leftMargin-4, barWidth=Math.round(sum/absMax*maxBarW),
+            includeWidth =Math.round(nPresent[row]/sum*barWidth);
+        // Draw bar
+        g2.setColor(new Color(200, 200, 200)); // Color for rules not including the feature
+        g2.fillRect(x-barWidth, topMargin + row * cellHeight + cellHeight / 4,
+            barWidth, cellHeight / 2);
+        g2.setColor(new Color(100, 200, 100)); // Color for rules including the feature
+        g2.fillRect(x-includeWidth, topMargin + row * cellHeight + cellHeight / 4,
+            includeWidth, cellHeight / 2);
+        g2.setColor(Color.black);
+      }
       g2.drawString(yLabels[row], x - fm.stringWidth(yLabels[row]), y);
     }
 

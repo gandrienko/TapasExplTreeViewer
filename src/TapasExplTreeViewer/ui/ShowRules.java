@@ -2270,9 +2270,12 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     for (int cIdx=0; cIdx<nClasses; cIdx++) {
       classLabels[cIdx]="Class "+freq[0][cIdx].action;
       int counts[][]=new int[nFeatures][];
+      int nPresent[]=new int[nFeatures], nAbsent[]=new int[nFeatures];
       int nRulesCounted=0;
       for (int fIdx=0; fIdx<nFeatures; fIdx++) {
-        nRulesCounted=Math.max(nRulesCounted,freq[fIdx][cIdx].nCounted);
+        nPresent[fIdx]=freq[fIdx][cIdx].nCounted;
+        nAbsent[fIdx]=freq[fIdx][cIdx].nAbsences;
+        nRulesCounted=Math.max(nRulesCounted,nPresent[fIdx]);
         counts[fIdx]=freq[fIdx][cIdx].counts;
         if (counts[fIdx]==null) {
           //make an array of zeros
@@ -2282,21 +2285,24 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           freq[fIdx][cIdx].counts=counts[fIdx];
         }
       }
-      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,featureBreaks,
+      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,nPresent,nAbsent,featureBreaks,
           classLabels[cIdx],"feature values",null,featureNames);
       hmPanelClasses.addHeatmap(hmDraw,classLabels[cIdx]);
     }
     MultiHeatmapPanel hmPanelFeatures=new MultiHeatmapPanel();
     for (int fIdx=0; fIdx<nFeatures; fIdx++) {
       int counts[][]=new int[nClasses][];
+      int nPresent[]=new int[nClasses], nAbsent[]=new int[nClasses];
       int nRulesCounted=0;
       double breaks[][]=new double[nClasses][];
       for (int cIdx=0; cIdx<nClasses; cIdx++) {
         breaks[cIdx]=featureBreaks[fIdx]; //all are the same
         counts[cIdx] = freq[fIdx][cIdx].counts;
+        nPresent[cIdx]=freq[fIdx][cIdx].nCounted;
+        nAbsent[cIdx]=freq[fIdx][cIdx].nAbsences;
         nRulesCounted=Math.max(nRulesCounted,freq[fIdx][cIdx].nCounted);
       }
-      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,breaks,
+      HeatmapDrawer hmDraw=new HeatmapDrawer(counts,nRulesCounted,nPresent,nAbsent,breaks,
           featureNames[fIdx],"feature values",null,classLabels);
       hmPanelFeatures.addHeatmap(hmDraw,featureNames[fIdx]);
     }

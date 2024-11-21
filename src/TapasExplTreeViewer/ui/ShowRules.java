@@ -2310,11 +2310,16 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     tabbedPane.addTab("Class-wise",hmPanelClasses);
     tabbedPane.addTab("Feature-wise",hmPanelFeatures);
 
+    RuleFilterUI filterUI=new RuleFilterUI(ruleSet);
+
+    JSplitPane splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,tabbedPane,filterUI);
+    splitPane.setResizeWeight(0.85); // Optional: balance initial position
+
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
     JFrame plotFrame=new JFrame("Feature values distributions");
     plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    plotFrame.getContentPane().add(tabbedPane);
-    plotFrame.setSize(Math.round(0.7f*size.width),Math.round(0.7f*size.height));
+    plotFrame.getContentPane().add(splitPane);
+    plotFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
     rulesView.addFrame(plotFrame);

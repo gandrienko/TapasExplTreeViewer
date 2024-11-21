@@ -11,7 +11,7 @@ public class HeatmapDrawer extends JPanel {
   private String title=null, xAxisLabel=null, yAxisLabel=null;
   private int counts[][]=null;
   private int absMax=0;
-  private int nPresent[]=null, nAbsent[]=null;
+  private int nPresent[]=null, nAbsent[]=null, maxSum=0;
   private double breaks[][]=null;
   private String[] yLabels=null; // Labels for y-axis (e.g., features or classes)
   private double[][] frequencies=null; // 2D array of frequencies
@@ -21,6 +21,8 @@ public class HeatmapDrawer extends JPanel {
 
   public static Color minColor = new Color(255, 255, 200); // Light yellow
   public static Color maxColor = new Color(150, 0, 0); // Dark red
+  public static Color colorFeatureMiss=new Color(200, 200, 200); // Color for rules not including the feature
+  public static Color colorFeatureUsed=new Color(120, 180, 240); // Color for rules including the feature
 
   /**
    * Constructor for the heatmap drawer.
@@ -120,14 +122,22 @@ public class HeatmapDrawer extends JPanel {
       int x = leftMargin - 2;
       int y = topMargin + row * cellHeight + cellHeight / 2 + fm.getAscent() / 2;
       if (nPresent!=null && nAbsent!=null) {
+        if (maxSum<=0) {
+          maxSum=0;
+          for (int i=0; i<nPresent.length; i++){
+            int sum=nPresent[i]+nAbsent[i];
+            if (maxSum<sum)
+              maxSum=sum;
+          }
+        }
         float sum=nPresent[row]+nAbsent[row];
-        int maxBarW=leftMargin-4, barWidth=Math.round(sum/absMax*maxBarW),
+        int maxBarW=leftMargin-4, barWidth=Math.round(sum/maxSum*maxBarW),
             includeWidth =Math.round(nPresent[row]/sum*barWidth);
         // Draw bar
-        g2.setColor(new Color(200, 200, 200)); // Color for rules not including the feature
+        g2.setColor(colorFeatureMiss); // Color for rules not including the feature
         g2.fillRect(x-barWidth, topMargin + row * cellHeight + cellHeight / 4,
             barWidth, cellHeight / 2);
-        g2.setColor(new Color(100, 200, 100)); // Color for rules including the feature
+        g2.setColor(colorFeatureUsed); // Color for rules including the feature
         g2.fillRect(x-includeWidth, topMargin + row * cellHeight + cellHeight / 4,
             includeWidth, cellHeight / 2);
         g2.setColor(Color.black);
@@ -163,26 +173,53 @@ public class HeatmapDrawer extends JPanel {
   }
 
   private void updateTooltip(MouseEvent e) {
-    if (cellWidth<2 || cellHeight<2) {
-      setToolTipText(null);
+    setToolTipText(null);
+    if (cellWidth<2 || cellHeight<2 || e.getY()<topMargin)
+      return;
+
+    int row = (e.getY() - topMargin) / cellHeight;
+    if (row<0 || row>=counts.length)
+      return;
+
+    String rowLabel = yLabels[row];
+
+    if (e.getX()<leftMargin) {
+      if (nPresent!=null && nAbsent!=null)
+        setToolTipText(formatTooltip(title,rowLabel,nPresent[row],nAbsent[row]));
     }
-
-    int col = (e.getX()-leftMargin) / cellWidth;
-    int row = (e.getY()-topMargin) / cellHeight;
-
-    if (col >= 0 && col < counts[0].length && row >= 0 && row < counts.length) {
-      String rowLabel = yLabels[row];
-      double min=0, max=0;
-      if (breaks!=null) {
-        min=(col==0)?Double.NEGATIVE_INFINITY:breaks[row][col-1];
-        max=(col>=breaks[row].length)?Double.POSITIVE_INFINITY:breaks[row][col];
+    else {
+      int col = (e.getX() - leftMargin) / cellWidth;
+      if (col >= 0 && col < counts[0].length) {
+        double min = 0, max = 0;
+        if (breaks != null) {
+          min = (col == 0) ? Double.NEGATIVE_INFINITY : breaks[row][col - 1];
+          max = (col >= breaks[row].length) ? Double.POSITIVE_INFINITY : breaks[row][col];
+        }
+        double value = frequencies[row][col];
+        Color cellColor = (value == 0) ? Color.white : interpolateColor(minColor, maxColor, value);
+        setToolTipText(formatTooltip(title, rowLabel, min, max, counts[row][col], cellColor));
       }
-      double value = frequencies[row][col];
-      Color cellColor = (value == 0) ? Color.white : interpolateColor(minColor, maxColor, value);
-      setToolTipText(formatTooltip(title, rowLabel, min,max, counts[row][col],cellColor));
-    } else {
-      setToolTipText(null); // Disable tooltip when outside cells
     }
+  }
+
+  private String formatTooltip(String title, String rowLabel, int nInclude, int nMiss) {
+    int sum=nInclude+nMiss;
+    return String.format(
+        "<html><body style=background-color:rgb(255,255,204)>" +
+            "<h3>%s + %s:</h3>" +
+            "<table><tr><td style=background-color:rgb(%d,%d,%d)>" +
+            "Number of rules involving this feature:</td><td><b>%d</b></td><td><b>%.2f</b>%%</td></tr>" +
+            "<tr><td style=background-color:rgb(%d,%d,%d)>" +
+            "Number of rules without this feature:</td><td><b>%d</b></td><td><b>%.2f</b>%%</td></tr>" +
+            "<tr><td>Total number of rules for this class:</td><td><b>%d</b></td></tr>" +
+            "</table></body></html>",
+        title, rowLabel,
+        colorFeatureUsed.getRed(), colorFeatureUsed.getGreen(), colorFeatureUsed.getBlue(),
+        nInclude,100.0*nInclude/sum,
+        colorFeatureMiss.getRed(), colorFeatureMiss.getGreen(), colorFeatureMiss.getBlue(),
+        nMiss,100.0*nMiss/sum,
+        sum
+    );
   }
 
   private String formatTooltip(String title, String rowLabel, double minVal,

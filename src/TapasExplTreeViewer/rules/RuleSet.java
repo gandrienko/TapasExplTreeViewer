@@ -124,19 +124,9 @@ public class RuleSet {
       for (String feature:filters.keySet()) {
         double range[]=rule.getFeatureInterval(feature);
         Object filter=filters.get(feature);
-        if ((filter instanceof String) && filter.toString().equalsIgnoreCase("exclude"))
-          ok=range==null;
-        else
-          if (filter instanceof double[]) {
-            ok=range!=null;
-            if (ok) {
-              double limits[] = (double[]) filter;
-              ok=(Double.isInfinite(limits[0]))?Double.isInfinite(range[0]) || range[0]<limits[1]:
-                  (Double.isInfinite(limits[1]))?Double.isInfinite(range[1]) || range[1]> limits[0]:
-                      !Double.isInfinite(range[0]) && !Double.isInfinite(range[1]) &&
-                          range[0]>=limits[0] && range[1]<=limits[1];
-            }
-          }
+        double limits[]=(filter instanceof double[])?(double[]) filter:null;
+        //ok=doIntervalsOverlap(range,limits);
+        ok=doesLimitsIncludeRange(range,limits);
         if (!ok)
           break;
       }
@@ -145,6 +135,73 @@ public class RuleSet {
     }
 
     return (selected.isEmpty())?null:selected;
+  }
+
+  /**
+   * Checks if two numeric intervals overlap.
+   *
+   * @param range  the first interval [lower, upper]
+   * @param limits the second interval [lower, upper]
+   * @return true if the intervals overlap, false otherwise
+   */
+  public static boolean doIntervalsOverlap(double range[], double limits[]) {
+    if (range==null)
+      return limits==null;
+    if (limits==null)
+      return false;
+    // Handle infinite bounds
+    boolean rangeLowerInfinite = Double.isInfinite(range[0]) && range[0] < 0;
+    boolean rangeUpperInfinite = Double.isInfinite(range[1]) && range[1] > 0;
+    boolean limitsLowerInfinite = Double.isInfinite(limits[0]) && limits[0] < 0;
+    boolean limitsUpperInfinite = Double.isInfinite(limits[1]) && limits[1] > 0;
+    // Check if the intervals do not overlap
+    if (!rangeUpperInfinite && !limitsLowerInfinite && range[1] <= limits[0]) {
+      return false;
+    }
+    if (!limitsUpperInfinite && !rangeLowerInfinite && limits[1] <= range[0]) {
+      return false;
+    }
+
+    // If none of the above conditions are met, the intervals overlap
+    return true;
+  }
+  /**
+   * Checks if the limits interval completely includes the range interval.
+   *
+   * @param range  the first interval [lower, upper] to be checked for inclusion
+   * @param limits the second interval [lower, upper] which is the boundary
+   * @return true if limits includes range, false otherwise
+   */
+  public static boolean doesLimitsIncludeRange(double[] range, double[] limits) {
+    if (range==null)
+      return limits==null;
+    if (limits==null)
+      return false;
+
+    // Handle infinite bounds
+    boolean rangeLowerInfinite = Double.isInfinite(range[0]) && range[0] < 0;
+    boolean rangeUpperInfinite = Double.isInfinite(range[1]) && range[1] > 0;
+    boolean limitsLowerInfinite = Double.isInfinite(limits[0]) && limits[0] < 0;
+    boolean limitsUpperInfinite = Double.isInfinite(limits[1]) && limits[1] > 0;
+
+    // Check if the lower bound of range is within limits
+    if (!limitsLowerInfinite)
+      if (rangeLowerInfinite)
+        return false;
+      else
+        if (range[0] < limits[0])
+          return false;
+
+    // Check if the upper bound of range is within limits
+    if (!limitsUpperInfinite)
+      if (rangeUpperInfinite)
+        return false;
+      else
+        if (range[1] > limits[1])
+          return false;
+
+    // If none of the above conditions are met, range is included in limits
+    return true;
   }
 
   /**

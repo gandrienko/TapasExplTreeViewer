@@ -476,7 +476,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     mitExtract.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(selector,ruleSet.rules,ruleSet.distanceMatrix,ruleSet.attrMinMax);
+        extractSubset(selector,ruleSet.rules,ruleSet.distanceMatrix);
       }
     });
 
@@ -1183,7 +1183,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     mitExtract.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(selector,exList,distanceMatrix,ruleSet.attrMinMax);
+        extractSubset(selector,exList,distanceMatrix);
       }
     });
   
@@ -1401,8 +1401,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
 
   public void extractSubset(ItemSelectionManager selector,
                               ArrayList<CommonExplanation> exList,
-                              double distanceMatrix[][],
-                              Hashtable<String,float[]> attrMinMax) {
+                              double distanceMatrix[][]) {
     ArrayList selected = selector.getSelected();
     if (selected.size() < 1)
       return;
@@ -1991,7 +1990,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     mitExtract.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractSubset(pp.getSelector(),origList,d,ruleSet.attrMinMax);
+        extractSubset(pp.getSelector(),origList,d);
       }
     });
   
@@ -2256,6 +2255,81 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           JOptionPane.ERROR_MESSAGE);
       return;
     }
+
+    Component heatMapPane=createFeatureDistributionsDisplay(freq);
+    if (heatMapPane==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "Failed to generate a display of the distribution of the feature values intervals!",
+          "No display generated!",
+          JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+
+    RuleFilterUI filterUI=new RuleFilterUI(ruleSet);
+
+    JSplitPane splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,heatMapPane,filterUI);
+    splitPane.setResizeWeight(0.85); // Optional: balance initial position
+
+    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
+    JFrame plotFrame=new JFrame("Feature values distributions");
+    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    plotFrame.getContentPane().add(splitPane);
+    plotFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
+    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
+    plotFrame.setVisible(true);
+    rulesView.addFrame(plotFrame);
+
+    int nIntervals=nFeatureIntervals;
+    JFrame filterResultFrame=new JFrame("Query result");
+    filterResultFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    filterResultFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
+    filterResultFrame.setLocation(30, size.height-plotFrame.getHeight()-50);
+    rulesView.addFrame(filterResultFrame);
+
+    filterUI.getApplyFilterButton().addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        Map<String, Object> filters=filterUI.getFilters();
+        if (filters==null)
+          JOptionPane.showMessageDialog(rulesView,
+              "No filter conditions specified!", "No filter!",
+              JOptionPane.INFORMATION_MESSAGE);
+        else {
+          ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters);
+          if (selectedRules==null)
+            JOptionPane.showMessageDialog(rulesView,
+                "No rules satisfying the filter conditions found!", "Empty result!",
+                JOptionPane.INFORMATION_MESSAGE);
+          else {
+            JOptionPane.showMessageDialog(rulesView,
+                selectedRules.size()+" rules satisfying the filter conditions have been selected!",
+                selectedRules.size()+" rules selected",
+                JOptionPane.INFORMATION_MESSAGE);
+            ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(selectedRules,nIntervals,10);
+            if (freq==null || freq.length<1) {
+              JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                  "Failed to count the frequencies of the feature values!","No frequencies obtained!",
+                  JOptionPane.ERROR_MESSAGE);
+              return;
+            }
+
+            Component heatMapPane=createFeatureDistributionsDisplay(freq);
+            if (heatMapPane!=null) {
+              if (filterResultFrame.getContentPane().getComponentCount()>0)
+                filterResultFrame.getContentPane().remove(0);
+              filterResultFrame.getContentPane().add(heatMapPane);
+              filterResultFrame.setVisible(true);
+              filterResultFrame.toFront();
+            }
+          }
+        }
+      }
+    });
+  }
+
+  public JComponent createFeatureDistributionsDisplay(ValuesFrequencies freq[][]) {
+    if (freq==null)
+      return null;
     int nClasses=freq[0].length, nFeatures=freq.length, nIntervals=freq[0][0].breaks.length+1;
 
     String featureNames[]=new String[nFeatures], classLabels[]=new String[nClasses];
@@ -2309,43 +2383,6 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     JTabbedPane tabbedPane=new JTabbedPane();
     tabbedPane.addTab("Class-wise",hmPanelClasses);
     tabbedPane.addTab("Feature-wise",hmPanelFeatures);
-
-    RuleFilterUI filterUI=new RuleFilterUI(ruleSet);
-
-    JSplitPane splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,tabbedPane,filterUI);
-    splitPane.setResizeWeight(0.85); // Optional: balance initial position
-
-    Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    JFrame plotFrame=new JFrame("Feature values distributions");
-    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    plotFrame.getContentPane().add(splitPane);
-    plotFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
-    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
-    plotFrame.setVisible(true);
-    rulesView.addFrame(plotFrame);
-
-    filterUI.getApplyFilterButton().addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        Map<String, Object> filters=filterUI.getFilters();
-        if (filters==null)
-          JOptionPane.showMessageDialog(rulesView,
-              "No filter conditions specified!", "No filter!",
-              JOptionPane.INFORMATION_MESSAGE);
-        else {
-          ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters);
-          if (selectedRules==null)
-            JOptionPane.showMessageDialog(rulesView,
-                "No rules satisfying the filter conditions found!", "Empty result!",
-                JOptionPane.INFORMATION_MESSAGE);
-          else {
-            JOptionPane.showMessageDialog(rulesView,
-                selectedRules.size()+" rules satisfying the filter conditions have been selected!",
-                selectedRules.size()+" rules selected",
-                JOptionPane.INFORMATION_MESSAGE);
-          }
-        }
-      }
-    });
+    return tabbedPane;
   }
 }

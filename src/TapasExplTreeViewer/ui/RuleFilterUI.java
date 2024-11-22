@@ -69,17 +69,25 @@ public class RuleFilterUI extends JPanel {
     add(applyFilterButton, BorderLayout.SOUTH);
   }
 
-  public Map<String, Object> getSelectedFilters() {
+  public Map<String, Object> getFilters() {
     Map<String, Object> filters = new HashMap<>();
     for (String feature : sliders.keySet()) {
       if (checkBoxes.get(feature).isSelected()) {
         filters.put(feature, "exclude");
       } else {
         SliderWithBounds slider = sliders.get(feature);
-        filters.put(feature, new double[]{slider.getLowerValue(), slider.getUpperValue()});
+        double limits[]=new double[]{slider.getLowerValue(), slider.getUpperValue()};
+        if (limits[0]<=slider.getRealMin() && limits[1]>=slider.getRealMax())
+          continue; //no limits for this feature
+        if (limits[0]<=slider.getRealMin())
+          limits[0]=Double.NEGATIVE_INFINITY;
+        else
+          if (limits[1]>=slider.getRealMax())
+            limits[1]=Double.POSITIVE_INFINITY;
+        filters.put(feature,limits);
       }
     }
-    return filters;
+    return (filters.isEmpty())?null:filters;
   }
 
   public JButton getApplyFilterButton() {

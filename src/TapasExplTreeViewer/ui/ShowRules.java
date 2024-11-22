@@ -2323,5 +2323,29 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
     plotFrame.setVisible(true);
     rulesView.addFrame(plotFrame);
+
+    filterUI.getApplyFilterButton().addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        Map<String, Object> filters=filterUI.getFilters();
+        if (filters==null)
+          JOptionPane.showMessageDialog(rulesView,
+              "No filter conditions specified!", "No filter!",
+              JOptionPane.INFORMATION_MESSAGE);
+        else {
+          ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters);
+          if (selectedRules==null)
+            JOptionPane.showMessageDialog(rulesView,
+                "No rules satisfying the filter conditions found!", "Empty result!",
+                JOptionPane.INFORMATION_MESSAGE);
+          else {
+            JOptionPane.showMessageDialog(rulesView,
+                selectedRules.size()+" rules satisfying the filter conditions have been selected!",
+                selectedRules.size()+" rules selected",
+                JOptionPane.INFORMATION_MESSAGE);
+          }
+        }
+      }
+    });
   }
 }

@@ -5,6 +5,7 @@ import TapasDataReader.CommonExplanation;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
 
 public class RuleSet {
   public String versionLabel="R0";
@@ -110,6 +111,40 @@ public class RuleSet {
       determinePredictionRanges();
     double minmax[]={minQValue,maxQValue};
     return minmax;
+  }
+
+  public ArrayList<CommonExplanation> selectRulesByConditionFilters(Map<String,Object> filters) {
+    if (rules==null || rules.isEmpty())
+      return null;
+    if (filters==null || filters.isEmpty())
+      return rules;
+    ArrayList<CommonExplanation> selected=new ArrayList<CommonExplanation>(rules.size()/2);
+    for (CommonExplanation rule:rules) {
+      boolean ok=true;
+      for (String feature:filters.keySet()) {
+        double range[]=rule.getFeatureInterval(feature);
+        Object filter=filters.get(feature);
+        if ((filter instanceof String) && filter.toString().equalsIgnoreCase("exclude"))
+          ok=range==null;
+        else
+          if (filter instanceof double[]) {
+            ok=range!=null;
+            if (ok) {
+              double limits[] = (double[]) filter;
+              ok=(Double.isInfinite(limits[0]))?Double.isInfinite(range[0]) || range[0]<limits[1]:
+                  (Double.isInfinite(limits[1]))?Double.isInfinite(range[1]) || range[1]> limits[0]:
+                      !Double.isInfinite(range[0]) && !Double.isInfinite(range[1]) &&
+                          range[0]>=limits[0] && range[1]<=limits[1];
+            }
+          }
+        if (!ok)
+          break;
+      }
+      if (ok)
+        selected.add(rule);
+    }
+
+    return (selected.isEmpty())?null:selected;
   }
 
   /**

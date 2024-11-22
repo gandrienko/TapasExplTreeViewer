@@ -87,6 +87,14 @@ public class SliderWithBounds extends JPanel {
     }
   }
 
+  public double getRealMin() {
+    return (Double.isNaN(realMin))?slider.getMin():realMin;
+  }
+
+  public double getRealMax() {
+    return (Double.isNaN(realMax))?slider.getMax():realMax;
+  }
+
   public double translateToRealValue(int position) {
     if (Double.isNaN(realMin) || Double.isNaN(realMax))
       return position;

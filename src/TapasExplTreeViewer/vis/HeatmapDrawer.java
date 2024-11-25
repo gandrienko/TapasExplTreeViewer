@@ -45,19 +45,9 @@ public class HeatmapDrawer extends JPanel {
     this.title=title;
     this.xAxisLabel = xAxisLabel;
     this.yAxisLabel = yAxisLabel;
-    this.counts=counts;
-    if (absMaxCount<=0)
-      for (int i=0; i<counts.length; i++)
-        for (int j=0; j<counts[i].length; j++)
-          if (counts[i][j]>absMaxCount)
-            absMaxCount=counts[i][j];
-    this.absMax=absMaxCount;
-
-    this.frequencies = new double[counts.length][counts[0].length];
-    for (int i=0; i<counts.length; i++)
-      for (int j=0; j<counts[i].length; j++)
-        frequencies[i][j]=(absMaxCount==0)?0:1.0*counts[i][j]/absMaxCount;
     this.yLabels = yLabels;
+    
+    updateData(counts,absMaxCount,nPresent,nAbsent);
 
     setToolTipText(""); // Enables the tooltip mechanism
     addMouseMotionListener(new MouseMotionAdapter() {
@@ -66,6 +56,27 @@ public class HeatmapDrawer extends JPanel {
         updateTooltip(e);
       }
     });
+  }
+  
+  public void updateData(int[][] counts, int absMaxCount,
+                         int nPresent[], int nAbsent[]) {
+    if (counts==null)
+      return;
+    this.counts=counts;
+    if (absMaxCount<=0)
+      for (int i=0; i<counts.length; i++)
+        for (int j=0; j<counts[i].length; j++)
+          if (counts[i][j]>absMaxCount)
+            absMaxCount=counts[i][j];
+    this.absMax=absMaxCount;
+  
+    this.frequencies = new double[counts.length][counts[0].length];
+    for (int i=0; i<counts.length; i++)
+      for (int j=0; j<counts[i].length; j++)
+        frequencies[i][j]=(absMaxCount==0)?0:1.0*counts[i][j]/absMaxCount;
+      
+    if (isShowing())
+      repaint();
   }
 
   public Dimension getMinumumSize() {

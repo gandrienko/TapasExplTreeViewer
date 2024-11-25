@@ -89,7 +89,38 @@ public class RuleFilterUI extends JPanel {
     }
     return (filters.isEmpty())?null:filters;
   }
-
+  
+  public ArrayList<String> describeFilters() {
+    ArrayList<String> conditions=new ArrayList<String>();
+    for (String feature : sliders.keySet()) {
+      if (checkBoxes.get(feature).isSelected()) {
+        conditions.add(feature + " is missing");
+      } else {
+        SliderWithBounds slider = sliders.get(feature);
+        double limits[]=new double[]{slider.getLowerValue(), slider.getUpperValue()};
+        if (limits[0]<=slider.getRealMin() && limits[1]>=slider.getRealMax())
+          continue; //no limits for this feature
+        if (limits[0]<=slider.getRealMin())
+          limits[0]=Double.NEGATIVE_INFINITY;
+        else
+          if (limits[1]>=slider.getRealMax())
+            limits[1]=Double.POSITIVE_INFINITY;
+        conditions.add(feature+": "+limitsToString(limits));
+      }
+    }
+   if (conditions.isEmpty())
+     return null;
+   return conditions;
+ }
+  public String limitsToString (double limits[]) {
+    if (limits==null)
+      return "null limits";
+    StringBuffer sb=new StringBuffer();
+    sb.append("from "+((Double.isInfinite(limits[0]))?"-infinity":String.format("%.3f",limits[0])));
+    sb.append(" to  "+((Double.isInfinite(limits[1]))?"+infinity":String.format("%.3f",limits[1])));
+    return sb.toString();
+  }
+  
   public JButton getApplyFilterButton() {
     return applyFilterButton;
   }

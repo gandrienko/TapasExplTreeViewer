@@ -110,10 +110,40 @@ public class SliderWithBounds extends JPanel {
   }
 
   public double getLowerValue() {
+    if (lowerBoundField!=null) {
+      String txt=lowerBoundField.getText();
+      if (txt!=null)
+        try {
+          if (txt.contains(".")) {
+            double d=Double.parseDouble(txt);
+            if (!Double.isNaN(d))
+              return  d;
+          }
+          else {
+            int k=Integer.parseInt(txt);
+            return k;
+          }
+        } catch( Exception ex) {}
+    }
     return translateToRealValue(slider.getLowerValue());
   }
 
   public double getUpperValue() {
+    if (upperBoundField!=null) {
+      String txt=upperBoundField.getText();
+      if (txt!=null)
+        try {
+          if (txt.contains(".")) {
+            double d=Double.parseDouble(txt);
+            if (!Double.isNaN(d))
+              return  d;
+          }
+          else {
+            int k=Integer.parseInt(txt);
+            return k;
+          }
+        } catch( Exception ex) {}
+    }
     return translateToRealValue(slider.getUpperValue());
   }
 

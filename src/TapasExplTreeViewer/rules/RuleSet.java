@@ -39,6 +39,10 @@ public class RuleSet {
    */
   public Hashtable<String,float[]> attrMinMax=null;
   /**
+   * Whether the features should be treated as binary
+   */
+  public boolean featuresAreBinary=false;
+  /**
    * Whether the rule set has been previously reduced by removing rules
    * subsumed in more general rules.
    */
@@ -226,7 +230,8 @@ public class RuleSet {
       return null;
     if (!actionsDiffer && (Double.isNaN(minQValue) || minQValue>=maxQValue))
       return null;
-    ArrayList<String> fNames=(orderedFeatureNames!=null)?orderedFeatureNames:listOfFeatures;
+    ArrayList<String> fNames=(orderedFeatureNames!=null && !orderedFeatureNames.isEmpty())?
+                                 orderedFeatureNames:listOfFeatures;
     if (fNames==null) {
       fNames=new ArrayList<String>(attrMinMax.size());
       for (String name:attrMinMax.keySet())
@@ -250,17 +255,18 @@ public class RuleSet {
         qValueBreaks[i]=qValueBreaks[i-1]+delta;
     }
 
-    if (nFeatureIntervals<3) nFeatureIntervals=3;
+    if (nFeatureIntervals<2) nFeatureIntervals=2;
 
     ValuesFrequencies freq[][]=new ValuesFrequencies[nFeatures][nClasses];
     for (int i=0; i<nFeatures; i++) {
       String featureName=fNames.get(i);
       float minmax[]=attrMinMax.get(featureName);
-      double fBreaks[]=new double[nFeatureIntervals-1];
-      double delta=((double)minmax[1]-(double)minmax[0])/(fBreaks.length-1);
-      fBreaks[0]=minmax[0];
+      int nBreaks=nFeatureIntervals-1;
+      double fBreaks[]=new double[nBreaks];
+      double intervalWidth=((double)minmax[1]-(double)minmax[0])/nBreaks;
+      fBreaks[0]=minmax[0]+intervalWidth/2;
       for (int j=1; j<fBreaks.length; j++)
-        fBreaks[j]=fBreaks[j-1]+delta;
+        fBreaks[j]=fBreaks[j-1]+intervalWidth;
 
       freq[i]=new ValuesFrequencies[nClasses];
       for (int j=0; j<nClasses; j++) {
@@ -329,8 +335,18 @@ public class RuleSet {
   public void setTitle(String title) {
     this.title = title;
   }
-
+  
+  public boolean isFeaturesAreBinary() {
+    return featuresAreBinary;
+  }
+  
+  public void setFeaturesAreBinary(boolean featuresAreBinary) {
+    this.featuresAreBinary = featuresAreBinary;
+  }
+  
   public void setOrderedFeatureNames(ArrayList<String> orderedFeatureNames) {
+    if (orderedFeatureNames!=null && orderedFeatureNames.isEmpty())
+      orderedFeatureNames=null;
     this.orderedFeatureNames = orderedFeatureNames;
   }
 
@@ -352,6 +368,7 @@ public class RuleSet {
     rs.minAction=minAction; rs.maxAction=maxAction; rs.actionsDiffer=actionsDiffer;
     rs.minQValue=minQValue; rs.maxQValue=maxQValue;
     rs.attrMinMax=attrMinMax;
+    rs.featuresAreBinary=featuresAreBinary;
     rs.listOfFeatures=listOfFeatures;
     rs.orderedFeatureNames=orderedFeatureNames;
   }

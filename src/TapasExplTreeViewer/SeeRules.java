@@ -259,6 +259,8 @@ public class SeeRules {
     ArrayList<String> orderedFeatureNames=loadFeatureOrder(ShowRules.RULES_FOLDER);
   
     ShowRules showRules=new ShowRules(exList,attrMinMax);
+    if (featureType.startsWith("bin"))
+      showRules.setFeaturesAreBinary(true);
     if (orderedFeatureNames!=null)
       showRules.ruleSet.setOrderedFeatureNames(orderedFeatureNames);
     showRules.showRulesInTable();
@@ -267,6 +269,9 @@ public class SeeRules {
       System.out.println("Failed to visualize the rules!");
       System.exit(1);
     }
+    ToolTipManager ttm=ToolTipManager.sharedInstance();
+    ttm.setInitialDelay(500);
+    ttm.setDismissDelay(2000);
   }
 
   public static String askFeatureType () {
@@ -335,7 +340,7 @@ public class SeeRules {
       System.out.println("File 'features_order.txt' not found in the specified folder.");
     }
     
-    return featureNames;
+    return (featureNames.isEmpty())?null:featureNames;
   }
 
   private static List<Condition> parseConditions(String ruleText) {

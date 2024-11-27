@@ -109,7 +109,10 @@ public class FeatureHeatmapsManager {
       featureBreaks[fIdx]=freq[fIdx][0].breaks;
     }
     for (int cIdx=0; cIdx<nClasses; cIdx++)
-      classLabels[cIdx]="Class "+freq[0][cIdx].action;
+      if (freq[0][cIdx].resultMinMax!=null)
+        classLabels[cIdx]=String.format("[%.3f..%.3f)",freq[0][cIdx].resultMinMax[0],freq[0][cIdx].resultMinMax[1]);
+      else
+        classLabels[cIdx]="Class "+freq[0][cIdx].action;
 
     if (!getCountsByClasses() || !getCountsByFeatures())
       return null;

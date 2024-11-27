@@ -121,6 +121,11 @@ public class ShowRules implements RulesPresenter, ChangeListener {
       computeDistanceMatrix();
     ToolTipManager.sharedInstance().setDismissDelay(30000);
   }
+  
+  public void setFeaturesAreBinary(boolean binary) {
+    if (ruleSet!=null)
+      ruleSet.setFeaturesAreBinary(binary);
+  }
 
   public AbstractList<Explanation> getDataInstances() {
     return dataInstances;
@@ -2233,7 +2238,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
             ==JOptionPane.YES_OPTION;
     ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,localSelector):ruleSet.rules;
 
-    int nFeatureIntervals=10;
+    int nFeatureIntervals=(ruleSet.isFeaturesAreBinary())?2:10;
     String input = JOptionPane.showInputDialog(rulesViewerManager.mainFrame,
         "Enter the number of intervals for dividing the feature value ranges:", nFeatureIntervals);
     try {

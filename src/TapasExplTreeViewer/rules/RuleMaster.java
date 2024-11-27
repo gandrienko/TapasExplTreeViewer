@@ -1355,6 +1355,7 @@ public class RuleMaster {
                                          ArrayList<DataRecord> data) {
     if (rules==null || rules.isEmpty() || data==null || data.isEmpty())
       return false;
+    // test
     int predictionCount=0, applicationCount=0;
     for (DataRecord record:data) {
       record.erasePrediction();

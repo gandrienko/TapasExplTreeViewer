@@ -95,6 +95,14 @@ public class SliderWithBounds extends JPanel {
     return (Double.isNaN(realMax))?slider.getMax():realMax;
   }
 
+  public void resetLimitsToMinMax() {
+    if (slider.isRangeLimited()) {
+      slider.resetLimitsToMinMax();
+      lowerBoundField.setText(String.format("%.3f",getRealMin()));
+      upperBoundField.setText(String.format("%.3f",getRealMax()));
+    }
+  }
+
   public double translateToRealValue(int position) {
     if (Double.isNaN(realMin) || Double.isNaN(realMax))
       return position;

@@ -5,6 +5,8 @@ import TapasExplTreeViewer.util.DualSlider;
 import TapasExplTreeViewer.util.SliderWithBounds;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -18,6 +20,8 @@ public class RuleFilterUI extends JPanel {
   private Map<String, SliderWithBounds> sliders=null;
   private Map<String, JCheckBox> checkBoxes=null;
   private JButton applyFilterButton=null;
+
+  private ArrayList<ChangeListener> changeListeners=null;
 
   public RuleFilterUI(RuleSet ruleSet) {
     this.ruleSet=ruleSet;
@@ -67,6 +71,21 @@ public class RuleFilterUI extends JPanel {
 
     applyFilterButton = new JButton("Apply Filter");
     add(applyFilterButton, BorderLayout.SOUTH);
+  }
+
+  public void addChangeListener(ChangeListener lst) {
+    if (lst==null) return;
+    if (changeListeners==null)
+      changeListeners=new ArrayList<ChangeListener>(5);
+    if (!changeListeners.contains(lst))
+      changeListeners.add(lst);
+  }
+
+  public void notifyListeners() {
+    if (changeListeners==null || changeListeners.isEmpty())
+      return;
+    for (ChangeListener lst:changeListeners)
+      lst.stateChanged(new ChangeEvent(this));
   }
 
   public Map<String, Object> getFilters() {

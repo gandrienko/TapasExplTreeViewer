@@ -40,6 +40,17 @@ public class DualSlider extends JComponent {
         draggingLower = draggingUpper = draggingRange = false;
         lastMouseX = -1;
       }
+
+      @Override
+      public void mouseClicked(MouseEvent e) {
+        if (!enabled)
+          return;
+        if (e.getClickCount()==2) {
+          resetLimitsToMinMax();
+          draggingLower = draggingUpper = draggingRange = false;
+          lastMouseX = -1;
+        }
+      }
     });
 
     addMouseMotionListener(new MouseAdapter() {
@@ -160,6 +171,17 @@ public class DualSlider extends JComponent {
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
     repaint();
+  }
+
+  public boolean isRangeLimited() {
+    return lowerValue>min || upperValue<max;
+  }
+
+  public void resetLimitsToMinMax() {
+    if (isRangeLimited()) {
+      lowerValue=min; upperValue=max;
+      repaint();
+    }
   }
 
   public void addChangeListener(ChangeListener listener) {

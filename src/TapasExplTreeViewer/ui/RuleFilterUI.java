@@ -8,6 +8,8 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
@@ -36,6 +38,8 @@ public class RuleFilterUI extends JPanel {
     ArrayList<String> featureNames=(ruleSet.orderedFeatureNames!=null)?
         ruleSet.orderedFeatureNames:ruleSet.listOfFeatures;
 
+    JCheckBox cbDynamic=new JCheckBox("Apply filters dynamically",false);
+
     for (int i=0; i<featureNames.size(); i++) {
       String featureName = featureNames.get(i);
       float minmax[]=ruleSet.attrMinMax.get(featureName);
@@ -56,11 +60,21 @@ public class RuleFilterUI extends JPanel {
       featurePanel.add(rangeSlider, BorderLayout.CENTER);
       sliders.put(featureName, rangeSlider);
 
-      // Disable RangeSlider when checkbox is selected
+      rangeSlider.addChangeListener(new ChangeListener() {
+        @Override
+        public void stateChanged(ChangeEvent e) {
+          if (cbDynamic.isSelected())
+            notifyListeners();
+        }
+      });
+
       checkBox.addItemListener(new ItemListener() {
         @Override
         public void itemStateChanged(ItemEvent e) {
+          // Disable RangeSlider when checkbox is selected
           rangeSlider.setEnabled(!checkBox.isSelected());
+          if (cbDynamic.isSelected())
+            notifyListeners();
         }
       });
 
@@ -69,8 +83,42 @@ public class RuleFilterUI extends JPanel {
 
     add(new JScrollPane(filtersPanel), BorderLayout.CENTER);
 
-    applyFilterButton = new JButton("Apply Filter");
-    add(applyFilterButton, BorderLayout.SOUTH);
+    JPanel p=new JPanel();
+    add(p, BorderLayout.SOUTH);
+    p.setLayout(new GridLayout(0,1));
+    p.add(cbDynamic);
+    JPanel pp=new JPanel();
+    p.add(pp);
+    pp.setLayout(new FlowLayout(FlowLayout.CENTER,30,0));
+    applyFilterButton = new JButton("Apply");
+    pp.add(applyFilterButton);
+    JButton clearButton=new JButton("Clear");
+    pp.add(clearButton);
+
+    clearButton.addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        clearFilters();
+      }
+    });
+  }
+
+  public void clearFilters() {
+    boolean changed=false;
+    for (String feature : sliders.keySet()) {
+      SliderWithBounds slider = sliders.get(feature);
+      if (checkBoxes.get(feature).isSelected()) {
+        checkBoxes.get(feature).setSelected(false);
+        slider.setEnabled(true);
+        slider.resetLimitsToMinMax();
+        changed=true;
+      } else {
+        if (slider.resetLimitsToMinMax())
+          changed=true;
+      }
+    }
+    if (changed)
+      notifyListeners();
   }
 
   public void addChangeListener(ChangeListener lst) {

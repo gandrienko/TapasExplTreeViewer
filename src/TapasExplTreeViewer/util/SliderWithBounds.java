@@ -1,14 +1,19 @@
 package TapasExplTreeViewer.util;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
 public class SliderWithBounds extends JPanel {
   private DualSlider slider;
   private JTextField lowerBoundField, upperBoundField;
   private double realMin=Double.NaN, realMax=Double.NaN;
+
+  private ArrayList<ChangeListener> listeners=null;
 
   public SliderWithBounds(int min, int max, int lowerValue, int upperValue) {
     setLayout(new BorderLayout(5, 5));
@@ -21,9 +26,13 @@ public class SliderWithBounds extends JPanel {
     upperBoundField = new JTextField(String.format("%.3f",1.0*upperValue), 5);
 
     // Listen for slider changes
-    slider.addChangeListener(e -> {
-      lowerBoundField.setText(String.format("%.3f",translateToRealValue(slider.getLowerValue())));
-      upperBoundField.setText(String.format("%.3f",translateToRealValue(slider.getUpperValue())));
+    slider.addChangeListener(new ChangeListener() {
+      @Override
+      public void stateChanged(ChangeEvent e) {
+        lowerBoundField.setText(String.format("%.3f", translateToRealValue(slider.getLowerValue())));
+        upperBoundField.setText(String.format("%.3f", translateToRealValue(slider.getUpperValue())));
+        notifyChangeListeners();
+      }
     });
 
     // Listen for changes in the lower bound field
@@ -35,8 +44,10 @@ public class SliderWithBounds extends JPanel {
           double value = Double.parseDouble(lowerBoundField.getText());
           int pos=translateToPosition(value);
           ok=pos>=slider.getMin() && pos<=slider.getUpperValue();
-          if (ok)
+          if (ok) {
             slider.setLowerValue(pos);
+            notifyChangeListeners();
+          }
         } catch (NumberFormatException ex) { }
         if (!ok) {
           JOptionPane.showMessageDialog(SliderWithBounds.this,
@@ -55,8 +66,10 @@ public class SliderWithBounds extends JPanel {
           double value = Double.parseDouble(upperBoundField.getText());
           int pos=translateToPosition(value);
           ok= pos>=slider.getLowerValue() && pos<=slider.getMax();
-          if (ok)
+          if (ok) {
             slider.setUpperValue(pos);
+            notifyChangeListeners();
+          }
         } catch (NumberFormatException ex) { }
         if (!ok) {
           JOptionPane.showMessageDialog(SliderWithBounds.this,
@@ -95,17 +108,20 @@ public class SliderWithBounds extends JPanel {
     return (Double.isNaN(realMax))?slider.getMax():realMax;
   }
 
-  public void resetLimitsToMinMax() {
-    if (slider.isRangeLimited()) {
-      slider.resetLimitsToMinMax();
+  public boolean resetLimitsToMinMax() {
+    if (slider.resetLimitsToMinMax()) {
       lowerBoundField.setText(String.format("%.3f",getRealMin()));
       upperBoundField.setText(String.format("%.3f",getRealMax()));
+      return true;
     }
+    return false;
   }
 
   public double translateToRealValue(int position) {
     if (Double.isNaN(realMin) || Double.isNaN(realMax))
       return position;
+    if (position==slider.getMin()) return realMin;
+    if (position==slider.getMax()) return realMax;
     double relativePos=((double)position-slider.getMin())/(slider.getMax()-slider.getMin());
     return realMin+relativePos*(realMax-realMin);
   }
@@ -113,6 +129,10 @@ public class SliderWithBounds extends JPanel {
   public int translateToPosition(double value) {
     if (Double.isNaN(realMin) || Double.isNaN(realMax))
       return (int)Math.round(Math.abs(value));
+    if (value<=realMin)
+      return slider.getMin();
+    if (value>=realMax)
+      return slider.getMax();
     double relativePos=(value-realMin)/(realMax-realMin);
     return slider.getMin()+(int)Math.round(relativePos*(slider.getMax()-slider.getMin()));
   }
@@ -169,5 +189,21 @@ public class SliderWithBounds extends JPanel {
     slider.setEnabled(enabled);
     lowerBoundField.setEnabled(enabled);
     upperBoundField.setEnabled(enabled);
+  }
+
+  public void addChangeListener(ChangeListener listener) {
+    if (listeners==null)
+      listeners=new ArrayList<ChangeListener>(10);
+    if (!listeners.contains(listener))
+      listeners.add(listener);
+  }
+
+  private void notifyChangeListeners() {
+    if (listeners==null || listeners.isEmpty())
+      return;
+    ChangeEvent event = new ChangeEvent(this);
+    for (ChangeListener listener : listeners) {
+      listener.stateChanged(event);
+    }
   }
 }

@@ -209,6 +209,15 @@ public class RuleSet {
   }
 
   /**
+   * Settings from the last execution of the method getFeatureValuesDistributions()
+   */
+  private int nFeatureIntervals=10, nResultIntervals=10;
+
+  public ValuesFrequencies[][] getFeatureValuesDistributions(ArrayList<CommonExplanation> rules){
+    return getFeatureValuesDistributions(rules,nFeatureIntervals,nResultIntervals);
+  }
+
+  /**
    * For each feature, divides its full value range into intervals.
    * For each interval, counts the number of rules with this feature's range in the rule conditions
    * overlapping with this interval. This is done for each predicted class (in a case of classification rules)
@@ -296,6 +305,9 @@ public class RuleSet {
       for (int fIdx=0; fIdx<nFeatures; fIdx++)
         freq[fIdx][clIdx].countFeatureValuesInterval(rule.getFeatureInterval(fNames.get(fIdx)));
     }
+
+    this.nFeatureIntervals=nFeatureIntervals;
+    this.nResultIntervals=nResultIntervals;
 
     return freq;
   }

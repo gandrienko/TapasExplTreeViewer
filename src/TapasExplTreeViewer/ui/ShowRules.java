@@ -2278,20 +2278,19 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     splitPane.setResizeWeight(0.9); // Optional: balance initial position
 
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    JFrame plotFrame=new JFrame("Feature values distributions");
-    plotFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    plotFrame.getContentPane().add(splitPane);
-    plotFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
-    plotFrame.setLocation(size.width-plotFrame.getWidth()-30, size.height-plotFrame.getHeight()-50);
-    plotFrame.setVisible(true);
-    rulesView.addFrame(plotFrame);
+    JFrame valuesDistributionsFrame=new JFrame("Feature values distributions");
+    valuesDistributionsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    valuesDistributionsFrame.getContentPane().add(splitPane);
+    valuesDistributionsFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
+    valuesDistributionsFrame.setLocation(size.width-valuesDistributionsFrame.getWidth()-30,
+            size.height-valuesDistributionsFrame.getHeight()-50);
+    valuesDistributionsFrame.setVisible(true);
+    rulesView.addFrame(valuesDistributionsFrame);
 
-    int nIntervals=nFeatureIntervals;
-    
     JFrame filterResultFrame=new JFrame("Query result");
     filterResultFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     filterResultFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
-    filterResultFrame.setLocation(30, size.height-plotFrame.getHeight()-50);
+    filterResultFrame.setLocation(30, size.height-valuesDistributionsFrame.getHeight()-50);
     rulesView.addFrame(filterResultFrame);
   
     FeatureHeatmapsManager filterResultsViewManager=new FeatureHeatmapsManager();
@@ -2299,49 +2298,86 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     filterUI.getApplyFilterButton().addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        Map<String, Object> filters=filterUI.getFilters();
-        if (filters==null)
-          if (filterResultsViewManager.viewCreated())
-            filterResultsViewManager.updateData(freq, rulesInfo+" --- NO FILTER");
-          else
-          JOptionPane.showMessageDialog(plotFrame,
-              "No filter conditions specified!", "No filter!",
-              JOptionPane.INFORMATION_MESSAGE);
-        else {
-          ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters);
-          if (selectedRules==null)
-            JOptionPane.showMessageDialog(plotFrame,
+        applyFilters(filterUI, rulesInfo, freq, filterResultsViewManager, filterResultFrame);
+      }
+    });
+    filterUI.addChangeListener(new ChangeListener() {
+      @Override
+      public void stateChanged(ChangeEvent e) {
+        applyFilters(filterUI,rulesInfo,freq,filterResultsViewManager, filterResultFrame);
+      }
+    });
+  }
+
+  protected JDialog filterStateDialog=null;
+  protected JLabel filterStateMessage=null;
+
+  private void createFilterStateDialog(Frame win) {
+    if (filterStateDialog==null) {
+      filterStateDialog = new JDialog(win, "Processing", Dialog.ModalityType.MODELESS);
+      filterStateDialog.setLayout(new BorderLayout());
+      filterStateMessage=new JLabel(String.format("%100s", ""),JLabel.CENTER);
+      JPanel p=new JPanel(new FlowLayout(FlowLayout.CENTER,10,20));
+      p.add(filterStateMessage);
+      JPanel pp=new JPanel(new GridLayout(0,1));
+      pp.add(p);
+      pp.add(new JLabel(""));
+      filterStateDialog.getContentPane().add(pp, BorderLayout.CENTER);
+      filterStateDialog.pack();
+      filterStateDialog.setLocationRelativeTo(win);
+      filterStateDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+      //filterStateDialog.setVisible(true);
+    }
+  }
+
+  public void applyFilters(RuleFilterUI filterUI,
+                           String rulesInfo,
+                           ValuesFrequencies freqOrig[][],
+                           FeatureHeatmapsManager filterResultsViewManager,
+                           JFrame filterResultFrame) {
+    if (filterUI==null)
+      return;
+    Map<String, Object> filters=filterUI.getFilters();
+    if (filters==null)
+      if (filterResultsViewManager.viewCreated())
+        filterResultsViewManager.updateData(freqOrig, rulesInfo+" --- NO FILTER");
+      else
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                "No filter conditions specified!", "No filter!",
+                JOptionPane.INFORMATION_MESSAGE);
+    else {
+      ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters);
+      if (selectedRules==null)
+        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
                 "No rules satisfying the filter conditions found!", "Empty result!",
                 JOptionPane.INFORMATION_MESSAGE);
-          else {
-            ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(selectedRules, nIntervals, 10);
-            if (freq==null || freq.length<1) {
-              JOptionPane.showMessageDialog(plotFrame,
+      else {
+        ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(selectedRules);
+        if (freq==null || freq.length<1) {
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
                   "Failed to count the frequencies of the feature values!", "No frequencies obtained!",
                   JOptionPane.ERROR_MESSAGE);
-              return;
-            }
-            String info=selectedRules.size()+" rules selected by "+
-                            "applying filter conditions";
-            ArrayList filterTexts=filterUI.describeFilters();
-            if (filterTexts!=null)
-              for (int i=0; i<filterTexts.size(); i++)
-                info+=" "+(i+1)+") "+filterTexts.get(i);
-            if (filterResultsViewManager.viewCreated())
-              filterResultsViewManager.updateData(freq, info);
-            else {
-              Component heatMapPane=filterResultsViewManager.createFeatureDistributionsDisplay(freq,info);
-              if (heatMapPane!=null) {
-                if (filterResultFrame.getContentPane().getComponentCount()>0)
-                  filterResultFrame.getContentPane().remove(0);
-                filterResultFrame.getContentPane().add(heatMapPane);
-                filterResultFrame.setVisible(true);
-                filterResultFrame.toFront();
-              }
-            }
+          return;
+        }
+        String info=selectedRules.size()+" rules selected by "+
+                "applying filter conditions";
+        ArrayList filterTexts=filterUI.describeFilters();
+        if (filterTexts!=null)
+          for (int i=0; i<filterTexts.size(); i++)
+            info+=" "+(i+1)+") "+filterTexts.get(i);
+        if (filterResultsViewManager.viewCreated())
+          filterResultsViewManager.updateData(freq, info);
+        else {
+          Component heatMapPane=filterResultsViewManager.createFeatureDistributionsDisplay(freq,info);
+          if (heatMapPane!=null) {
+            if (filterResultFrame.getContentPane().getComponentCount()>0)
+              filterResultFrame.getContentPane().remove(0);
+            filterResultFrame.getContentPane().add(heatMapPane);
+            filterResultFrame.setVisible(true);
+            filterResultFrame.toFront();
           }
         }
       }
-    });
+    }
   }
 }

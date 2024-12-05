@@ -45,10 +45,11 @@ public class DualSlider extends JComponent {
       public void mouseClicked(MouseEvent e) {
         if (!enabled)
           return;
-        if (e.getClickCount()==2) {
+        if (e.getClickCount()==2 && isRangeLimited()) {
           resetLimitsToMinMax();
           draggingLower = draggingUpper = draggingRange = false;
           lastMouseX = -1;
+          notifyChangeListeners();
         }
       }
     });
@@ -177,11 +178,13 @@ public class DualSlider extends JComponent {
     return lowerValue>min || upperValue<max;
   }
 
-  public void resetLimitsToMinMax() {
+  public boolean resetLimitsToMinMax() {
     if (isRangeLimited()) {
       lowerValue=min; upperValue=max;
       repaint();
+      return true;
     }
+    return false;
   }
 
   public void addChangeListener(ChangeListener listener) {

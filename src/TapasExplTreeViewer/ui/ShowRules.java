@@ -2294,73 +2294,97 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     rulesView.addFrame(filterResultFrame);
   
     FeatureHeatmapsManager filterResultsViewManager=new FeatureHeatmapsManager();
+    JLabel filterStateMessage=new JLabel(String.format("%100s", ""),JLabel.CENTER);
+    JDialog filterStateDialog=createFilterStateDialog(filterResultFrame,filterStateMessage);
     
     filterUI.getApplyFilterButton().addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        applyFilters(filterUI, rulesInfo, freq, filterResultsViewManager, filterResultFrame);
+        applyFilters(filterUI, rulesInfo, freq, filterResultsViewManager,
+                filterResultFrame, filterStateDialog, filterStateMessage);
       }
     });
     filterUI.addChangeListener(new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
-        applyFilters(filterUI,rulesInfo,freq,filterResultsViewManager, filterResultFrame);
+        applyFilters(filterUI,rulesInfo,freq,filterResultsViewManager, filterResultFrame,
+                filterStateDialog, filterStateMessage);
       }
     });
   }
 
-  protected JDialog filterStateDialog=null;
-  protected JLabel filterStateMessage=null;
-
-  private void createFilterStateDialog(Frame win) {
-    if (filterStateDialog==null) {
-      filterStateDialog = new JDialog(win, "Processing", Dialog.ModalityType.MODELESS);
-      filterStateDialog.setLayout(new BorderLayout());
-      filterStateMessage=new JLabel(String.format("%100s", ""),JLabel.CENTER);
-      JPanel p=new JPanel(new FlowLayout(FlowLayout.CENTER,10,20));
-      p.add(filterStateMessage);
-      JPanel pp=new JPanel(new GridLayout(0,1));
-      pp.add(p);
-      pp.add(new JLabel(""));
-      filterStateDialog.getContentPane().add(pp, BorderLayout.CENTER);
-      filterStateDialog.pack();
-      filterStateDialog.setLocationRelativeTo(win);
-      filterStateDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-      //filterStateDialog.setVisible(true);
-    }
+  private JDialog createFilterStateDialog(Frame win, JLabel filterStateMessage) {
+    JDialog filterStateDialog = new JDialog(win, "Status of rule filtering", Dialog.ModalityType.MODELESS);
+    filterStateDialog.setLayout(new BorderLayout());
+    JPanel p=new JPanel(new FlowLayout(FlowLayout.CENTER,10,20));
+    p.add(filterStateMessage);
+    JPanel pp=new JPanel(new GridLayout(0,1));
+    pp.add(p);
+    pp.add(new JLabel(""));
+    filterStateDialog.getContentPane().add(pp, BorderLayout.CENTER);
+    filterStateDialog.pack();
+    filterStateDialog.setLocationRelativeTo(win);
+    filterStateDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+    //filterStateDialog.setVisible(true);
+    return filterStateDialog;
   }
 
   public void applyFilters(RuleFilterUI filterUI,
                            String rulesInfo,
                            ValuesFrequencies freqOrig[][],
                            FeatureHeatmapsManager filterResultsViewManager,
-                           JFrame filterResultFrame) {
+                           JFrame filterResultFrame,
+                           JDialog filterStateDialog,
+                           JLabel filterStateMessage) {
     if (filterUI==null)
       return;
     Map<String, Object> filters=filterUI.getFilters();
     if (filters==null)
       if (filterResultsViewManager.viewCreated())
         filterResultsViewManager.updateData(freqOrig, rulesInfo+" --- NO FILTER");
-      else
-        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                "No filter conditions specified!", "No filter!",
-                JOptionPane.INFORMATION_MESSAGE);
+      else {
+        if (filterStateMessage!=null) {
+          filterStateMessage.setText("No filter conditions specified!");
+          filterStateMessage.revalidate();
+        }
+      }
     else {
       ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters);
-      if (selectedRules==null)
-        JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                "No rules satisfying the filter conditions found!", "Empty result!",
-                JOptionPane.INFORMATION_MESSAGE);
+      if (selectedRules==null) {
+        if (filterStateMessage == null)
+          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                  "No rules satisfying the filter conditions found!", "Empty result!",
+                  JOptionPane.INFORMATION_MESSAGE);
+        else {
+          filterStateMessage.setText("No rules satisfying the filter conditions found!");
+          filterStateMessage.revalidate();
+          if (!filterStateDialog.isShowing())
+            filterStateDialog.setVisible(true);
+          filterStateDialog.toFront();
+        }
+      }
       else {
         ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(selectedRules);
         if (freq==null || freq.length<1) {
-          JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-                  "Failed to count the frequencies of the feature values!", "No frequencies obtained!",
-                  JOptionPane.ERROR_MESSAGE);
+          if (filterStateMessage == null)
+            JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+                    "Failed to count the frequencies of the feature values!", "No frequencies obtained!",
+                    JOptionPane.ERROR_MESSAGE);
+          else {
+            filterStateMessage.setText("Failed to count the frequencies of the feature values!");
+            filterStateMessage.revalidate();
+            if (!filterStateDialog.isShowing())
+              filterStateDialog.setVisible(true);
+            filterStateDialog.toFront();
+          }
           return;
         }
         String info=selectedRules.size()+" rules selected by "+
                 "applying filter conditions";
+        if (filterStateMessage!=null) {
+          filterStateMessage.setText(info);
+          filterStateMessage.revalidate();
+        }
         ArrayList filterTexts=filterUI.describeFilters();
         if (filterTexts!=null)
           for (int i=0; i<filterTexts.size(); i++)

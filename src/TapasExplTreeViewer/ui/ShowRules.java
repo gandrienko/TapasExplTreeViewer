@@ -2271,14 +2271,18 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           JOptionPane.ERROR_MESSAGE);
       return;
     }
+    vis.setName("Feature values distribution view");
+    JPanel distributionVisPanel=new JPanel();
+    distributionVisPanel.setLayout(new BorderLayout());
+    distributionVisPanel.add(vis,BorderLayout.CENTER);
 
     RuleFilterUI filterUI=new RuleFilterUI(ruleSet);
 
-    JSplitPane splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,vis,filterUI);
+    JSplitPane splitPane=new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,distributionVisPanel,filterUI);
     splitPane.setResizeWeight(0.9); // Optional: balance initial position
 
     Dimension size=Toolkit.getDefaultToolkit().getScreenSize();
-    JFrame valuesDistributionsFrame=new JFrame("Feature values distributions");
+    JFrame valuesDistributionsFrame=new JFrame("Filtering rules by feature values intervals");
     valuesDistributionsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     valuesDistributionsFrame.getContentPane().add(splitPane);
     valuesDistributionsFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
@@ -2287,28 +2291,28 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     valuesDistributionsFrame.setVisible(true);
     rulesView.addFrame(valuesDistributionsFrame);
 
-    JFrame filterResultFrame=new JFrame("Query result");
-    filterResultFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    filterResultFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
-    filterResultFrame.setLocation(30, size.height-valuesDistributionsFrame.getHeight()-50);
-    rulesView.addFrame(filterResultFrame);
+    JFrame noFilterDistributionsFrame=new JFrame("Original feature values distributions");
+    noFilterDistributionsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    noFilterDistributionsFrame.setSize(Math.round(0.8f*size.width),Math.round(0.7f*size.height));
+    noFilterDistributionsFrame.setLocation(30, size.height-valuesDistributionsFrame.getHeight()-50);
+    rulesView.addFrame(noFilterDistributionsFrame);
   
     FeatureHeatmapsManager filterResultsViewManager=new FeatureHeatmapsManager();
     JLabel filterStateMessage=new JLabel(String.format("%100s", ""),JLabel.CENTER);
-    JDialog filterStateDialog=createFilterStateDialog(filterResultFrame,filterStateMessage);
+    JDialog filterStateDialog=createFilterStateDialog(noFilterDistributionsFrame,filterStateMessage);
     
     filterUI.getApplyFilterButton().addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
         applyFilters(filterUI, rulesInfo, freq, filterResultsViewManager,
-                filterResultFrame, filterStateDialog, filterStateMessage);
+                noFilterDistributionsFrame, distributionVisPanel, filterStateDialog, filterStateMessage);
       }
     });
     filterUI.addChangeListener(new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
-        applyFilters(filterUI,rulesInfo,freq,filterResultsViewManager, filterResultFrame,
-                filterStateDialog, filterStateMessage);
+        applyFilters(filterUI,rulesInfo,freq,filterResultsViewManager, noFilterDistributionsFrame,
+                distributionVisPanel,filterStateDialog, filterStateMessage);
       }
     });
   }
@@ -2333,7 +2337,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
                            String rulesInfo,
                            ValuesFrequencies freqOrig[][],
                            FeatureHeatmapsManager filterResultsViewManager,
-                           JFrame filterResultFrame,
+                           JFrame noFilterDistributionsFrame,
+                           JPanel distributionVisPanel,
                            JDialog filterStateDialog,
                            JLabel filterStateMessage) {
     if (filterUI==null)
@@ -2394,11 +2399,29 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         else {
           Component heatMapPane=filterResultsViewManager.createFeatureDistributionsDisplay(freq,info);
           if (heatMapPane!=null) {
-            if (filterResultFrame.getContentPane().getComponentCount()>0)
-              filterResultFrame.getContentPane().remove(0);
-            filterResultFrame.getContentPane().add(heatMapPane);
-            filterResultFrame.setVisible(true);
-            filterResultFrame.toFront();
+            if (noFilterDistributionsFrame.getContentPane().getComponentCount()==0) {
+              Component vis=distributionVisPanel.getComponent(0);
+              distributionVisPanel.remove(0);
+              distributionVisPanel.add(heatMapPane);
+              distributionVisPanel.revalidate();
+              noFilterDistributionsFrame.getContentPane().add(vis);
+              noFilterDistributionsFrame.setVisible(true);
+              Frame frame=null;
+              Component c=filterUI.getParent();
+              while (frame==null && c!=null) {
+                if (c instanceof Frame)
+                  frame=(Frame)c;
+                else
+                  c=c.getParent();
+              }
+              if (frame!=null)
+                frame.toFront();
+            }
+            else {
+              distributionVisPanel.remove(0);
+              distributionVisPanel.add(heatMapPane);
+              distributionVisPanel.revalidate();
+            }
           }
         }
       }

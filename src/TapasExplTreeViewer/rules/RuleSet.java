@@ -117,6 +117,10 @@ public class RuleSet {
     return minmax;
   }
 
+  public boolean isRegression() {
+    return !Double.isNaN(minQValue) && !Double.isNaN(maxQValue) && minQValue<maxQValue;
+  }
+
   public ArrayList<CommonExplanation> selectRulesByConditionFilters(Map<String,Object> filters) {
     if (rules==null || rules.isEmpty())
       return null;

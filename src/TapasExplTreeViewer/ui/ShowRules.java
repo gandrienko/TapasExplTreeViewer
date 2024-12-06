@@ -2252,6 +2252,12 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           "Invalid number of intervals. Please enter a positive integer.",
           "Error", JOptionPane.ERROR_MESSAGE);
     }
+    if (ruleSet.isRegression()) {
+      IntervalBreaksDialog dia=new IntervalBreaksDialog(rulesViewerManager.mainFrame,
+          ruleSet.minQValue,ruleSet.maxQValue);
+      dia.setVisible(true);
+      ArrayList<Double> breaks=dia.getBreaks();
+    }
 
     ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(rules,nFeatureIntervals,10);
     if (freq==null || freq.length<1) {

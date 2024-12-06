@@ -14,6 +14,10 @@ public class ValuesFrequencies {
    */
   public double resultMinMax[]=null;
   /**
+   * Total count of the rules predicting the given action or values from the given interval
+   */
+  public int classSize =0;
+  /**
    * Whether this interval of resulting values is the lowest (-1), the highest (1), or in between
    */
   public int lowHigh=0;
@@ -33,15 +37,15 @@ public class ValuesFrequencies {
   /**
    * Number of rules that have been counted
    */
-  public int nCounted=0;
+  public int nRulesWithFeature =0;
 
   public void countFeatureValuesInterval(double fromTo[]) {
     if (fromTo==null)
       ++nAbsences;
     else {
+      ++nRulesWithFeature;
       if (breaks==null)
         return;
-      ++nCounted;
       if (counts==null) {
         counts=new int[breaks.length+1];
         for (int i=0; i<counts.length; i++)

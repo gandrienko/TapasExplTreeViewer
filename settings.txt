@@ -1,1 +1,1 @@
-pathToRules="c:\Andr\CommonGISprojects\Lamarr\model_rules\"
+pathToRules="c:\CommonGISprojects\Lamarr\model_rules\"

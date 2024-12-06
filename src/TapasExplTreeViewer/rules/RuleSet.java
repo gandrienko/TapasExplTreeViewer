@@ -293,6 +293,10 @@ public class RuleSet {
       }
     }
 
+    int classSizes[]=new int[nClasses];
+    for (int i=0; i<nClasses; i++)
+      classSizes[i]=0;
+
     for (CommonExplanation rule:rules) {
       int clIdx=(actionsDiffer)?rule.action-minAction:-1;
       if (clIdx<0) {
@@ -302,9 +306,14 @@ public class RuleSet {
           if (rule.meanQ<qValueBreaks[clIdx])
             break;
       }
+      ++classSizes[clIdx];
       for (int fIdx=0; fIdx<nFeatures; fIdx++)
         freq[fIdx][clIdx].countFeatureValuesInterval(rule.getFeatureInterval(fNames.get(fIdx)));
     }
+
+    for (int j=0; j<nClasses; j++)
+      for (int i=0; i<nFeatures; i++)
+        freq[i][j].classSize =classSizes[j];
 
     this.nFeatureIntervals=nFeatureIntervals;
     this.nResultIntervals=nResultIntervals;

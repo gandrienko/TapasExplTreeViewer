@@ -27,6 +27,11 @@ public class MultiHeatmapPanel extends JPanel {
     repaint();
   }
 
+  public void setHeatmapTitle(String title, int idx) {
+    if (titles!=null && idx>=0 && idx<titles.size())
+      titles.set(idx,title);
+  }
+
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);

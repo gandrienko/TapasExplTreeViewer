@@ -22,6 +22,8 @@ public class FeatureHeatmapsManager {
    * Heatmap drawers showing the distribution of the feature values by classes or intervals of the prediction results
    */
   public HeatmapDrawer hmDrawByClasses[]=null, hmDrawByFeatures[]=null;
+
+  public MultiHeatmapPanel hmPanelClasses=null, hmPanelFeatures=null;
   
   public JTextArea infoArea=null;
   
@@ -40,7 +42,7 @@ public class FeatureHeatmapsManager {
       int nPresent[]=new int[nFeatures], nAbsent[]=new int[nFeatures];
       int nRulesCounted=0;
       for (int fIdx=0; fIdx<nFeatures; fIdx++) {
-        nPresent[fIdx]=freq[fIdx][cIdx].nCounted;
+        nPresent[fIdx]=freq[fIdx][cIdx].nRulesWithFeature;
         nAbsent[fIdx]=freq[fIdx][cIdx].nAbsences;
         nRulesCounted=Math.max(nRulesCounted,nPresent[fIdx]);
         counts[fIdx]=freq[fIdx][cIdx].counts;
@@ -79,9 +81,9 @@ public class FeatureHeatmapsManager {
       for (int cIdx=0; cIdx<nClasses; cIdx++) {
         breaks[cIdx]=featureBreaks[fIdx]; //all are the same
         counts[cIdx] = freq[fIdx][cIdx].counts;
-        nPresent[cIdx]=freq[fIdx][cIdx].nCounted;
+        nPresent[cIdx]=freq[fIdx][cIdx].nRulesWithFeature;
         nAbsent[cIdx]=freq[fIdx][cIdx].nAbsences;
-        nRulesCounted=Math.max(nRulesCounted,freq[fIdx][cIdx].nCounted);
+        nRulesCounted=Math.max(nRulesCounted,freq[fIdx][cIdx].nRulesWithFeature);
       }
       if (hmDrawByFeatures[fIdx]==null)
         hmDrawByFeatures[fIdx]=new HeatmapDrawer(counts,nRulesCounted,nPresent,nAbsent,breaks,
@@ -118,11 +120,12 @@ public class FeatureHeatmapsManager {
       return null;
     
     //create an instance of HeatmapDrawer for each class or interval of predicted values
-    MultiHeatmapPanel hmPanelClasses=new MultiHeatmapPanel();
+    hmPanelClasses=new MultiHeatmapPanel();
     for (int cIdx=0; cIdx<nClasses; cIdx++)
-      hmPanelClasses.addHeatmap(hmDrawByClasses[cIdx],classLabels[cIdx]);
+      hmPanelClasses.addHeatmap(hmDrawByClasses[cIdx],classLabels[cIdx]+
+          " ("+freq[0][cIdx].classSize+" rules)");
     
-    MultiHeatmapPanel hmPanelFeatures=new MultiHeatmapPanel();
+    hmPanelFeatures=new MultiHeatmapPanel();
     for (int fIdx=0; fIdx<nFeatures; fIdx++) {
       hmPanelFeatures.addHeatmap(hmDrawByFeatures[fIdx],featureNames[fIdx]);
     }
@@ -151,6 +154,11 @@ public class FeatureHeatmapsManager {
     this.freq=freq; this.info=info;
     if (!getCountsByClasses() || !getCountsByFeatures())
       return false;
+    for (int cIdx=0; cIdx<nClasses; cIdx++)
+      hmPanelClasses.setHeatmapTitle(classLabels[cIdx]+
+          " ("+freq[0][cIdx].classSize+" rules)",cIdx);
+    hmPanelClasses.repaint();
+    hmPanelFeatures.repaint();
     infoArea.setText(info);
     return true;
   }

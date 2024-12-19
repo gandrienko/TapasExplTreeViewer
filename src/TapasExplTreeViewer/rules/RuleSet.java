@@ -121,7 +121,8 @@ public class RuleSet {
     return !Double.isNaN(minQValue) && !Double.isNaN(maxQValue) && minQValue<maxQValue;
   }
 
-  public ArrayList<CommonExplanation> selectRulesByConditionFilters(Map<String,Object> filters) {
+  public ArrayList<CommonExplanation> selectRulesByConditionFilters(Map<String,Object> filters,
+                                                                    boolean rangesMustBeInsideLimits) {
     if (rules==null || rules.isEmpty())
       return null;
     if (filters==null || filters.isEmpty())
@@ -133,8 +134,12 @@ public class RuleSet {
         double range[]=rule.getFeatureInterval(feature);
         Object filter=filters.get(feature);
         double limits[]=(filter instanceof double[])?(double[]) filter:null;
-        //ok=doIntervalsOverlap(range,limits);
-        ok=doesLimitsIncludeRange(range,limits);
+
+        if (rangesMustBeInsideLimits)
+          ok=doesLimitsIncludeRange(range,limits);
+        else
+          ok=doIntervalsOverlap(range,limits);
+
         if (!ok)
           break;
       }

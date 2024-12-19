@@ -2360,7 +2360,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         }
       }
     else {
-      ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters);
+      ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters,
+          filterUI.mustRangesBeInsideLimits());
       if (selectedRules==null) {
         if (filterStateMessage == null)
           JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),

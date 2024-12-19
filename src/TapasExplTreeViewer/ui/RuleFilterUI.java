@@ -1,7 +1,6 @@
 package TapasExplTreeViewer.ui;
 
 import TapasExplTreeViewer.rules.RuleSet;
-import TapasExplTreeViewer.util.DualSlider;
 import TapasExplTreeViewer.util.SliderWithBounds;
 
 import javax.swing.*;
@@ -22,6 +21,8 @@ public class RuleFilterUI extends JPanel {
   private Map<String, SliderWithBounds> sliders=null;
   private Map<String, JCheckBox> checkBoxes=null;
   private JButton applyFilterButton=null;
+
+  private boolean rangesInsideLimits =true;
 
   private ArrayList<ChangeListener> changeListeners=null;
 
@@ -86,6 +87,25 @@ public class RuleFilterUI extends JPanel {
     JPanel p=new JPanel();
     add(p, BorderLayout.SOUTH);
     p.setLayout(new GridLayout(0,1));
+
+    p.add(new JLabel("Feature ranges in rules MUST"));
+    ButtonGroup bg=new ButtonGroup();
+    JRadioButton rbIncluded=new JRadioButton("be contained in filter limits", rangesInsideLimits);
+    JRadioButton rbOverlap=new JRadioButton("overlap with filter limits",!rangesInsideLimits);
+    bg.add(rbIncluded);
+    bg.add(rbOverlap);
+    p.add(rbIncluded);
+    p.add(rbOverlap);
+
+    ActionListener aList=new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        setLimitsApplicationMode(rbIncluded.isSelected());
+      }
+    };
+    rbIncluded.addActionListener(aList);
+    rbOverlap.addActionListener(aList);
+
     p.add(cbDynamic);
     JPanel pp=new JPanel();
     p.add(pp);
@@ -101,6 +121,13 @@ public class RuleFilterUI extends JPanel {
         clearFilters();
       }
     });
+  }
+
+  public void setLimitsApplicationMode (boolean mustBeIncluded) {
+    if (rangesInsideLimits==mustBeIncluded)
+      return;
+    rangesInsideLimits =mustBeIncluded;
+    notifyListeners();
   }
 
   public void clearFilters() {
@@ -156,7 +183,11 @@ public class RuleFilterUI extends JPanel {
     }
     return (filters.isEmpty())?null:filters;
   }
-  
+
+  public boolean mustRangesBeInsideLimits() {
+    return rangesInsideLimits;
+  }
+
   public ArrayList<String> describeFilters() {
     ArrayList<String> conditions=new ArrayList<String>();
     for (String feature : sliders.keySet()) {

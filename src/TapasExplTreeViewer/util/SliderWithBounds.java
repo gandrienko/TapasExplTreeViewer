@@ -138,6 +138,11 @@ public class SliderWithBounds extends JPanel {
   }
 
   public double getLowerValue() {
+    if (slider.getLowerValue()<=slider.getMin())
+      return (Double.isNaN(realMin))?slider.getMin():realMin;
+    if (slider.getLowerValue()>=slider.getMax())
+      return (Double.isNaN(realMax))?slider.getMax():realMax;
+
     if (lowerBoundField!=null) {
       String txt=lowerBoundField.getText();
       if (txt!=null)
@@ -157,6 +162,11 @@ public class SliderWithBounds extends JPanel {
   }
 
   public double getUpperValue() {
+    if (slider.getUpperValue()<=slider.getMin())
+      return (Double.isNaN(realMin))?slider.getMin():realMin;
+    if (slider.getUpperValue()>=slider.getMax())
+      return (Double.isNaN(realMax))?slider.getMax():realMax;
+
     if (upperBoundField!=null) {
       String txt=upperBoundField.getText();
       if (txt!=null)

@@ -63,6 +63,7 @@ public class HeatmapDrawer extends JPanel {
     if (counts==null)
       return;
     this.counts=counts; this.nPresent=nPresent; this.nAbsent=nAbsent;
+    maxSum=0;
     if (absMaxCount<=0)
       for (int i=0; i<counts.length; i++)
         for (int j=0; j<counts[i].length; j++)

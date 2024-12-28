@@ -220,10 +220,11 @@ public class RuleSet {
   /**
    * Settings from the last execution of the method getFeatureValuesDistributions()
    */
-  private int nFeatureIntervals=10, nResultIntervals=10;
+  private int nFeatureIntervals=10;
+  private ArrayList<Double> resultBreaks=null;
 
   public ValuesFrequencies[][] getFeatureValuesDistributions(ArrayList<CommonExplanation> rules){
-    return getFeatureValuesDistributions(rules,nFeatureIntervals,nResultIntervals);
+    return getFeatureValuesDistributions(rules,nFeatureIntervals,resultBreaks);
   }
 
   /**
@@ -236,12 +237,13 @@ public class RuleSet {
    * @param rules - a (sub)set of rules for which to count frequencies. If null, takes the full set of rules
    *              from this instance of RuleSet.
    * @param nFeatureIntervals - in how many intervals the ranges of the feature values need to be divided.
-   * @param nResultIntervals - for a regression model, in how many intervals the range of the predicted values
-   *                         needs to be divided. In a case of classification m odel, this argument is ignored.
+   * @param resultBreaks - for a regression model, the breaks for dividing the range of the predicted values
+   *                         into intervals. In a case of classification m odel, this argument is ignored.
    * @return 2D array of computed frequencies; 1st dimension: features; 2nd dimension: classes or result intervals
    */
   public ValuesFrequencies[][] getFeatureValuesDistributions(ArrayList<CommonExplanation> rules,
-                                                             int nFeatureIntervals, int nResultIntervals) {
+                                                             int nFeatureIntervals,
+                                                             ArrayList<Double> resultBreaks) {
     if (rules==null)
       rules=this.rules;
     if (rules==null || attrMinMax==null)
@@ -262,16 +264,17 @@ public class RuleSet {
           fNames.remove(j);
     }
     int nFeatures=fNames.size();
-    int nClasses=(actionsDiffer)?maxAction-minAction+1:nResultIntervals;
 
-    double qValueBreaks[]=null;
-    if (!actionsDiffer) {
-      qValueBreaks=new double[nResultIntervals-1];
+    if (!actionsDiffer && (resultBreaks==null || resultBreaks.isEmpty())) {
+      int nResultIntervals=5;
+      if (resultBreaks==null)
+        resultBreaks=new ArrayList<Double>(nResultIntervals);
       double delta=(maxQValue-minQValue)/nResultIntervals;
-      qValueBreaks[0]=minQValue+delta;
-      for (int i=1; i<qValueBreaks.length; i++)
-        qValueBreaks[i]=qValueBreaks[i-1]+delta;
+      resultBreaks.add(minQValue+delta);
+      for (int i=1; i<nResultIntervals-1; i++)
+        resultBreaks.add(resultBreaks.get(i-1)+delta);
     }
+    int nClasses=(actionsDiffer)?maxAction-minAction+1:resultBreaks.size()+1;
 
     if (nFeatureIntervals<2) nFeatureIntervals=2;
 
@@ -295,9 +298,9 @@ public class RuleSet {
           freq[i][j].action =minAction+j;
         else {
           freq[i][j].resultMinMax=new double[2];
-          freq[i][j].resultMinMax[0]=(j==0)?minQValue:qValueBreaks[j-1];
-          freq[i][j].resultMinMax[1]=(j<qValueBreaks.length)?qValueBreaks[j]:maxQValue;
-          freq[i][j].lowHigh=(j==0)?-1:(j<qValueBreaks.length)?0:1;
+          freq[i][j].resultMinMax[0]=(j==0)?minQValue:resultBreaks.get(j-1);
+          freq[i][j].resultMinMax[1]=(j<resultBreaks.size())?resultBreaks.get(j):maxQValue;
+          freq[i][j].lowHigh=(j==0)?-1:(j<resultBreaks.size())?0:1;
         }
       }
     }
@@ -311,8 +314,8 @@ public class RuleSet {
       if (clIdx<0) {
         if (Double.isNaN(rule.meanQ))
           continue;
-        for (clIdx=0; clIdx<qValueBreaks.length; clIdx++)
-          if (rule.meanQ<qValueBreaks[clIdx])
+        for (clIdx=0; clIdx<resultBreaks.size(); clIdx++)
+          if (rule.meanQ<resultBreaks.get(clIdx))
             break;
       }
       ++classSizes[clIdx];
@@ -325,7 +328,7 @@ public class RuleSet {
         freq[i][j].classSize =classSizes[j];
 
     this.nFeatureIntervals=nFeatureIntervals;
-    this.nResultIntervals=nResultIntervals;
+    this.resultBreaks=resultBreaks;
 
     return freq;
   }

@@ -2239,27 +2239,32 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     ArrayList rules=(applyToSelection)?getSelectedRules(ruleSet.rules,localSelector):ruleSet.rules;
 
     int nFeatureIntervals=(ruleSet.isFeaturesAreBinary())?2:10;
-    String input = JOptionPane.showInputDialog(rulesViewerManager.mainFrame,
-        "Enter the number of intervals for dividing the feature value ranges:", nFeatureIntervals);
-    try {
-      int intervals = Integer.parseInt(input);
-      if (intervals <= 0) {
-        throw new NumberFormatException();
+    if (!ruleSet.isFeaturesAreBinary()) {
+      String input = JOptionPane.showInputDialog(rulesViewerManager.mainFrame,
+          "Enter the number of intervals for dividing the feature value ranges:", nFeatureIntervals);
+      try {
+        int intervals = Integer.parseInt(input);
+        if (intervals <= 0) {
+          throw new NumberFormatException();
+        }
+        nFeatureIntervals = intervals;
+      } catch (NumberFormatException ex) {
+        JOptionPane.showMessageDialog(rulesViewerManager.mainFrame,
+            "Invalid number of intervals. Please enter a positive integer.",
+            "Error", JOptionPane.ERROR_MESSAGE);
       }
-      nFeatureIntervals = intervals;
-    } catch (NumberFormatException ex) {
-      JOptionPane.showMessageDialog(rulesViewerManager.mainFrame,
-          "Invalid number of intervals. Please enter a positive integer.",
-          "Error", JOptionPane.ERROR_MESSAGE);
     }
+    ArrayList<Double> resultBreaks=null;
     if (ruleSet.isRegression()) {
       IntervalBreaksDialog dia=new IntervalBreaksDialog(rulesViewerManager.mainFrame,
           ruleSet.minQValue,ruleSet.maxQValue);
       dia.setVisible(true);
-      ArrayList<Double> breaks=dia.getBreaks();
+      resultBreaks=dia.getBreaks();
+      if (resultBreaks==null)
+        return;
     }
 
-    ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(rules,nFeatureIntervals,10);
+    ValuesFrequencies freq[][]=ruleSet.getFeatureValuesDistributions(rules,nFeatureIntervals,resultBreaks);
     if (freq==null || freq.length<1) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
           "Failed to count the frequencies of the feature values!","No frequencies obtained!",

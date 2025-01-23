@@ -51,7 +51,7 @@ public class RulesViewerManager {
       tabPane=new JTabbedPane();
     tabPane.addTab(rView.ruleSet.versionLabel,rView);
     if (mainFrame==null) {
-      mainFrame=new JFrame("Rules explorer");
+      mainFrame=new JFrame("Rules explorer v.23.01.2025");
       mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
       mainFrame.getContentPane().add(tabPane, BorderLayout.CENTER);
       Dimension d=Toolkit.getDefaultToolkit().getScreenSize();

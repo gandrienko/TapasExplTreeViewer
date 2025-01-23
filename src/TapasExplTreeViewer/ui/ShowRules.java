@@ -946,7 +946,13 @@ public class ShowRules implements RulesPresenter, ChangeListener {
   
   protected ShowRules createShowRulesInstance(ArrayList rules) {
     RuleSet rs=RuleSet.createInstance(rules);
+    rs.determinePredictionRanges();
     ruleSet.addChild(rs);
+
+    rs.minAction=Integer.MAX_VALUE; rs.maxAction=Integer.MIN_VALUE;
+    rs.minQValue=Double.NaN; rs.maxQValue=Double.NaN;
+    rs.determinePredictionRanges();
+
     ShowRules showRules=new ShowRules(rs);
     showRules.setRulesViewerManager(rulesViewerManager);
     showRules.setDataInstances(dataInstances,rs.actionsDiffer);

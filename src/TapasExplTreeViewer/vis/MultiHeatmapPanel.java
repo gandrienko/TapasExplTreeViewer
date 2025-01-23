@@ -12,6 +12,8 @@ public class MultiHeatmapPanel extends JPanel {
 
   public MultiHeatmapPanel() {
     setLayout(null); // Use absolute positioning to allow custom layout
+    ToolTipManager.sharedInstance().registerComponent(this);
+    ToolTipManager.sharedInstance().setDismissDelay(Integer.MAX_VALUE);
   }
 
   /**

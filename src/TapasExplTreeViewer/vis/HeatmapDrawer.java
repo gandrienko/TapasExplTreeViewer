@@ -209,7 +209,7 @@ public class HeatmapDrawer extends JPanel {
         }
         double value = frequencies[row][col];
         Color cellColor = (value == 0) ? Color.white : interpolateColor(minColor, maxColor, value);
-        setToolTipText(formatTooltip(title, rowLabel, min, max, counts[row][col], cellColor));
+        setToolTipText(formatTooltip(title, rowLabel, min, max, counts[row][col], nPresent[row], cellColor));
       }
     }
   }
@@ -235,14 +235,16 @@ public class HeatmapDrawer extends JPanel {
   }
 
   private String formatTooltip(String title, String rowLabel, double minVal,
-                               double maxVal, int count, Color cellColor) {
+                               double maxVal, int count, int nInclude, Color cellColor) {
     return String.format(
         "<html><body style=background-color:rgb(255,255,204)>" +
             "<h3>%s + %s:</h3>" +
             "<table><tr><td>Interval of feature values:</td><td>[<b>%.3f..%.3f</b>)</td></tr>" +
-            "<tr><td>Count of rules: </td><td><b>%d</b> out of <b>%d</b></td><td style=background-color:rgb(%d,%d,%d);color:rgb(%d,%d,%d)>_____</td></tr>" +
+            "<tr><td>Count of rules: </td><td><b>%d</b> out of <b>%d</b> (max = %d)</td><td style=background-color:rgb(%d,%d,%d);" +
+            "color:rgb(%d,%d,%d)>_____</td></tr>" +
             "</table></body></html>",
-        title, rowLabel, minVal, maxVal, count, absMax, cellColor.getRed(), cellColor.getGreen(), cellColor.getBlue(), cellColor.getRed(), cellColor.getGreen(), cellColor.getBlue()
+        title, rowLabel, minVal, maxVal, count, nInclude, absMax,
+        cellColor.getRed(), cellColor.getGreen(), cellColor.getBlue(), cellColor.getRed(), cellColor.getGreen(), cellColor.getBlue()
     );
   }
 }

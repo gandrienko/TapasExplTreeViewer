@@ -20,7 +20,7 @@ public class RuleFilterUI extends JPanel {
 
   private Map<String, SliderWithBounds> sliders=null;
   private Map<String, JCheckBox> checkBoxes=null;
-  private JButton applyFilterButton=null;
+  private JButton applyFilterButton=null, extractRulesButton=null;
 
   private boolean rangesInsideLimits =true;
 
@@ -39,7 +39,7 @@ public class RuleFilterUI extends JPanel {
     ArrayList<String> featureNames=(ruleSet.orderedFeatureNames!=null)?
         ruleSet.orderedFeatureNames:ruleSet.listOfFeatures;
 
-    JCheckBox cbDynamic=new JCheckBox("Apply filters dynamically",false);
+    JCheckBox cbDynamic=new JCheckBox("Apply filters dynamically",true);
 
     for (int i=0; i<featureNames.size(); i++) {
       String featureName = featureNames.get(i);
@@ -114,6 +114,12 @@ public class RuleFilterUI extends JPanel {
     pp.add(applyFilterButton);
     JButton clearButton=new JButton("Clear");
     pp.add(clearButton);
+
+    pp=new JPanel();
+    pp.setLayout(new FlowLayout(FlowLayout.CENTER,30,0));
+    extractRulesButton=new JButton("Extract rules");
+    pp.add(extractRulesButton);
+    p.add(pp);
 
     clearButton.addActionListener(new ActionListener() {
       @Override
@@ -221,5 +227,9 @@ public class RuleFilterUI extends JPanel {
   
   public JButton getApplyFilterButton() {
     return applyFilterButton;
+  }
+
+  public JButton getExtractRulesButton() {
+    return extractRulesButton;
   }
 }

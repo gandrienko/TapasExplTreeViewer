@@ -120,6 +120,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     if (ruleSet.distanceMatrix==null && ruleSet.rules.size()<500)
       computeDistanceMatrix();
     ToolTipManager.sharedInstance().setDismissDelay(30000);
+    ToolTipManager.sharedInstance().setInitialDelay(1000);
   }
   
   public void setFeaturesAreBinary(boolean binary) {
@@ -2325,6 +2326,12 @@ public class ShowRules implements RulesPresenter, ChangeListener {
                 noFilterDistributionsFrame, distributionVisPanel, filterStateDialog, filterStateMessage);
       }
     });
+    filterUI.getExtractRulesButton().addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        extractAndShowFilteredRules(filterUI);
+      }
+    });
     filterUI.addChangeListener(new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
@@ -2348,6 +2355,36 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     filterStateDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
     //filterStateDialog.setVisible(true);
     return filterStateDialog;
+  }
+
+  public void extractAndShowFilteredRules(RuleFilterUI filterUI) {
+    if (filterUI==null)
+      return;
+    Map<String, Object> filters=filterUI.getFilters();
+    if (filters==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No filter conditions defined!", "No folter!",
+          JOptionPane.INFORMATION_MESSAGE);
+      return;
+    }
+    ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters,
+        filterUI.mustRangesBeInsideLimits());
+    if (selectedRules==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No rules satisfying the filter conditions found!", "Empty result!",
+          JOptionPane.INFORMATION_MESSAGE);
+      return;
+    }
+    ShowRules showRules=createShowRulesInstance(selectedRules);
+    String info=selectedRules.size()+" rules satisfying filter conditions";
+    ArrayList filterTexts=filterUI.describeFilters();
+    if (filterTexts!=null)
+      for (int i=0; i<filterTexts.size(); i++)
+        info+=" "+(i+1)+") "+filterTexts.get(i);
+    showRules.ruleSet.setTitle(info);
+    showRules.ruleSet.description=info+" selected from the set of "+
+        ruleSet.rules.size()+((ruleSet.rules.equals(origRules))?" original rules":" earlier selected or derived rules");
+    showRules.showRulesInTable();
   }
 
   public void applyFilters(RuleFilterUI filterUI,

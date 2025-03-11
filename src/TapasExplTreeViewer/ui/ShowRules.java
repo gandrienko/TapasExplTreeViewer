@@ -2177,41 +2177,61 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     }
     if (testData==null)
       return;
-    testData=testData.makeNewVersion();
 
-    if (RuleMaster.applyRulesToData(rules,testData.records)) {
+    String[] options = { "test rules", "obtain predictions" };
+
+    boolean testRules=0==JOptionPane.showOptionDialog(rulesViewerManager.mainFrame,
+        "Is your goal to test the rules on the data or to obtain predictions?",
+        "Intended operation",0,JOptionPane.QUESTION_MESSAGE,null,options,options[0]);
+
+    boolean ok=false;
+    if (testRules)
+      ok=RuleMaster.testRulesOnData(rules,testData);
+    else {
+      testData = testData.makeNewVersion();
+      ok=RuleMaster.applyRulesToData(rules, testData.records);
+    }
+
+    if (!ok) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Completed application of " + rules.size() + " rules to " +
-              testData.records.size() + " data records.", "Rule application done",
-          JOptionPane.INFORMATION_MESSAGE);
-      testData.description="Data records with predictions obtained by applying "+rules.size()+" rules "+
-          ((applyToSelection)?"selected from rule set ":"")+"described as "+rulesView.getGeneralInfo();
+          "Failed to apply the rules to data!",
+          "Rule application failed", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
 
-      DataTableViewer dViewer=new DataTableViewer(testData,
-          ruleSet.listOfFeatures.toArray(new String[ruleSet.listOfFeatures.size()]),this);
+    JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+        "Completed application of " + rules.size() + " rules to " +
+            testData.records.size() + " data records.", "Rule application done",
+        JOptionPane.INFORMATION_MESSAGE);
 
-      ClassConfusionMatrix cMatrix=new ClassConfusionMatrix();
+    if (testRules) {
+      rulesView.getTableModel().fireTableDataChanged();
+    }
+    else {
+      testData.description = "Data records with predictions obtained by applying " + rules.size() + " rules " +
+          ((applyToSelection) ? "selected from rule set " : "") + "described as " + rulesView.getGeneralInfo();
+
+      DataTableViewer dViewer = new DataTableViewer(testData,
+          ruleSet.listOfFeatures.toArray(new String[ruleSet.listOfFeatures.size()]), this);
+
+      ClassConfusionMatrix cMatrix = new ClassConfusionMatrix();
       if (!cMatrix.makeConfusionMatrix(testData))
-        cMatrix=null;
+        cMatrix = null;
 
-      DataSet origData=testData.getOriginalVersion();
+      DataSet origData = testData.getOriginalVersion();
 
-      DataVersionsViewer dViewFrame=rulesViewerManager.findDataViewFrame(origData);
-      if (dViewFrame!=null)
-        dViewFrame.addDataViewer(dViewer,cMatrix,rulesView.getGeneralInfo());
+      DataVersionsViewer dViewFrame = rulesViewerManager.findDataViewFrame(origData);
+      if (dViewFrame != null)
+        dViewFrame.addDataViewer(dViewer, cMatrix, rulesView.getGeneralInfo());
       else {
-        dViewFrame = new DataVersionsViewer(dViewer,cMatrix,rulesView.getGeneralInfo());
+        dViewFrame = new DataVersionsViewer(dViewer, cMatrix, rulesView.getGeneralInfo());
         dViewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         rulesViewerManager.addSharedFrame(dViewFrame);
       }
 
       if (!applyToSelection)
-        rulesViewerManager.currentData=testData;
+        rulesViewerManager.currentData = testData;
     }
-    else
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "Failed to apply the rules to data!",
-          "Rule application failed",JOptionPane.ERROR_MESSAGE);
   }
 
   public void exportDataToCSVFile() {

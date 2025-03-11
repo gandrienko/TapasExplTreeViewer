@@ -1416,7 +1416,39 @@ public class RuleMaster {
     */
     return true;
   }
-  
+
+  public static boolean testRulesOnData(ArrayList<CommonExplanation> rules,
+                                        DataSet data) {
+    if (rules==null || rules.isEmpty() || data==null || data.determineTargetType()==DataRecord.NO_TARGET)
+      return false;
+
+    for (CommonExplanation rule:rules)
+      rule.nCasesRight=rule.nCasesWrong=0;
+
+    int applicationCount=0, nRight=0, nWrong=0;
+    for (DataRecord record:data.records) {
+      if (record.getTargetType()==DataRecord.NO_TARGET)
+        continue;
+      for (CommonExplanation rule:rules)
+        if (ruleAppliesToDataRecord(rule,record)) {
+          ++applicationCount;
+          switch (record.getTargetType()) {
+            case DataRecord.CLASS_TARGET:
+              if (record.origClassIdx==rule.action) {
+                ++rule.nCasesRight; ++nRight;
+              }
+              else {
+                ++rule.nCasesWrong; ++nWrong;
+              }
+          }
+        }
+    }
+    System.out.println("Rule testing data: made "+applicationCount+
+        " applications of "+rules.size()+" rules to "+data.records.size()+" data records.\n"+
+        "N correct predictions = "+nRight+", N wrong predictions = "+nWrong);
+    return nRight+nWrong>0;
+  }
+
   public static ArrayList<CommonExplanation> selectRulesApplicableToData(
       ArrayList<CommonExplanation> rules,
       ArrayList<DataRecord> data)

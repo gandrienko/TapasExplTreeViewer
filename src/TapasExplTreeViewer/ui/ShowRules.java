@@ -2178,7 +2178,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     if (testData==null)
       return;
 
-    String[] options = { "test rules", "obtain predictions" };
+    String[] options = { "Test rules", "Obtain predictions" };
 
     boolean testRules=0==JOptionPane.showOptionDialog(rulesViewerManager.mainFrame,
         "Is your goal to test the rules on the data or to obtain predictions?",

@@ -210,6 +210,7 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
       }
       else
       if (!tblModel.isClusterColumn(i)) {
+        /*
         Class columnClass = tblModel.getColumnClass(i);
         if (columnClass==null)
           continue;
@@ -220,6 +221,7 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
           RenderLabelBarChart rBar = new RenderLabelBarChart(min, max);
           table.getColumnModel().getColumn(i).setCellRenderer(rBar);
         }
+        */
       }
     }
 

@@ -158,11 +158,11 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     }
     if (maxNUses>1)
       listOfColumnNames.add("N uses");
-    if (maxRight>0) {
+    //if (maxRight>0) {
       listOfColumnNames.add("N+");
       listOfColumnNames.add("N-");
       listOfColumnNames.add("+/-");
-    }
+    //}
     listOfColumnNames.add("order");
     listOfColumnNames.add("cluster");
     listOfColumnNames.add("N conditions");
@@ -343,13 +343,16 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         return values;
       }
       if (colName.contains("uses"))
-        return new Integer(cEx.getUsesCount());
+        return new Integer(cEx.nUses);
       if (colName.equals("n+") || colName.equals("n +"))
         return new Integer(cEx.nCasesRight);
       if (colName.equals("n-") || colName.equals("n -"))
         return new Integer(cEx.nCasesWrong);
       if (colName.contains("+/-"))
-        return new Float(cEx.nCasesRight*1f/(cEx.nCasesRight+cEx.nCasesWrong));
+        if (cEx.nCasesRight+cEx.nCasesWrong>0)
+          return new Float(cEx.nCasesRight*1f/(cEx.nCasesRight+cEx.nCasesWrong));
+        else
+          return null;
 
       if (colName.equals("x") || colName.equals("x1d")) //in 1D projection
         return new Float(cEx.x1D);

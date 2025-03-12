@@ -836,7 +836,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           CommonExplanation rule = ruleSet.getRule(realRowIndex);
           String title = "Select data for the rule " +
               rule.numId + ", action=" + rule.action +
-              ", N records=" + rule.getApplicationsCount();
+              ", N records=" + rule.nUses;
           JMenuItem selItem = new JMenuItem(title);
           selItem.addActionListener(new ActionListener() {
             @Override

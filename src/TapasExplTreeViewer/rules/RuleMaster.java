@@ -1484,14 +1484,32 @@ public class RuleMaster {
     if (rule==null || data==null)
       return null;
     ArrayList<DataRecord> selectedData=null;
+    byte targetType=data.records.get(0).getTargetType();
+    int nWrong=0;
     for (DataRecord rec:data.records)
       if (ruleAppliesToDataRecord(rule,rec)) {
         if (selectedData==null)
           selectedData=new ArrayList<DataRecord>(data.records.size()/5);
         DataRecord rec2=rec.makeNewVersion();
-        rec2.predictedClassIdx=rule.action;
-        rec2.predictedValue=rule.meanQ;
-        selectedData.add(rec2);
+        boolean ok=false;
+        switch (targetType) {
+          case DataRecord.CLASS_TARGET:
+            ok= rec.origClassIdx==rule.action;
+            rec2.predictedClassIdx=rule.action;
+            break;
+          case DataRecord.VALUE_TARGET:
+            ok= rec.origValue>=rule.minQ && rec.origValue<=rule.maxQ;
+            rec2.predictedValue=rule.meanQ;
+            if (rule.minQ<rule.maxQ) {
+              double range[] = {rule.minQ, rule.maxQ};
+              rec2.predictedValueRange = range;
+            }
+            break;
+        }
+        if (ok)
+          selectedData.add(rec2);
+        else
+          selectedData.add(nWrong++,rec2);
       }
     return selectedData;
   }

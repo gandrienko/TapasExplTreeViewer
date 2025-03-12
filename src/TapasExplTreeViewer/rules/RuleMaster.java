@@ -1433,19 +1433,31 @@ public class RuleMaster {
         if (ruleAppliesToDataRecord(rule,record)) {
           ++applicationCount;
           ++rule.nUses;
+          boolean ok=false;
           switch (record.getTargetType()) {
             case DataRecord.CLASS_TARGET:
-              if (record.origClassIdx==rule.action) {
-                ++rule.nCasesRight; ++nRight;
-              }
-              else {
-                ++rule.nCasesWrong; ++nWrong;
-              }
+              ok= record.origClassIdx==rule.action;
+              break;
+            case DataRecord.VALUE_TARGET:
+              ok= record.origValue>=rule.minQ && record.origValue<=rule.maxQ;
+              break;
+          }
+          if (ok) {
+            ++rule.nCasesRight; ++nRight;
+          }
+          else {
+            ++rule.nCasesWrong; ++nWrong;
           }
         }
     }
+    int nRulesApplied=0;
+    for (CommonExplanation rule:rules)
+      if (rule.nUses>0) ++nRulesApplied;
+
     System.out.println("Rule testing on data: made "+applicationCount+
-        " applications of "+rules.size()+" rules to "+data.records.size()+" data records.\n"+
+        " applications of "+nRulesApplied+" out of "+rules.size()+" rules " +
+        String.format("%.2f",100.0*nRulesApplied/rules.size())+
+        "%) to "+data.records.size()+" data records.\n"+
         "N correct predictions = "+nRight+", N wrong predictions = "+nWrong);
     return nRight+nWrong>0;
   }

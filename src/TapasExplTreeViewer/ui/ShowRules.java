@@ -2206,6 +2206,8 @@ public class ShowRules implements RulesPresenter, ChangeListener {
 
     if (testRules) {
       rulesView.updateDataInTable();
+      getMainFrame().toFront();
+      getMainFrame().requestFocus();
     }
     else {
       testData.description = "Data records with predictions obtained by applying " + rules.size() + " rules " +

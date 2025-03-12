@@ -229,6 +229,21 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
   }
 
   public Class getColumnClass(int c) {
+    String intColNames[]={"upper id","tree id","tree cluster","class","action",
+        "weight","uses","n+","n +","n-","n -","order","cluster","conditions"};
+    String floatColNames[]={"value","q","min","max","mean","x","x1d"};
+
+    String colName=getColumnName(c).toLowerCase();
+    for (String name:intColNames)
+      if (name.equals(colName))
+        return Integer.class;
+    for (String name:floatColNames)
+      if (name.equals(colName))
+        return Float.class;
+
+    if (colName.contains("mean") || colName.contains("+/-"))
+      return Float.class;
+
     return (getValueAt(0, c) == null) ? null : getValueAt(0, c).getClass();
   }
   

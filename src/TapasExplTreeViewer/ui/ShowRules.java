@@ -2205,7 +2205,7 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         JOptionPane.INFORMATION_MESSAGE);
 
     if (testRules) {
-      rulesView.getTableModel().fireTableDataChanged();
+      rulesView.updateDataInTable();
     }
     else {
       testData.description = "Data records with predictions obtained by applying " + rules.size() + " rules " +

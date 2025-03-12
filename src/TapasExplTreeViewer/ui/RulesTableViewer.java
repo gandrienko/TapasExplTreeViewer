@@ -15,6 +15,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.*;
@@ -209,8 +210,7 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
         table.getColumnModel().getColumn(i).setCellRenderer(subIntRend);
       }
       else
-      if (!tblModel.isClusterColumn(i)) {
-        /*
+      if (!tblModel.isClusterColumn(i) && !tblModel.isResultClassColumn(i)) {
         Class columnClass = tblModel.getColumnClass(i);
         if (columnClass==null)
           continue;
@@ -221,7 +221,6 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
           RenderLabelBarChart rBar = new RenderLabelBarChart(min, max);
           table.getColumnModel().getColumn(i).setCellRenderer(rBar);
         }
-        */
       }
     }
 
@@ -272,6 +271,21 @@ public class RulesTableViewer extends JPanel implements RulesOrderer {
             return 0;
         }
       });
+  }
+
+  public void updateDataInTable () {
+    if (table==null || tblModel==null)
+      return;
+    for (int i=0; i<tblModel.getColumnCount(); i++)
+      if (!tblModel.isClusterColumn(i) && !tblModel.isResultClassColumn(i)) {
+        TableColumn cMod=table.getColumnModel().getColumn(i);
+        if (cMod.getCellRenderer() instanceof RenderLabelBarChart) {
+          float min = tblModel.getColumnMin(i), max = tblModel.getColumnMax(i);
+          RenderLabelBarChart rBar = (RenderLabelBarChart)cMod.getCellRenderer();
+          rBar.setMinMax(min,max);
+        }
+      }
+    tblModel.fireTableDataChanged();
   }
 
   public JTable getTable() {

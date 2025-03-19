@@ -9,7 +9,9 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Vector;
 
 public class RuleSelector {
   protected ArrayList<CommonExplanation> origRules =null, selectedRules=null;
@@ -42,6 +44,7 @@ public class RuleSelector {
     
     int minClass=-1, maxClass=-1, minTreeId=-1, maxTreeId=-1, minTreeCluster=-1, maxTreeCluster=-1;
     double minValue=Double.NaN, maxValue=Double.NaN;
+    Vector<String> categories=null;
     
     for (CommonExplanation r: rules) {
       if (r.action>=0) {
@@ -70,11 +73,19 @@ public class RuleSelector {
         if (maxTreeCluster<0 || maxTreeCluster<r.treeCluster)
           maxTreeCluster=r.treeCluster;
       }
+      if (r.category!=null && r.category.length()>0) {
+        if (categories==null)
+          categories=new Vector<String>(20);
+        if (!categories.contains(r.category))
+          categories.add(r.category);
+      }
     }
     JPanel topP=new JPanel();
     topP.setLayout(new GridLayout(0,1));
-    JCheckBox cb[]=new JCheckBox[4];
+    JCheckBox cb[]=new JCheckBox[5];
     JTextField tfMin[]=new JTextField[4], tfMax[]=new JTextField[4];
+    JComboBox<String> comboCategory=null;
+
     for (int i=0; i<4; i++) {
       cb[i]=null; tfMin[i]=tfMax[i]=null;
     }
@@ -125,6 +136,16 @@ public class RuleSelector {
       p.add(new JLabel("to",JLabel.RIGHT));
       tfMax[3]=new JTextField(Integer.toString(maxTreeCluster),2);
       p.add(tfMax[3]);
+      topP.add(p);
+    }
+    if (categories!=null && categories.size()>1) {
+      Collections.sort(categories);
+      JPanel p=new JPanel();
+      p.setLayout(new FlowLayout(FlowLayout.LEFT));
+      cb[4]=new JCheckBox("Category:");
+      p.add(cb[4]);
+      comboCategory=new JComboBox<String>(categories);
+      p.add(comboCategory);
       topP.add(p);
     }
 
@@ -198,6 +219,8 @@ public class RuleSelector {
     queryDialog.setVisible(true);
     isRunning=true;
 
+    final JComboBox<String> comboCatCopy=comboCategory;
+
     b.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -208,6 +231,7 @@ public class RuleSelector {
         }
         int minClass=-1, maxClass=-1, minTreeId=-1, maxTreeId=-1, minTreeCluster=-1, maxTreeCluster=-1;
         double minValue=Double.NaN, maxValue=Double.NaN;
+        String category=null;
         queryStr="";
         if (cb[0]!=null && cb[0].isSelected()) {
           try {
@@ -249,6 +273,11 @@ public class RuleSelector {
           if (minTreeCluster>=0 && maxTreeCluster>=minTreeCluster)
             queryStr+="Tree cluster in ["+minTreeCluster+","+maxTreeCluster+"]; ";
         }
+        if (cb[4]!=null && cb[4].isSelected()) {
+          category=comboCatCopy.getSelectedItem().toString();
+          queryStr+="category = "+category+"; ";
+        }
+
         HashSet<String> selFeatures=null;
         if (feaSel!=null && cbMust.isSelected()) {
           selFeatures=feaSel.getSelection();
@@ -271,7 +300,7 @@ public class RuleSelector {
           queryStr=queryStr.substring(0,queryStr.length()-2);
 
         selectRulesByQuery(minClass,maxClass,minValue,maxValue,
-            minTreeId,maxTreeId,minTreeCluster,maxTreeCluster,
+            minTreeId,maxTreeId,minTreeCluster,maxTreeCluster,category,
             selFeatures,(cbNot==null)?false:cbNot.isSelected(),(rbAll==null)?false:rbAll.isSelected());
       }
     });
@@ -293,6 +322,7 @@ public class RuleSelector {
                                  double minValue, double maxValue,
                                  int minTreeId, int maxTreeId,
                                  int minTreeCluster, int maxTreeCluster,
+                                 String category,
                                  HashSet<String> selectedFeatures, boolean mustNot, boolean allFeatures) {
     Object source=this;
     SwingWorker worker=new SwingWorker() {
@@ -300,8 +330,14 @@ public class RuleSelector {
       public Boolean doInBackground() {
         queryExecuting=true;
         selectedRules=null;
+        Vector<String> categories=null;
+        if (category!=null) {
+          categories=new Vector<String>(1);
+          categories.add(category);
+        }
+
         selectedRules= RuleMaster.selectByQuery(origRules,minClass,maxClass,minValue,maxValue,
-            minTreeId,maxTreeId,minTreeCluster,maxTreeCluster);
+            minTreeId,maxTreeId,minTreeCluster,maxTreeCluster,categories);
         if (selectedFeatures!=null && selectedRules!=null && !selectedRules.isEmpty()) {
           selectedRules=(ArrayList<CommonExplanation>)selectedRules.clone();
           for (int i=selectedRules.size()-1; i>=0; i--) {

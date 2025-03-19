@@ -5,6 +5,7 @@ import java.util.List;
 public class Rule {
   public int id=0;
   public int treeId=-1, treeCluster =-1, weight=1;
+  public String category=null;
   public List<Condition> conditions=null;
   public int predictedClass=-1;
   public double predictedValue=Double.NaN;
@@ -73,6 +74,11 @@ public class Rule {
     else
     if (r.predictedValue!=predictedValue)
       return false;
+    if (r.category!=null)
+      if (!r.category.equals(category)) return false; else;
+    else
+      if (category!=null)
+        return false;
     if (r.getConditionCount()!=getConditionCount())
       return false;
     for (Condition c:conditions)

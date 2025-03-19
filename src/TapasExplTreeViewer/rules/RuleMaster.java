@@ -296,15 +296,18 @@ public class RuleMaster {
                                                             int minAction, int maxAction,
                                                             double minValue, double maxValue,
                                                             int minTreeId, int maxTreeId,
-                                                            int minTreeCluster, int maxTreeCluster) {
+                                                            int minTreeCluster, int maxTreeCluster,
+                                                            Vector<String> categories) {
     if (rules==null || rules.isEmpty())
       return rules;
-    if (minAction<0 && maxAction<0 &&
+    if (categories==null && minAction<0 && maxAction<0 &&
         minTreeId<0 && maxTreeId<0 && minTreeCluster<0 && maxTreeCluster<0 &&
         Double.isNaN(minValue) && Double.isNaN(maxValue))
       return rules; //no query conditions
     ArrayList<CommonExplanation> subset=null;
     for (CommonExplanation r:rules) {
+      if (categories!=null && !categories.contains(r.category))
+        continue;
       if (minAction>=0 && r.action<minAction)
           continue;
       if (maxAction>=0 && r.action>maxAction)

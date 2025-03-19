@@ -91,6 +91,7 @@ public class SeeRules {
       String fieldNames[]=null;
       boolean realValued=false;
       int fNRuleId=-1, fNTreeId=-1, fNCluster=-1, fNResult=-1, fNWeight=-1, fNRuleBody=-1;
+      int fNCat=-1;
 
       while ((line = br.readLine()) != null) {
         if (line==null || line.trim().length()<2)
@@ -116,6 +117,11 @@ public class SeeRules {
                 fNRuleId=i;
               else
                 fNRuleBody=i;
+            else
+            if (fieldNames[i].contains("type") || fieldNames[i].contains("category") ||
+                fieldNames[i].contains("generator"))
+              fNCat=i;
+
           }
           if (fNRuleBody<0) {
             System.out.println("No field containing the rule body has been found!");
@@ -147,6 +153,12 @@ public class SeeRules {
             r.treeCluster =Integer.parseInt(fields[fNCluster]);
           if (fNWeight>=0)
             r.weight=Integer.parseInt(fields[fNWeight]);
+          if (fNCat>=0) {
+            r.category = fields[fNCat].trim();
+            if (r.category.length()<1)
+              r.category="NONE";
+          }
+
           int idx=rules.indexOf(r);
           if (idx<0)
             rules.add(r);
@@ -230,6 +242,7 @@ public class SeeRules {
       ex.treeCluster=rule.treeCluster;
       ex.nSame=rule.nSame;
       ex.weight=Math.max(rule.nSame,rule.weight);
+      ex.category=rule.category;
       if (!Double.isNaN(rule.getPredictedValue())) {
         ex.minQ = ex.maxQ = ex.meanQ = (float) rule.getPredictedValue();
         ex.sumQ=rule.getPredictedValue();

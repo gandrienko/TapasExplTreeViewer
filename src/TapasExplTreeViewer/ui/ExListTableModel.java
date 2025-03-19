@@ -44,9 +44,13 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     int minClass=-1, maxClass=-1;
     int maxNUses=0, maxRight=0, maxWrong=0, minTreeId=-1, maxTreeId=-1, minTreeCluster=-1, maxTreeCluster=-1;
     boolean rulesHaveQIntervals=false;
+    boolean rulesHaveCategories=false;
+
     for (int i=0; i<exList.size(); i++) {
       CommonExplanation cEx = exList.get(i);
       hasUnitedRules=hasUnitedRules || (cEx instanceof UnitedRule);
+      rulesHaveCategories= rulesHaveCategories || cEx.category!=null;
+
       for (int j = 0; j < cEx.eItems.length; j++) {
         Integer count=attrUses.get(cEx.eItems[j].attr);
         if (count==null)
@@ -141,6 +145,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     }
     listOfColumnNames=new ArrayList<String>(25+listOfFeatures.size());
     listOfColumnNames.add("Id");
+    if (rulesHaveCategories)
+      listOfColumnNames.add("Category");
     if (maxTreeId>=0)
       listOfColumnNames.add("Tree Id");
     if (maxTreeCluster>=0)
@@ -232,8 +238,12 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
     String intColNames[]={"upper id","tree id","tree cluster","class","action",
         "weight","uses","n+","n +","n-","n -","order","cluster","conditions"};
     String floatColNames[]={"value","q","min","max","mean","x","x1d"};
+    String catColNames[]={"category","type"};
 
     String colName=getColumnName(c).toLowerCase();
+    for (String name:catColNames)
+      if (name.equals(colName))
+        return String.class;
     for (String name:intColNames)
       if (name.equals(colName))
         return Integer.class;
@@ -343,6 +353,8 @@ public class ExListTableModel extends AbstractTableModel implements ChangeListen
         return new Integer(cEx.treeId);
       if (colName.equals("tree cluster"))
         return new Integer(cEx.treeCluster);
+      if (colName.equals("type") || colName.equals("category"))
+        return cEx.category;
       if (colName.equals("class"))
         return new Integer(cEx.action);
       if (colName.equals("weight"))

@@ -127,7 +127,10 @@ public class FeatureHeatmapsManager {
     
     hmPanelFeatures=new MultiHeatmapPanel();
     for (int fIdx=0; fIdx<nFeatures; fIdx++) {
-      hmPanelFeatures.addHeatmap(hmDrawByFeatures[fIdx],featureNames[fIdx]);
+      int count=0;
+      for (int cIdx=0; cIdx<nClasses; cIdx++)
+        count+=freq[fIdx][cIdx].nRulesWithFeature;
+      hmPanelFeatures.addHeatmap(hmDrawByFeatures[fIdx],featureNames[fIdx]+" ("+count+" rules)");
     }
     JTabbedPane tabbedPane=new JTabbedPane();
     tabbedPane.addTab("Class-wise",hmPanelClasses);
@@ -158,6 +161,12 @@ public class FeatureHeatmapsManager {
       hmPanelClasses.setHeatmapTitle(classLabels[cIdx]+
           " ("+freq[0][cIdx].classSize+" rules)",cIdx);
     hmPanelClasses.repaint();
+    for (int fIdx=0; fIdx<nFeatures; fIdx++) {
+      int count=0;
+      for (int cIdx=0; cIdx<nClasses; cIdx++)
+        count+=freq[fIdx][cIdx].nRulesWithFeature;
+      hmPanelFeatures.setHeatmapTitle(featureNames[fIdx]+" ("+count+" rules)",fIdx);
+    }
     hmPanelFeatures.repaint();
     infoArea.setText(info);
     return true;

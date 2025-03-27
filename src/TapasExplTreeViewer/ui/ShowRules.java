@@ -2354,6 +2354,12 @@ public class ShowRules implements RulesPresenter, ChangeListener {
         extractAndShowFilteredRules(filterUI);
       }
     });
+    filterUI.getHighlightRulesButton().addActionListener(new ActionListener() {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        highlightFilteredRules(filterUI);
+      }
+    });
     filterUI.addChangeListener(new ChangeListener() {
       @Override
       public void stateChanged(ChangeEvent e) {
@@ -2407,6 +2413,33 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     showRules.ruleSet.description=info+" selected from the set of "+
         ruleSet.rules.size()+((ruleSet.rules.equals(origRules))?" original rules":" earlier selected or derived rules");
     showRules.showRulesInTable();
+  }
+
+  public void highlightFilteredRules(RuleFilterUI filterUI) {
+    if (filterUI==null || localSelector==null)
+      return;
+    Map<String, Object> filters=filterUI.getFilters();
+    if (filters==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No filter conditions defined!", "No folter!",
+          JOptionPane.INFORMATION_MESSAGE);
+      return;
+    }
+    ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters,
+        filterUI.mustRangesBeInsideLimits());
+    if (selectedRules==null) {
+      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
+          "No rules satisfying the filter conditions found!", "Empty result!",
+          JOptionPane.INFORMATION_MESSAGE);
+      return;
+    }
+    if (localSelector==null)
+      return;
+    ArrayList<Integer> selIndexes=new ArrayList<Integer>(selectedRules.size());
+    for (int i=0; i<ruleSet.rules.size(); i++)
+      if (selectedRules.contains(ruleSet.rules.get(i)))
+        selIndexes.add(i);
+    localSelector.select(selIndexes);
   }
 
   public void applyFilters(RuleFilterUI filterUI,

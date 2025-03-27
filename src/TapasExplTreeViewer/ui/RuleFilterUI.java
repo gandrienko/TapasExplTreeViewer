@@ -20,7 +20,7 @@ public class RuleFilterUI extends JPanel {
 
   private Map<String, SliderWithBounds> sliders=null;
   private Map<String, JCheckBox> checkBoxes=null;
-  private JButton applyFilterButton=null, extractRulesButton=null;
+  private JButton applyFilterButton=null, extractRulesButton=null, highlightRulesButton=null;
 
   private boolean rangesInsideLimits =true;
 
@@ -119,6 +119,8 @@ public class RuleFilterUI extends JPanel {
     pp.setLayout(new FlowLayout(FlowLayout.CENTER,30,0));
     extractRulesButton=new JButton("Extract rules");
     pp.add(extractRulesButton);
+    highlightRulesButton=new JButton("Highlight rules");
+    pp.add(highlightRulesButton);
     p.add(pp);
 
     clearButton.addActionListener(new ActionListener() {
@@ -227,6 +229,10 @@ public class RuleFilterUI extends JPanel {
   
   public JButton getApplyFilterButton() {
     return applyFilterButton;
+  }
+
+  public JButton getHighlightRulesButton() {
+    return highlightRulesButton;
   }
 
   public JButton getExtractRulesButton() {

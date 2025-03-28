@@ -2351,13 +2351,13 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     filterUI.getExtractRulesButton().addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        extractAndShowFilteredRules(filterUI);
+        extractOrHighlightFilteredRules(filterUI,true);
       }
     });
     filterUI.getHighlightRulesButton().addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
-        highlightFilteredRules(filterUI);
+        extractOrHighlightFilteredRules(filterUI,false);
       }
     });
     filterUI.addChangeListener(new ChangeListener() {
@@ -2385,9 +2385,11 @@ public class ShowRules implements RulesPresenter, ChangeListener {
     return filterStateDialog;
   }
 
-  public void extractAndShowFilteredRules(RuleFilterUI filterUI) {
+  public void extractOrHighlightFilteredRules(RuleFilterUI filterUI, boolean toExtract) {
     if (filterUI==null)
       return;
+    if (!toExtract && localSelector==null)
+      return;
     Map<String, Object> filters=filterUI.getFilters();
     if (filters==null) {
       JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
@@ -2403,43 +2405,63 @@ public class ShowRules implements RulesPresenter, ChangeListener {
           JOptionPane.INFORMATION_MESSAGE);
       return;
     }
-    ShowRules showRules=createShowRulesInstance(selectedRules);
-    String info=selectedRules.size()+" rules satisfying filter conditions";
-    ArrayList filterTexts=filterUI.describeFilters();
-    if (filterTexts!=null)
-      for (int i=0; i<filterTexts.size(); i++)
-        info+=" "+(i+1)+") "+filterTexts.get(i);
-    showRules.ruleSet.setTitle(info);
-    showRules.ruleSet.description=info+" selected from the set of "+
-        ruleSet.rules.size()+((ruleSet.rules.equals(origRules))?" original rules":" earlier selected or derived rules");
-    showRules.showRulesInTable();
-  }
+    ArrayList<Integer> classIdxs=new ArrayList<Integer>(10);
+    for (CommonExplanation r:selectedRules)
+      if (r.action>=0 && !classIdxs.contains(r.action))
+        classIdxs.add(r.action);
+    if (classIdxs.size()>1) {
+      Collections.sort(classIdxs);
+      JCheckBox cb[]=new JCheckBox[classIdxs.size()];
+      JPanel mainP=new JPanel();
+      mainP.setLayout(new GridLayout(0,1));
+      mainP.add(new JLabel("Predicted classes:"));
+      for (int i=0; i<classIdxs.size(); i++) {
+        cb[i] = new JCheckBox("class " + classIdxs.get(i), true);
+        mainP.add(cb[i]);
+      }
+      mainP.add(new JLabel("Deselect to exclude the rules"));
+      int result = JOptionPane.showConfirmDialog(
+          FocusManager.getCurrentManager().getActiveWindow(),
+          mainP,
+          "Select classes",
+          JOptionPane.OK_CANCEL_OPTION,
+          JOptionPane.PLAIN_MESSAGE
+      );
+      if (result != JOptionPane.OK_OPTION)
+        return;
+      int sizeOrig=classIdxs.size();
+      for (int i=cb.length-1; i>=0; i--)
+        if (!cb[i].isSelected())
+          classIdxs.remove(i);
+      if (classIdxs.isEmpty())
+        return;
+      if (classIdxs.size()<sizeOrig)
+        for (int i=selectedRules.size()-1; i>=0; i--)
+          if (!classIdxs.contains(selectedRules.get(i).action))
+            selectedRules.remove(i);
+    }
+    else
+      classIdxs=null;
 
-  public void highlightFilteredRules(RuleFilterUI filterUI) {
-    if (filterUI==null || localSelector==null)
-      return;
-    Map<String, Object> filters=filterUI.getFilters();
-    if (filters==null) {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "No filter conditions defined!", "No folter!",
-          JOptionPane.INFORMATION_MESSAGE);
-      return;
+    if (toExtract) {
+      ShowRules showRules = createShowRulesInstance(selectedRules);
+      String info = selectedRules.size() + " rules satisfying filter conditions";
+      ArrayList filterTexts = filterUI.describeFilters();
+      if (filterTexts != null)
+        for (int i = 0; i < filterTexts.size(); i++)
+          info += " " + (i + 1) + ") " + filterTexts.get(i);
+      showRules.ruleSet.setTitle(info);
+      showRules.ruleSet.description = info + " selected from the set of " +
+          ruleSet.rules.size() + ((ruleSet.rules.equals(origRules)) ? " original rules" : " earlier selected or derived rules");
+      showRules.showRulesInTable();
     }
-    ArrayList<CommonExplanation> selectedRules=ruleSet.selectRulesByConditionFilters(filters,
-        filterUI.mustRangesBeInsideLimits());
-    if (selectedRules==null) {
-      JOptionPane.showMessageDialog(FocusManager.getCurrentManager().getActiveWindow(),
-          "No rules satisfying the filter conditions found!", "Empty result!",
-          JOptionPane.INFORMATION_MESSAGE);
-      return;
+    else {
+      ArrayList<Integer> selIndexes=new ArrayList<Integer>(selectedRules.size());
+      for (int i=0; i<ruleSet.rules.size(); i++)
+        if (selectedRules.contains(ruleSet.rules.get(i)))
+          selIndexes.add(i);
+      localSelector.select(selIndexes);
     }
-    if (localSelector==null)
-      return;
-    ArrayList<Integer> selIndexes=new ArrayList<Integer>(selectedRules.size());
-    for (int i=0; i<ruleSet.rules.size(); i++)
-      if (selectedRules.contains(ruleSet.rules.get(i)))
-        selIndexes.add(i);
-    localSelector.select(selIndexes);
   }
 
   public void applyFilters(RuleFilterUI filterUI,

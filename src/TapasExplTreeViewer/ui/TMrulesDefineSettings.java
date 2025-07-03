@@ -258,6 +258,8 @@ class AttributeRangeDialog extends JFrame {
               double end = item.interval[1];
               if (Double.isInfinite(end))
                 end=attrMinMax.get(attribute)[1];
+              if (start<breaks.get(0) && end>=breaks.get(breaks.size()-2))
+                continue; //all intervals are present; not informative
               for (int j = 0; j < intervals.size(); j++) {
                 double intervalStart = breaks.get(j);
                 double intervalEnd = breaks.get(j + 1);
@@ -281,6 +283,8 @@ class AttributeRangeDialog extends JFrame {
               double end = item.interval[1];
               if (Double.isInfinite(end))
                 end=attrMinMax.get(attribute)[1];
+              if (start<breaks.get(0) && end>=breaks.get(breaks.size()-2))
+                continue; //all intervals are present; not informative
               for (int j = 0; j < intervals.size(); j++) {
                 double intervalStart = breaks.get(j);
                 double intervalEnd = breaks.get(j + 1);
@@ -290,7 +294,7 @@ class AttributeRangeDialog extends JFrame {
                   mask+="0";
               }
             }
-          if (mask.length()>0)
+          if (mask.length()>0 && mask.contains("0")) //al least one 0 symbol
             sb.append(attribute).append("__").append(mask).append(" ");
         }
 

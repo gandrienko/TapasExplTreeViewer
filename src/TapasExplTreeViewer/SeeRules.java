@@ -20,40 +20,39 @@ public class SeeRules {
 
   public static void main(String[] args) {
     Map<String, String> settings = new HashMap<>();
-
-    try (BufferedReader reader = new BufferedReader(new FileReader(settingsFile))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        line = line.trim();
-        if (line.startsWith("#") || line.isEmpty()) {
-          continue; // skip comments and empty lines
-        }
-        String[] parts = line.split("=");
-        if (parts.length != 2) {
-          System.err.println("Invalid format: " + line);
-          continue;
-        }
-        String paramName = parts[0].trim();
-        String paramValue = parts[1].trim();
-        if (paramValue.startsWith("\"") && paramValue.endsWith("\""))
-          paramValue = paramValue.substring(1, paramValue.length() - 1);
-        settings.put(paramName, paramValue);
-      }
-    } catch (IOException e) {
-      System.err.println("Error reading settings file: " + e.getMessage());
-    }
-
-    if (settings.containsKey("pathToRules")) {
-      pathToRules = settings.get("pathToRules");
-      System.out.println("Path to rules: " + pathToRules);
-    }
-
     File file=null;
     if (args!=null && args.length>0) {
       String csvFile = args[0];
       file =new File(csvFile);
     }
     else {
+      try (BufferedReader reader = new BufferedReader(new FileReader(settingsFile))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          line = line.trim();
+          if (line.startsWith("#") || line.isEmpty()) {
+            continue; // skip comments and empty lines
+          }
+          String[] parts = line.split("=");
+          if (parts.length != 2) {
+            System.err.println("Invalid format: " + line);
+            continue;
+          }
+          String paramName = parts[0].trim();
+          String paramValue = parts[1].trim();
+          if (paramValue.startsWith("\"") && paramValue.endsWith("\""))
+            paramValue = paramValue.substring(1, paramValue.length() - 1);
+          settings.put(paramName, paramValue);
+        }
+      } catch (IOException e) {
+        System.err.println("Error reading settings file: " + e.getMessage());
+      }
+
+      if (settings.containsKey("pathToRules")) {
+        pathToRules = settings.get("pathToRules");
+        System.out.println("Path to rules: " + pathToRules);
+      }
+
       // Select file with rules
       JFileChooser fileChooser = new JFileChooser();
       fileChooser.setDialogTitle("Specify a file with rules");
@@ -70,11 +69,12 @@ public class SeeRules {
 
       if (userSelection == JFileChooser.APPROVE_OPTION) {
         file = fileChooser.getSelectedFile();
-        lastUsedDirectory = file.getParent();
       }
     }
     if (file==null)
       return;
+
+    lastUsedDirectory = file.getParent();
 
     List<Rule> rules = new ArrayList<>();
     int maxNConditions=0;

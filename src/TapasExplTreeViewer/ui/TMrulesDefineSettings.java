@@ -69,7 +69,7 @@ class AttributeRangeDialog extends JFrame {
     JTable table = new JTable(model);
 
     // Set up JComboBox for mode selection
-    JComboBox<String> modeComboBox = new JComboBox<>(new String[]{"Distinct", "Quantiles"});
+    JComboBox<String> modeComboBox = new JComboBox<>(new String[]{"distinct","equal intervals", "quantiles"});
     table.getColumnModel().getColumn(5).setCellEditor(new DefaultCellEditor(modeComboBox));
 
     // Set up JTextField for quantile number input
@@ -79,7 +79,7 @@ class AttributeRangeDialog extends JFrame {
     // Disable editing quantile numbers when mode is distinct
     table.getColumnModel().getColumn(6).setCellRenderer((table1, value, isSelected, hasFocus, row, column) -> {
       JTextField textField = new JTextField(value != null ? value.toString() : "");
-      if (model.modeMap.get(model.attributes.get(row))) {
+      if (model.modeMap.get(model.attributes.get(row)).equals("distinct")) {
         textField.setEditable(false);
         textField.setBackground(Color.LIGHT_GRAY);
       } else {
@@ -158,7 +158,7 @@ class AttributeRangeDialog extends JFrame {
   }
 */
 
-  private void saveToFile(String fname, Map<String,Boolean> modeMap, Map<String, List<Float>> intervalsMap) {
+  private void saveToFile(String fname, Map<String,String> modeMap, Map<String, List<Float>> intervalsMap) {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(fname))) {
       // Write header
       writer.write("ruleNumber,ruleAsText,");
@@ -178,7 +178,7 @@ class AttributeRangeDialog extends JFrame {
         List<String> labels = new ArrayList<>();
         List<Double> breaks = new ArrayList<>();
 
-        if (modeMap.get(attribute)) {
+        if (modeMap.get(attribute).equals("distinct")) {
           // Distinct mode
           List<Float> values = new ArrayList<>(uniqueSortedValues.get(attribute));
           int numIntervals = values.size();
@@ -189,7 +189,7 @@ class AttributeRangeDialog extends JFrame {
           }
           breaks.add(Double.MAX_VALUE); // Add max value for the last interval
         } else {
-          // Quantiles mode
+          // Quantiles or equal intervals mode
           int n=intervalsMap.get(attribute).size();
           float[] minMax = attrMinMax.get(attribute);
           float min = minMax[0];
@@ -347,7 +347,7 @@ class AttributeTableModel extends AbstractTableModel {
   private final Map<String, float[]> attrMinMax;
   private final Map<String, TreeSet<Float>> uniqueSortedValues;
   private final Map<String, List<Float>> allValues;
-  public final Map<String, Boolean> modeMap;
+  public final Map<String, String> modeMap;
   private final Map<String, Integer> quantileMap;
   public final Map<String, List<Float>> intervalsMap;
 
@@ -360,17 +360,17 @@ class AttributeTableModel extends AbstractTableModel {
     this.attrMinMax = attrMinMax;
     this.uniqueSortedValues = uniqueSortedValues;
     this.allValues = allValues;
-    this.modeMap = new HashMap<>();
+    this.modeMap = new HashMap<String,String>();
     this.quantileMap = new HashMap<>();
     this.intervalsMap = new HashMap<>();
 
     for (String attribute : attributes) {
       int uniqueCount = uniqueSortedValues.get(attribute).size();
       if (uniqueCount <= 5) {
-        modeMap.put(attribute, true); // Distinct mode
+        modeMap.put(attribute, "distinct"); // Distinct mode
       } else {
-        modeMap.put(attribute, false); // Quantiles mode
-        quantileMap.put(attribute, 4); // Default quantiles
+        modeMap.put(attribute, "equal intervals"); // equal intervals mode
+        quantileMap.put(attribute, 4); // Default number of intervals
       }
       updateClassIntervals(attribute);
     }
@@ -395,7 +395,7 @@ class AttributeTableModel extends AbstractTableModel {
       case 2: return attrMinMax.get(attribute)[1];
       case 3: return uniqueSortedValues.get(attribute).size();
       case 4: return allValues.get(attribute).size();
-      case 5: return modeMap.get(attribute) ? "Distinct" : "Quantiles";
+      case 5: return modeMap.get(attribute);
       case 6: return quantileMap.get(attribute);
       case 7: return intervalsMap.get(attribute).toString();
       default: return null;
@@ -409,7 +409,7 @@ class AttributeTableModel extends AbstractTableModel {
       return true;
     }
     if (columnIndex == 6) {
-      return !modeMap.get(attribute);
+      return !modeMap.get(attribute).equals("distinct");
     }
     return false;
   }
@@ -418,8 +418,8 @@ class AttributeTableModel extends AbstractTableModel {
   public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
     String attribute = attributes.get(rowIndex);
     if (columnIndex == 5) {
-      modeMap.put(attribute, "Distinct".equals(aValue));
-      if (modeMap.get(attribute)) {
+      modeMap.put(attribute,aValue.toString());
+      if (modeMap.get(attribute).equals("distinct")) {
         quantileMap.remove(attribute);
       }
       updateClassIntervals(attribute);
@@ -438,29 +438,39 @@ class AttributeTableModel extends AbstractTableModel {
   }
 
   private void updateClassIntervals(String attribute) {
-    if (modeMap.get(attribute)) {
+    if (modeMap.get(attribute).equals("distinct")) {
       intervalsMap.put(attribute, new ArrayList<>(uniqueSortedValues.get(attribute)));
     } else {
       // Ensure quantileMap has an entry for the attribute
-      if (!quantileMap.containsKey(attribute)) {
+      if (!quantileMap.containsKey(attribute))
         quantileMap.put(attribute, 4); // Default quantiles
-      }
-      // Calculate quantiles
-      List<Float> values = new ArrayList<>(new HashSet<>(allValues.get(attribute))); // Remove duplicates
-      Collections.sort(values);
-      int n = quantileMap.get(attribute);
-      List<Float> quantiles = new ArrayList<>();
-      for (int i = 1; i < n; i++) {
-        int index = (int) Math.ceil(i * values.size() / (double) n) - 1;
-        // Ensure index is within bounds
-        index = Math.min(index, values.size() - 1);
-        float breakPoint = (values.get(index) + values.get(Math.min(index + 1, values.size() - 1))) / 2;
-        if (!quantiles.contains(breakPoint)) {
-          quantiles.add(breakPoint);
+      int n=quantileMap.get(attribute);
+      if (modeMap.get(attribute).equals("quantiles")) {
+        // Calculate quantiles
+        List<Float> values=new ArrayList<>(new HashSet<>(allValues.get(attribute))); // Remove duplicates
+        Collections.sort(values);
+        List<Float> quantiles=new ArrayList<>();
+        for (int i=1; i<n; i++) {
+          int index=(int) Math.ceil(i*values.size()/(double) n)-1;
+          // Ensure index is within bounds
+          index=Math.min(index, values.size()-1);
+          float breakPoint=(values.get(index)+values.get(Math.min(index+1, values.size()-1)))/2;
+          if (!quantiles.contains(breakPoint)) {
+            quantiles.add(breakPoint);
+          }
         }
+        quantileMap.put(attribute, quantiles.size()+1); // Update the number of quantiles
+        intervalsMap.put(attribute, quantiles);
       }
-      quantileMap.put(attribute, quantiles.size() + 1); // Update the number of quantiles
-      intervalsMap.put(attribute, quantiles);
+      else {
+        //equal intervals
+        float minmax[]=attrMinMax.get(attribute);
+        double min=(double)minmax[0], step=(minmax[1]-min)/n;
+        List<Float> breaks=new ArrayList<>();
+        for (int i=1; i<n; i++)
+          breaks.add((float)(min+i*step));
+        intervalsMap.put(attribute,breaks);
+      }
     }
   }
 
